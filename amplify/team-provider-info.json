@@ -1,0 +1,15 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-chartistry-dev-0b584-authRole",
+      "UnauthRoleArn": "arn:aws:iam::252326958099:role/amplify-chartistry-dev-0b584-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::252326958099:role/amplify-chartistry-dev-0b584-authRole",
+      "Region": "eu-west-2",
+      "DeploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
+      "UnauthRoleName": "amplify-chartistry-dev-0b584-unauthRole",
+      "StackName": "amplify-chartistry-dev-0b584",
+      "StackId": "arn:aws:cloudformation:eu-west-2:252326958099:stack/amplify-chartistry-dev-0b584/661d11e0-6b8c-11f0-89f3-0af8bc18aad3",
+      "AmplifyAppId": "d1cy9eh5rdxk4x"
+    }
+  }
+}
