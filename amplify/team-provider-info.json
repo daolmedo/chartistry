@@ -10,6 +10,17 @@
       "StackName": "amplify-chartistry-dev-0b584",
       "StackId": "arn:aws:cloudformation:eu-west-2:252326958099:stack/amplify-chartistry-dev-0b584/661d11e0-6b8c-11f0-89f3-0af8bc18aad3",
       "AmplifyAppId": "d1cy9eh5rdxk4x"
+    },
+    "categories": {
+      "function": {
+        "chartgenerator": {
+          "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
+          "s3Key": "amplify-builds/chartgenerator-456f79634258394b7337-build.zip"
+        }
+      },
+      "api": {
+        "chartistryapi": {}
+      }
     }
   }
 }

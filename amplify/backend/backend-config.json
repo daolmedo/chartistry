@@ -1,1 +1,43 @@
-{}
+{
+  "api": {
+    "chartistryapi": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "chartgenerator"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    }
+  },
+  "function": {
+    "chartgenerator": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_function_chartgenerator_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "chartgenerator"
+        }
+      ]
+    },
+    "AMPLIFY_function_chartgenerator_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "chartgenerator"
+        }
+      ]
+    }
+  }
+}
