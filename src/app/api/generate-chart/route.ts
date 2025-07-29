@@ -1,4 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Amplify } from 'aws-amplify';
+import { post } from 'aws-amplify/api';
+import awsExports from '../../../amplifyconfiguration.json';
+
+// Configure Amplify for SSR
+Amplify.configure(awsExports, {
+  ssr: true
+});
+
+const myAPI = "chartistryapi";
+const chartGeneratorPath = '/chartgenerator';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,23 +20,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // Call the Lambda function via API Gateway
-    // This URL should be updated with your actual API Gateway endpoint
-    const apiGatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'https://your-api-gateway-url.amazonaws.com/dev/chartgenerator';
-    
-    const response = await fetch(apiGatewayUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message }),
-    });
+    // Call the Lambda function via API Gateway using aws-amplify
+    const response = await post({
+      apiName: myAPI,
+      path: chartGeneratorPath,
+      options: {
+        body: { message }
+      }
+    }).response;
 
-    if (!response.ok) {
-      throw new Error(`API Gateway error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await response.body.json();
     return NextResponse.json(data);
 
   } catch (error) {
