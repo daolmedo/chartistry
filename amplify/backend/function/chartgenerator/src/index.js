@@ -61,11 +61,11 @@ Available libraries:
 
 The component will be rendered in a container, so make it fill the available space appropriately.
 
-Return ONLY the JavaScript/React code, no markdown or explanations.`;
+CRITICAL: Return ONLY the raw JavaScript/React code without any markdown formatting, code blocks, or explanations. Do NOT wrap the code in \`\`\`jsx or \`\`\` blocks. The code should start directly with import statements or const/function declarations.`;
 
         const userPrompt = `Create a React chart component based on this request: ${message}
 
-Generate complete, working code that I can execute directly.`;
+Generate complete, executable JavaScript/React code without any markdown formatting.`;
 
         const response = await anthropic.messages.create({
             model: 'claude-3-5-sonnet-20241022',
@@ -79,7 +79,15 @@ Generate complete, working code that I can execute directly.`;
             ]
         });
 
-        const chartCode = response.content[0].text;
+        let chartCode = response.content[0].text;
+        
+        // Strip markdown code blocks as a safety measure
+        if (chartCode.includes('```')) {
+            chartCode = chartCode
+                .replace(/^```(?:jsx|javascript|js|react)?\n?/gm, '')
+                .replace(/\n?```$/gm, '')
+                .trim();
+        }
 
         return {
             statusCode: 200,

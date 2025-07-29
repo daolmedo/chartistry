@@ -9,7 +9,7 @@ Amplify.configure(awsExports, {
 });
 
 const myAPI = "chartistryapi";
-const chartGeneratorPath = '/chartgenerator';
+const chartGeneratorPath = '/charts';
 
 export async function POST(request: NextRequest) {
   try {
