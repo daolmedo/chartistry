@@ -55,13 +55,23 @@ Requirements:
 8. Include proper TypeScript types when beneficial
 
 Available libraries:
-- React (useState, useEffect, useMemo, etc.)
-- Framer Motion (motion components)
-- Visx modules (scale, axis, shape, group, grid, curve, gradient, pattern, tooltip)
+- React (useState, useEffect, useMemo, etc.) - access via React.useState, etc.
+- Framer Motion (motion components) - access via motion
+- Visx modules: visx.scale, visx.axis, visx.shape, visx.group, visx.grid, visx.curve, visx.gradient, visx.pattern, visx.tooltip
 
 The component will be rendered in a container, so make it fill the available space appropriately.
 
-CRITICAL: Return ONLY the raw JavaScript/React code without any markdown formatting, code blocks, or explanations. Do NOT wrap the code in \`\`\`jsx or \`\`\` blocks. The code should start directly with import statements or const/function declarations.`;
+CRITICAL SYNTAX REQUIREMENTS:
+- DO NOT use ES6 import statements (import ... from ...)
+- DO NOT use export default or export statements
+- Instead, destructure from the provided objects at the top of your code
+- Example: const { useState, useEffect, useMemo } = React;
+- Example: const { scaleLinear, scaleBand } = visx.scale;
+- Example: const { Group } = visx.group;
+- Example: const { Bar } = visx.shape;
+- Example: const { AxisLeft, AxisBottom } = visx.axis;
+
+CRITICAL: Return ONLY the raw JavaScript/React code without any markdown formatting, code blocks, or explanations. Do NOT wrap the code in \`\`\`jsx or \`\`\` blocks. The code should start directly with const declarations for destructuring.`;
 
         const userPrompt = `Create a React chart component based on this request: ${message}
 

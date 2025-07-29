@@ -17,30 +17,41 @@ export default function ChartRenderer({ code }: ChartRendererProps) {
       try {
         setError(null);
         
+        // Import all visx modules for the sandbox
+        const [scale, axis, shape, group, grid, curve, gradient, pattern, tooltip] = await Promise.all([
+          import('@visx/scale'),
+          import('@visx/axis'),
+          import('@visx/shape'),
+          import('@visx/group'),
+          import('@visx/grid'),
+          import('@visx/curve'),
+          import('@visx/gradient'),
+          import('@visx/pattern'),
+          import('@visx/tooltip'),
+        ]);
+
+        const visx = {
+          scale,
+          axis,
+          shape,
+          group,
+          grid,
+          curve,
+          gradient,
+          pattern,
+          tooltip,
+        };
+
         // Create a safe execution environment
         const executeInSandbox = new Function(
           'React',
           'motion',
           'visx',
           `
-          const { useState, useEffect, useMemo } = React;
           ${code}
           return ChartComponent;
           `
         );
-
-        // Import all visx modules for the sandbox
-        const visx = await import('@visx/scale').then(scale => ({
-          scale,
-          axis: require('@visx/axis'),
-          shape: require('@visx/shape'),
-          group: require('@visx/group'),
-          grid: require('@visx/grid'),
-          curve: require('@visx/curve'),
-          gradient: require('@visx/gradient'),
-          pattern: require('@visx/pattern'),
-          tooltip: require('@visx/tooltip'),
-        }));
 
         const GeneratedComponent = executeInSandbox(React, motion, visx);
         setComponent(() => GeneratedComponent);
