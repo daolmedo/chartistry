@@ -1,5 +1,7 @@
 {
-  "whyContinueWithGen1": "I find the Gen 1 CLI easier to use",
+  "providers": [
+    "awscloudformation"
+  ],
   "projectName": "chartistry",
   "version": "3.1",
   "frontend": "javascript",
@@ -8,11 +10,8 @@
     "config": {
       "SourceDir": "src",
       "DistributionDir": "build",
-      "BuildCommand": "npm.cmd run-script build",
-      "StartCommand": "npm.cmd run-script start"
+      "BuildCommand": "npm run build",
+      "StartCommand": ""
     }
-  },
-  "providers": [
-    "awscloudformation"
-  ]
+  }
 }

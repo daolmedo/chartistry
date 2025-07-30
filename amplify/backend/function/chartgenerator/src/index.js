@@ -1,121 +1,155 @@
-
-const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require("openai");
 
 /**
  * @type {import('@types/aws-lambda').APIGatewayProxyHandler}
  */
 exports.handler = async (event) => {
     console.log(`EVENT: ${JSON.stringify(event)}`);
-    
+
     const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
     };
-
-    // Handle preflight requests
-    if (event.httpMethod === 'OPTIONS') {
-        return {
-            statusCode: 200,
-            headers,
-            body: ''
-        };
+  
+    // Handle pre‑flight requests
+    if (event.httpMethod === "OPTIONS") {
+        return { statusCode: 200, headers, body: "" };
     }
-
+  
     try {
-        // Parse the request body
-        const body = JSON.parse(event.body || '{}');
+        const body = JSON.parse(event.body || "{}");
+        console.log(`Parsed body: ${JSON.stringify(body)}`);
         const { message } = body;
 
         if (!message) {
+            console.log("No message provided in the request");
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'Message is required' })
+                body: JSON.stringify({ error: "Message is required" })
             };
         }
 
-        // Initialize Claude client
-        const anthropic = new Anthropic({
-            apiKey: process.env.ANTHROPIC_API_KEY,
+        // Initialise OpenAI client – picks up OPENAI_API_KEY from env
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY
         });
+        console.log("OpenAI client initialized");
 
-        const systemPrompt = `You are an expert React developer specializing in data visualization with Visx and Framer Motion. 
+        const systemPrompt = `You are an expert data visualization consultant specializing in chart selection and configuration.
 
-Your task is to generate complete, working React component code that creates beautiful, animated charts based on user requests.
+        Your task is to analyze user requests and return a JSON configuration object for pre-built chart templates.
 
-Requirements:
-1. Always create a functional React component named "ChartComponent"
-2. Use Visx for chart primitives (available as visx.scale, visx.shape, visx.axis, etc.)
-3. Use Framer Motion for animations (available as motion)
-4. Include sample data when not provided by the user
-5. Make charts responsive and visually appealing
-6. Add smooth animations and transitions
-7. Use modern React patterns (hooks, functional components)
-8. Include proper TypeScript types when beneficial
+        # Available Chart Types:
+        - "bar": Vertical bar charts for categorical data
+        - "line": Line charts for time series or continuous data
+        - "pie": Pie charts for parts-of-a-whole data
 
-Available libraries:
-- React (useState, useEffect, useMemo, etc.) - access via React.useState, etc.
-- Framer Motion (motion components) - access via motion
-- Visx modules: visx.scale, visx.axis, visx.shape, visx.group, visx.grid, visx.curve, visx.gradient, visx.pattern, visx.tooltip
+        # Configuration Structure:
+        Return a JSON object with this exact structure:
+        {
+          "type": "bar|line|pie",
+          "data": [
+            { "label": "Category", "value": 100, "date": "2024-01-01" (optional) }
+          ],
+          "styling": {
+            "colors": ["#4f46e5", "#6366f1", "#8b5cf6"],
+            "title": "Chart Title",
+            "xLabel": "X Axis Label (optional)",
+            "yLabel": "Y Axis Label (optional)"
+          },
+          "animation": {
+            "duration": 0.6,
+            "stagger": 0.04
+          },
+          "showValues": true (for bar charts),
+          "showDots": true (for line charts),
+          "fillArea": false (for line charts),
+          "showLabels": true (for pie charts)
+        }
 
-The component will be rendered in a container, so make it fill the available space appropriately.
+        # Guidelines:
+        1. Generate realistic sample data (5-8 data points) based on the user's request
+        2. Choose appropriate chart types based on data characteristics
+        3. Use professional color palettes (blues, greens, purples)
+        4. Create meaningful titles and labels
+        5. Set appropriate animation timing
+        6. Include date fields for time-series data
 
-CRITICAL SYNTAX REQUIREMENTS:
-- DO NOT use ES6 import statements (import ... from ...)
-- DO NOT use export default or export statements
-- Instead, destructure from the provided objects at the top of your code
-- Example: const { useState, useEffect, useMemo } = React;
-- Example: const { scaleLinear, scaleBand } = visx.scale;
-- Example: const { Group } = visx.group;
-- Example: const { Bar } = visx.shape;
-- Example: const { AxisLeft, AxisBottom } = visx.axis;
+        # Examples:
+        - "Sales by month" → bar chart with monthly data
+        - "Temperature over time" → line chart with dates and smooth curves
+        - "Market share breakdown" → pie chart with percentages
+        - "Revenue trends" → line chart with area fill
 
-CRITICAL: Return ONLY the raw JavaScript/React code without any markdown formatting, code blocks, or explanations. Do NOT wrap the code in \`\`\`jsx or \`\`\` blocks. The code should start directly with const declarations for destructuring.`;
+        CRITICAL: Return ONLY the JSON configuration object. No markdown, no explanations, just valid JSON.`;
 
-        const userPrompt = `Create a React chart component based on this request: ${message}
+        const userPrompt = `Create a chart configuration for this request: ${message}
 
-Generate complete, executable JavaScript/React code without any markdown formatting.`;
+        Return only the JSON configuration object.`;
 
-        const response = await anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 4000,
-            system: systemPrompt,
+        console.log("Sending request to OpenAI");
+        const completion = await openai.chat.completions.create({
+            model: "o4-mini",
             messages: [
-                {
-                    role: 'user',
-                    content: userPrompt
-                }
+            { role: "system", content: systemPrompt },
+            { role: "user",   content: userPrompt }
             ]
         });
 
-        let chartCode = response.content[0].text;
-        
-        // Strip markdown code blocks as a safety measure
-        if (chartCode.includes('```')) {
-            chartCode = chartCode
-                .replace(/^```(?:jsx|javascript|js|react)?\n?/gm, '')
-                .replace(/\n?```$/gm, '')
-                .trim();
+        let chartConfig = completion.choices[0].message.content;
+        console.log("Received chart config from OpenAI");
+
+        // Parse and validate JSON response
+        let parsedConfig;
+        try {
+            // Strip any markdown code fences if present
+            if (chartConfig.includes("```")) {
+                chartConfig = chartConfig
+                    .replace(/^```(?:json)?\\n?/gm, "")
+                    .replace(/\\n?```$/gm, "")
+                    .trim();
+            }
+            
+            parsedConfig = JSON.parse(chartConfig);
+            console.log("Successfully parsed chart configuration");
+            
+            // Validate required fields
+            if (!parsedConfig.type || !parsedConfig.data || !parsedConfig.styling) {
+                throw new Error("Missing required configuration fields");
+            }
+            
+        } catch (parseError) {
+            console.error("Failed to parse chart configuration:", parseError);
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({
+                    error: "Invalid chart configuration generated",
+                    details: parseError.message
+                })
+            };
         }
 
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                chartCode,
-                message: 'Chart generated successfully'
-            })
-        };
+    console.log("Returning successful response");
+    return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+            config: parsedConfig,
+            message: "Chart configuration generated successfully"
+        })
+    };
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ 
-                error: 'Internal server error',
-                details: error.message 
+            body: JSON.stringify({
+                error: "Internal server error",
+                details: error.message
             })
         };
     }
