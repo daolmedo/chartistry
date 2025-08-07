@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import ChatSidebar from './components/ChatSidebar';
-import ChartDisplay from './components/ChartDisplay';
 import { generateChart } from './lib/api';
 
 export default function Home() {
@@ -26,15 +24,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <ChatSidebar 
-        onGenerateChart={handleGenerateChart}
-        isGenerating={isLoading}
-      />
-      <ChartDisplay 
-        chartCode={chartCode}
-        isLoading={isLoading}
-        error={error}
-      />
+
     </div>
   );
 }
