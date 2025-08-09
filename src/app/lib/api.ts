@@ -1,5 +1,28 @@
+export interface ChartConfig {
+  type: string;
+  data: {
+    labels: string[];
+    datasets: Array<{
+      data: number[];
+      backgroundColor: string[];
+    }>;
+  };
+  options: {
+    responsive: boolean;
+    plugins: {
+      legend: {
+        position: string;
+      };
+      title: {
+        display: boolean;
+        text: string;
+      };
+    };
+  };
+}
+
 export interface ChartResponse {
-  chartCode: string;
+  config: ChartConfig;
   message: string;
 }
 

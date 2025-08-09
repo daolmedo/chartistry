@@ -1,20 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { generateChart } from './lib/api';
+import { generateChart, ChartConfig } from './lib/api';
+import Sidebar from './components/Sidebar';
+import ChartDisplay from './components/ChartDisplay';
 
 export default function Home() {
-  const [chartCode, setChartCode] = useState<string | null>(null);
+  const [chartConfig, setChartConfig] = useState<ChartConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerateChart = async (message: string) => {
     setIsLoading(true);
     setError(null);
+    setChartConfig(null);
     
     try {
       const response = await generateChart(message);
-      setChartCode(response.chartCode);
+      setChartConfig(response.config);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
@@ -24,7 +27,8 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-
+      <Sidebar onSendMessage={handleGenerateChart} isLoading={isLoading} />
+      <ChartDisplay chartConfig={chartConfig} isLoading={isLoading} error={error} />
     </div>
   );
 }
