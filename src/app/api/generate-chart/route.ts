@@ -14,10 +14,12 @@ const chartGeneratorPath = '/charts';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message } = body;
+    const { csv, prompt, apiKey } = body;
 
-    if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    if (!csv || !prompt || !apiKey) {
+      return NextResponse.json({ 
+        error: 'CSV data, prompt, and API key are required' 
+      }, { status: 400 });
     }
 
     // Call the Lambda function via API Gateway using aws-amplify
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest) {
       apiName: myAPI,
       path: chartGeneratorPath,
       options: {
-        body: { message }
+        body: { csv, prompt, apiKey }
       }
     }).response;
 

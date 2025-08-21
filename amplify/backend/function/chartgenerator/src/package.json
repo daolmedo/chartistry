@@ -10,6 +10,8 @@
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.63",
     "@anthropic-ai/sdk": "^0.57.0",
+    "@visactor/vchart": "^2.0.3",
+    "@visactor/vmind": "^2.0.10",
     "openai": "^5.10.2"
   }
 }

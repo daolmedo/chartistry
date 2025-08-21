@@ -1,8 +1,5 @@
-const OpenAI = require("openai");
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+const VMind = require("@visactor/vmind").default;
+const { Model } = require("@visactor/vmind");
 
 const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -26,86 +23,73 @@ exports.handler = async (event) => {
     
     try {
         const body = JSON.parse(event.body || '{}');
-        const { message } = body;
+        const { csv, prompt, apiKey } = body;
         
-        if (!message) {
+        if (!csv || !prompt || !apiKey) {
             return {
                 statusCode: 400,
                 headers,
                 body: JSON.stringify({
-                    error: "Message is required"
+                    error: "CSV data, prompt, and API key are required"
                 })
             };
         }
         
-        const systemPrompt = `You are a chart specification generator. Based on the user's message, generate a JSON specification for a Chart.js pie chart.
-
-Return ONLY a JSON object with this exact structure:
-{
-  "type": "pie",
-  "data": {
-    "labels": ["Label1", "Label2", "Label3"],
-    "datasets": [{
-      "data": [value1, value2, value3],
-      "backgroundColor": ["#FF6384", "#36A2EB", "#FFCE56"]
-    }]
-  },
-  "options": {
-    "responsive": true,
-    "plugins": {
-      "legend": {
-        "position": "bottom"
-      },
-      "title": {
-        "display": true,
-        "text": "Chart Title"
-      }
-    }
-  }
-}
-
-Generate realistic data based on the user's request. Use meaningful labels and appropriate colors.`;
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
-            messages: [
-                {
-                    role: "system",
-                    content: systemPrompt
-                },
-                {
-                    role: "user",
-                    content: message
-                }
-            ],
-            max_tokens: 1000,
-            temperature: 0.7
+        // Initialize VMind with OpenAI
+        const vmind = new VMind({
+            url: 'https://api.openai.com/v1/chat/completions',
+            model: Model.GPT_4o,
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'api-key': apiKey
+            }
         });
 
-        const chartSpecText = completion.choices[0].message.content;
-        let chartConfig;
+        const startTime = Date.now();
         
         try {
-            chartConfig = JSON.parse(chartSpecText);
-        } catch (parseError) {
-            console.error('Failed to parse OpenAI response as JSON:', chartSpecText);
+            // Parse CSV data
+            const { fieldInfo, dataset } = vmind.parseCSVData(csv);
+            console.log('Parsed CSV - Fields:', fieldInfo.length, 'Rows:', dataset.length);
+            
+            // Generate chart specification
+            const result = await vmind.generateChart(
+                prompt,
+                fieldInfo,
+                dataset,
+                {
+                    theme: 'light',
+                    enableDataQuery: true
+                }
+            );
+            
+            const endTime = Date.now();
+            const generationTime = endTime - startTime;
+            
+            console.log('Chart generated successfully in', generationTime, 'ms');
+            
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    spec: result.spec,
+                    time: generationTime,
+                    chartType: result.chartType,
+                    message: "Chart specification generated successfully"
+                })
+            };
+            
+        } catch (vmindError) {
+            console.error('VMind generation error:', vmindError);
             return {
                 statusCode: 500,
                 headers,
                 body: JSON.stringify({
-                    error: "Failed to generate valid chart configuration"
+                    error: "Failed to generate chart specification",
+                    details: vmindError.message
                 })
             };
         }
-
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                config: chartConfig,
-                message: "Chart configuration generated successfully"
-            })
-        };
         
     } catch (error) {
         console.error('Error in chart generator:', error);
