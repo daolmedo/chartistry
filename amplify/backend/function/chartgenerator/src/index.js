@@ -1,5 +1,8 @@
-const VMind = require("@visactor/vmind").default;
-const { Model } = require("@visactor/vmind");
+const AWS = require('aws-sdk');
+
+const lambda = new AWS.Lambda({
+    region: 'eu-west-2'
+});
 
 const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -23,45 +26,47 @@ exports.handler = async (event) => {
     
     try {
         const body = JSON.parse(event.body || '{}');
-        const { csv, prompt, apiKey } = body;
+        const { csv, prompt } = body;
         
-        if (!csv || !prompt || !apiKey) {
+        if (!csv || !prompt) {
             return {
                 statusCode: 400,
                 headers,
                 body: JSON.stringify({
-                    error: "CSV data, prompt, and API key are required"
+                    error: "CSV data and prompt are required"
                 })
             };
         }
         
-        // Initialize VMind with OpenAI
-        const vmind = new VMind({
-            url: 'https://api.openai.com/v1/chat/completions',
-            model: Model.GPT_4o,
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'api-key': apiKey
-            }
-        });
-
         const startTime = Date.now();
         
         try {
-            // Parse CSV data
-            const { fieldInfo, dataset } = vmind.parseCSVData(csv);
-            console.log('Parsed CSV - Fields:', fieldInfo.length, 'Rows:', dataset.length);
+            // Call the vmind lambda function
+            const vmindParams = {
+                FunctionName: 'arn:aws:lambda:eu-west-2:252326958099:function:vmind',
+                Payload: JSON.stringify({
+                    body: JSON.stringify({
+                        csv,
+                        prompt
+                    })
+                })
+            };
             
-            // Generate chart specification
-            const result = await vmind.generateChart(
-                prompt,
-                fieldInfo,
-                dataset,
-                {
-                    theme: 'light',
-                    enableDataQuery: true
-                }
-            );
+            console.log('Invoking vmind lambda with payload:', vmindParams.Payload);
+            
+            const vmindResult = await lambda.invoke(vmindParams).promise();
+            
+            if (vmindResult.StatusCode !== 200) {
+                throw new Error(`VMind lambda returned status ${vmindResult.StatusCode}`);
+            }
+            
+            const vmindResponse = JSON.parse(vmindResult.Payload);
+            
+            if (vmindResponse.statusCode !== 200) {
+                throw new Error(`VMind lambda failed: ${vmindResponse.body}`);
+            }
+            
+            const vmindData = JSON.parse(vmindResponse.body);
             
             const endTime = Date.now();
             const generationTime = endTime - startTime;
@@ -72,9 +77,9 @@ exports.handler = async (event) => {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
-                    spec: result.spec,
+                    spec: vmindData.spec,
                     time: generationTime,
-                    chartType: result.chartType,
+                    chartType: vmindData.chartType,
                     message: "Chart specification generated successfully"
                 })
             };
