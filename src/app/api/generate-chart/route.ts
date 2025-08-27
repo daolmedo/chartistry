@@ -14,25 +14,49 @@ const chartGeneratorPath = '/charts';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { csv, prompt, apiKey } = body;
+    const { csv, prompt } = body;
 
-    if (!csv || !prompt || !apiKey) {
+    if (!csv || !prompt) {
       return NextResponse.json({ 
-        error: 'CSV data, prompt, and API key are required' 
+        error: 'CSV data and prompt are required' 
       }, { status: 400 });
     }
 
-    // Call the Lambda function via API Gateway using aws-amplify
-    const response = await post({
-      apiName: myAPI,
-      path: chartGeneratorPath,
-      options: {
-        body: { csv, prompt, apiKey }
-      }
-    }).response;
+    // Check if we're in local development mode
+    const isLocal = process.env.LOCAL === 'true';
 
-    const data = await response.body.json();
-    return NextResponse.json(data);
+    if (isLocal) {
+      // Call local Lambda function
+      const response = await fetch('http://localhost:9000/2015-03-31/functions/function/invocations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          httpMethod: 'POST',
+          body: JSON.stringify({ csv, prompt })
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Local Lambda call failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return NextResponse.json(data);
+    } else {
+      // Call the Lambda function via API Gateway using aws-amplify
+      const response = await post({
+        apiName: myAPI,
+        path: chartGeneratorPath,
+        options: {
+          body: { csv, prompt }
+        }
+      }).response;
+
+      const data = await response.body.json();
+      return NextResponse.json(data);
+    }
 
   } catch (error) {
     console.error('Error in generate-chart API route:', error);

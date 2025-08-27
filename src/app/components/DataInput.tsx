@@ -10,10 +10,6 @@ interface DataInputProps {
   setPrompt: (prompt: string) => void;
   onGenerate: () => void;
   isLoading: boolean;
-  apiKey: string;
-  setApiKey: (key: string) => void;
-  showApiConfig: boolean;
-  setShowApiConfig: (show: boolean) => void;
 }
 
 export default function DataInput({
@@ -22,11 +18,7 @@ export default function DataInput({
   prompt,
   setPrompt,
   onGenerate,
-  isLoading,
-  apiKey,
-  setApiKey,
-  showApiConfig,
-  setShowApiConfig
+  isLoading
 }: DataInputProps) {
   const [selectedDemo, setSelectedDemo] = useState<string>('');
 
@@ -52,7 +44,7 @@ export default function DataInput({
     }
   }, [setCsv]);
 
-  const canGenerate = csv.trim() && prompt.trim() && apiKey.trim() && !isLoading;
+  const canGenerate = csv.trim() && prompt.trim() && !isLoading;
 
   return (
     <div className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
@@ -61,40 +53,6 @@ export default function DataInput({
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Chart Generation</h2>
         </div>
 
-        {/* API Configuration */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700">
-              API Configuration
-            </label>
-            <button
-              onClick={() => setShowApiConfig(!showApiConfig)}
-              className="text-blue-600 hover:text-blue-800 text-sm"
-            >
-              {showApiConfig ? 'Hide' : 'Configure'}
-            </button>
-          </div>
-          
-          {showApiConfig && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  OpenAI API Key
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-              <p className="text-xs text-gray-500">
-                API key is required for chart generation. It will be sent to your Lambda function.
-              </p>
-            </div>
-          )}
-        </div>
 
         {/* Demo Data Selector */}
         <div className="space-y-3">
@@ -178,14 +136,6 @@ export default function DataInput({
           </button>
         </div>
 
-        {/* Status Messages */}
-        {!apiKey && (
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              Please configure your OpenAI API key to generate charts.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

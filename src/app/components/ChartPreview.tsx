@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import VChart from '@visactor/vchart';
 
 interface VChartSpec {
   type: string;
@@ -20,13 +21,10 @@ export default function ChartPreview({ spec, generationTime, error }: ChartPrevi
   const [showSpec, setShowSpec] = useState(false);
 
   useEffect(() => {
-    const loadVChart = async () => {
+    const renderChart = async () => {
       if (!spec || !chartRef.current) return;
 
       try {
-        // Dynamically import VChart to avoid SSR issues
-        const VChart = (await import('@visactor/vchart')).default;
-        
         // Clean up previous chart instance
         if (vchartInstance.current) {
           vchartInstance.current.release();
@@ -38,8 +36,23 @@ export default function ChartPreview({ spec, generationTime, error }: ChartPrevi
           chartRef.current.innerHTML = '';
         }
 
+        // Get container dimensions
+        const container = chartRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const width = Math.max(containerRect.width, 400);
+        const height = Math.max(containerRect.height, 400);
+
+        // Ensure spec has proper width/height constraints
+        const chartSpec = {
+          ...spec,
+          width,
+          height,
+          autoFit: false, // Disable auto-fit to prevent size changes
+          animation: false, // Disable animations to prevent resize triggers
+        };
+
         // Create new chart instance
-        vchartInstance.current = new VChart(spec, {
+        vchartInstance.current = new VChart(chartSpec, {
           dom: chartRef.current,
           mode: 'desktop-browser',
           dpr: window.devicePixelRatio || 1,
@@ -52,7 +65,7 @@ export default function ChartPreview({ spec, generationTime, error }: ChartPrevi
       }
     };
 
-    loadVChart();
+    renderChart();
 
     // Cleanup on unmount
     return () => {
@@ -63,16 +76,41 @@ export default function ChartPreview({ spec, generationTime, error }: ChartPrevi
     };
   }, [spec]);
 
-  // Handle window resize
+  // Handle window resize with throttling
   useEffect(() => {
+    let resizeTimeout: NodeJS.Timeout;
+    
     const handleResize = () => {
-      if (vchartInstance.current) {
-        vchartInstance.current.resize();
+      // Clear previous timeout
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
       }
+      
+      // Throttle resize calls to prevent infinite loops
+      resizeTimeout = setTimeout(() => {
+        if (vchartInstance.current && chartRef.current) {
+          const container = chartRef.current;
+          const containerRect = container.getBoundingClientRect();
+          const width = Math.max(containerRect.width, 400);
+          const height = Math.max(containerRect.height, 400);
+          
+          // Update chart size with explicit dimensions
+          vchartInstance.current.updateSpec({
+            width,
+            height,
+            autoFit: false,
+          });
+        }
+      }, 150); // 150ms throttle
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+    };
   }, []);
 
   if (error) {
