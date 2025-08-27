@@ -332,6 +332,22 @@ export default function LandingPage() {
         size: (d: any) => logScale(d.Population, [0, Math.max(...bubbleData.map(d => d.Population))], [1, 20])
       }
     ],
+    crosshair: {
+      yField: {
+        visible: true,
+        line: { visible: true, type: 'line' },
+        label: {
+          visible: true
+        }
+      },
+      xField: {
+        visible: true,
+        line: { visible: true, type: 'line' },
+        label: {
+          visible: true
+        }
+      }
+    },
     data: [
       {
         id: 'data',
@@ -349,6 +365,9 @@ export default function LandingPage() {
         title: {
           visible: true,
           text: 'Life Expectancy'
+        },
+        domainLine: {
+          visible: true
         }
       },
       {
@@ -357,6 +376,9 @@ export default function LandingPage() {
         title: {
           visible: true,
           text: 'GDP per Capita'
+        },
+        domainLine: {
+          visible: true
         }
       }
     ],

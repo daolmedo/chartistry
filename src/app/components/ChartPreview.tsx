@@ -115,15 +115,15 @@ export default function ChartPreview({ spec, generationTime, error }: ChartPrevi
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <div className="text-center space-y-4 max-w-md">
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
+        <div className="text-center space-y-4 max-w-md p-8 bg-white rounded-2xl shadow-lg border border-gray-200">
           <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Generation Failed</h3>
+            <h3 className="text-lg font-bold text-gray-900">Generation Failed</h3>
             <p className="text-sm text-gray-600 mt-2">{error}</p>
           </div>
         </div>
@@ -133,17 +133,17 @@ export default function ChartPreview({ spec, generationTime, error }: ChartPrevi
 
   if (!spec) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto bg-gray-200 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
+        <div className="text-center space-y-4 p-8 bg-white rounded-2xl shadow-lg border border-gray-200 max-w-md">
+          <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Ready to Generate</h3>
+            <h3 className="text-lg font-bold text-gray-900">Ready to Generate</h3>
             <p className="text-sm text-gray-600 mt-2">
-              Configure your data and prompt, then click Generate Chart to create a visualization.
+              Configure your data and prompt, then click Generate Chart to create a beautiful visualization.
             </p>
           </div>
         </div>
@@ -154,20 +154,20 @@ export default function ChartPreview({ spec, generationTime, error }: ChartPrevi
   return (
     <div className="flex-1 flex flex-col">
       {/* Chart Header */}
-      <div className="p-6 border-b border-gray-200 bg-white">
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-white to-gray-50">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Chart Preview</h2>
+            <h2 className="text-xl font-bold text-gray-900">Chart Preview</h2>
             {generationTime && (
               <p className="text-sm text-gray-600 mt-1">
-                Generated in {(generationTime / 1000).toFixed(2)}s
+                ⚡ Generated in {(generationTime / 1000).toFixed(2)}s
               </p>
             )}
           </div>
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setShowSpec(!showSpec)}
-              className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
+              className="px-4 py-2 text-sm bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-200 transition-colors shadow-sm"
             >
               {showSpec ? 'Hide Spec' : 'View Spec'}
             </button>
@@ -178,29 +178,29 @@ export default function ChartPreview({ spec, generationTime, error }: ChartPrevi
       {/* Chart Content */}
       <div className="flex-1 flex">
         {/* Chart Visualization */}
-        <div className={`${showSpec ? 'w-2/3' : 'w-full'} p-6 bg-white`}>
+        <div className={`${showSpec ? 'w-2/3' : 'w-full'} p-6 bg-gradient-to-br from-white to-gray-50`}>
           <div 
             ref={chartRef} 
-            className="w-full h-full min-h-[400px] border border-gray-200 rounded-lg"
+            className="w-full h-full min-h-[400px] border border-gray-200 rounded-xl shadow-sm bg-white"
           />
         </div>
 
         {/* Spec Panel */}
         {showSpec && (
-          <div className="w-1/3 border-l border-gray-200 bg-gray-50">
+          <div className="w-1/3 border-l border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100">
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-900">Chart Specification</h3>
+                <h3 className="text-sm font-bold text-gray-900">Chart Specification</h3>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(JSON.stringify(spec, null, 2));
                   }}
-                  className="text-xs text-blue-600 hover:text-blue-800"
+                  className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
                 >
                   Copy
                 </button>
               </div>
-              <pre className="text-xs bg-white p-3 rounded border overflow-auto h-96 text-gray-800">
+              <pre className="text-xs bg-white p-3 rounded-lg border shadow-sm overflow-auto h-96 text-gray-800">
                 {JSON.stringify(spec, null, 2)}
               </pre>
             </div>

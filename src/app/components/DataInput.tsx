@@ -47,10 +47,11 @@ export default function DataInput({
   const canGenerate = csv.trim() && prompt.trim() && !isLoading;
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
+    <div className="w-80 bg-gradient-to-br from-gray-50 to-white border-r border-gray-200 p-6 overflow-y-auto">
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Chart Generation</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Chart Generation</h2>
+          <p className="text-sm text-gray-600">Upload your data and describe the chart you want</p>
         </div>
 
 
@@ -62,7 +63,7 @@ export default function DataInput({
           <select
             value={selectedDemo}
             onChange={(e) => handleDemoChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm"
           >
             <option value="">Select demo data...</option>
             {demoDataKeys.map((key) => (
@@ -82,7 +83,7 @@ export default function DataInput({
             type="file"
             accept=".csv"
             onChange={handleFileUpload}
-            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:shadow-sm"
           />
         </div>
 
@@ -96,7 +97,7 @@ export default function DataInput({
             onChange={(e) => setCsv(e.target.value)}
             placeholder="Enter CSV data here..."
             rows={10}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono shadow-sm"
           />
         </div>
 
@@ -110,7 +111,7 @@ export default function DataInput({
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe what kind of chart you want..."
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm"
           />
         </div>
 
@@ -119,10 +120,10 @@ export default function DataInput({
           <button
             onClick={onGenerate}
             disabled={!canGenerate}
-            className={`w-full py-3 px-4 rounded-md text-sm font-medium transition-colors ${
+            className={`w-full py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl ${
               canGenerate
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-sm'
             }`}
           >
             {isLoading ? (
