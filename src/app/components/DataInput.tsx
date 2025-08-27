@@ -83,9 +83,19 @@ export default function DataInput({
         throw new Error(errorData.error || 'Failed to get upload URL');
       }
 
-      const { uploadUrl, fileId, s3Key } = await uploadResponse.json();
+      const { uploadUrl, fields, fileId, s3Key } = await uploadResponse.json();
 
-      // Step 2: Upload file directly to S3 using pre-signed URL
+      // Step 2: Upload file using pre-signed POST with form data
+      const formData = new FormData();
+      
+      // Add all the fields from the presigned POST
+      Object.entries(fields).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+      
+      // Add the file last
+      formData.append('file', file);
+
       const uploadRequest = new XMLHttpRequest();
       
       uploadRequest.upload.onprogress = (event) => {
@@ -96,7 +106,7 @@ export default function DataInput({
       };
 
       uploadRequest.onload = () => {
-        if (uploadRequest.status === 200) {
+        if (uploadRequest.status >= 200 && uploadRequest.status < 300) {
           setUploadStatus('success');
           
           // Also read the file content for immediate use
@@ -116,11 +126,9 @@ export default function DataInput({
         throw new Error('Upload failed due to network error');
       };
 
-      uploadRequest.open('PUT', uploadUrl);
-      uploadRequest.setRequestHeader('Content-Type', file.type);
-      uploadRequest.setRequestHeader('x-amz-server-side-encryption', 'aws:kms');
-      uploadRequest.setRequestHeader('x-amz-server-side-encryption-aws-kms-key-id', 'arn:aws:kms:eu-west-2:252326958099:key/602a7058-adf6-48c5-80bf-39ea7956742f');
-      uploadRequest.send(file);
+      uploadRequest.open('POST', uploadUrl);
+      // Don't set Content-Type header for FormData - browser will set it with boundary
+      uploadRequest.send(formData);
 
     } catch (error) {
       console.error('Upload error:', error);

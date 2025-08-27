@@ -64,21 +64,26 @@ def handler(event, context):
         safe_file_name = file_name.replace(' ', '_').replace('/', '_')
         s3_key = f"{user_id}/{file_id}_{safe_file_name}"
         
-        # Generate pre-signed URL for PUT operation with KMS encryption
-        presigned_url = s3_client.generate_presigned_url(
-            'put_object',
-            Params={
-                'Bucket': BUCKET_NAME,
-                'Key': s3_key,
-                'ContentType': file_type,
-                'ServerSideEncryption': 'aws:kms',
-                'SSEKMSKeyId': 'arn:aws:kms:eu-west-2:252326958099:key/602a7058-adf6-48c5-80bf-39ea7956742f',
-                'Metadata': {
-                    'user-id': user_id,
-                    'original-name': file_name,
-                    'file-id': file_id
-                }
+        # Generate pre-signed POST for better CORS support with KMS
+        presigned_post = s3_client.generate_presigned_post(
+            Bucket=BUCKET_NAME,
+            Key=s3_key,
+            Fields={
+                'Content-Type': file_type,
+                'x-amz-server-side-encryption': 'aws:kms',
+                'x-amz-server-side-encryption-aws-kms-key-id': 'arn:aws:kms:eu-west-2:252326958099:key/602a7058-adf6-48c5-80bf-39ea7956742f',
+                'x-amz-meta-user-id': user_id,
+                'x-amz-meta-original-name': file_name,
+                'x-amz-meta-file-id': file_id
             },
+            Conditions=[
+                {'Content-Type': file_type},
+                {'x-amz-server-side-encryption': 'aws:kms'},
+                {'x-amz-server-side-encryption-aws-kms-key-id': 'arn:aws:kms:eu-west-2:252326958099:key/602a7058-adf6-48c5-80bf-39ea7956742f'},
+                ['starts-with', '$x-amz-meta-user-id', user_id],
+                ['starts-with', '$x-amz-meta-original-name', ''],
+                ['starts-with', '$x-amz-meta-file-id', '']
+            ],
             ExpiresIn=EXPIRATION_TIME
         )
         
@@ -86,7 +91,8 @@ def handler(event, context):
             'statusCode': 200,
             'headers': cors_headers,
             'body': json.dumps({
-                'uploadUrl': presigned_url,
+                'uploadUrl': presigned_post['url'],
+                'fields': presigned_post['fields'],
                 'fileId': file_id,
                 's3Key': s3_key,
                 'expiresIn': EXPIRATION_TIME

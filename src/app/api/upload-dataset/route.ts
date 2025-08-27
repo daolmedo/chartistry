@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       uploadUrl: data.uploadUrl,
+      fields: data.fields,
       fileId: data.fileId,
       s3Key: data.s3Key,
       expiresIn: data.expiresIn
