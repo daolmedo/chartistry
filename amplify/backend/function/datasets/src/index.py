@@ -64,13 +64,15 @@ def handler(event, context):
         safe_file_name = file_name.replace(' ', '_').replace('/', '_')
         s3_key = f"{user_id}/{file_id}_{safe_file_name}"
         
-        # Generate pre-signed URL for PUT operation
+        # Generate pre-signed URL for PUT operation with KMS encryption
         presigned_url = s3_client.generate_presigned_url(
             'put_object',
             Params={
                 'Bucket': BUCKET_NAME,
                 'Key': s3_key,
                 'ContentType': file_type,
+                'ServerSideEncryption': 'aws:kms',
+                'SSEKMSKeyId': 'arn:aws:kms:eu-west-2:252326958099:key/602a7058-adf6-48c5-80bf-39ea7956742f',
                 'Metadata': {
                     'user-id': user_id,
                     'original-name': file_name,

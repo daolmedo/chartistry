@@ -18,5 +18,16 @@
     "Resource": [
       "arn:aws:s3:::chartz-datasets"
     ]
+  },
+  {
+    "Action": [
+      "kms:Decrypt",
+      "kms:GenerateDataKey",
+      "kms:GenerateDataKeyWithoutPlaintext",
+      "kms:DescribeKey"
+    ],
+    "Resource": [
+      "arn:aws:kms:eu-west-2:252326958099:key/602a7058-adf6-48c5-80bf-39ea7956742f"
+    ]
   }
 ]

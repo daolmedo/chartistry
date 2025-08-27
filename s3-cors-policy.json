@@ -1,0 +1,26 @@
+{
+    "CORSRules": [
+        {
+            "AllowedHeaders": [
+                "*"
+            ],
+            "AllowedMethods": [
+                "PUT",
+                "POST",
+                "GET",
+                "HEAD"
+            ],
+            "AllowedOrigins": [
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "https://*.vercel.app",
+                "https://*.amplifyapp.com"
+            ],
+            "ExposeHeaders": [
+                "ETag",
+                "x-amz-version-id"
+            ],
+            "MaxAgeSeconds": 3000
+        }
+    ]
+}
