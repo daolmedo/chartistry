@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import VChart, { registerMediaQuery } from '@visactor/vchart';
 
 // Register media query plugin
@@ -9,23 +9,65 @@ if (typeof window !== 'undefined') {
   registerMediaQuery();
 }
 
-// Chart component wrapper
-function ChartComponent({ spec, className }: { spec: any; className?: string }) {
+// Custom hook for intersection observer
+function useIntersectionObserver(options = {}) {
+  const [isIntersecting, setIsIntersecting] = useState(false);
+  const [hasIntersected, setHasIntersected] = useState(false);
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsIntersecting(entry.isIntersecting);
+        if (entry.isIntersecting && !hasIntersected) {
+          setHasIntersected(true);
+        }
+      },
+      { threshold: 0.2, rootMargin: '-60px', ...options }
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.unobserve(element);
+    };
+  }, [hasIntersected, options]);
+
+  return { elementRef, isIntersecting, hasIntersected };
+}
+
+// Chart component wrapper with animation support
+function ChartComponent({ spec, className, shouldAnimate = true }: { spec: any; className?: string; shouldAnimate?: boolean }) {
   const chartRef = useRef<HTMLDivElement>(null);
   const vchartInstance = useRef<any>(null);
+  const { elementRef, hasIntersected } = useIntersectionObserver();
 
   useEffect(() => {
     if (!chartRef.current) return;
+    if (shouldAnimate && !hasIntersected) return; // Wait for intersection if animation is enabled
 
     // Clean up previous instance
     if (vchartInstance.current) {
       vchartInstance.current.release();
     }
 
-    // Create responsive spec with media queries
+    // Create responsive spec with media queries and animation
     const responsiveSpec = {
       ...spec,
       autoFit: true,
+      animation: shouldAnimate && hasIntersected ? {
+        appear: {
+          duration: 1000,
+          easing: 'cubicInOut'
+        },
+        update: {
+          duration: 400,
+          easing: 'cubicInOut'
+        }
+      } : false,
       media: [
         {
           query: { maxWidth: 600 },
@@ -65,58 +107,99 @@ function ChartComponent({ spec, className }: { spec: any; className?: string }) 
         vchartInstance.current.release();
       }
     };
-  }, [spec]);
+  }, [spec, shouldAnimate, hasIntersected]);
 
-  return <div ref={chartRef} className={className} />;
+  return (
+    <div ref={elementRef} className={className}>
+      <div ref={chartRef} className="w-full h-full" />
+    </div>
+  );
+}
+
+// Animated section wrapper
+function AnimatedSection({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+  const { elementRef, hasIntersected } = useIntersectionObserver();
+  
+  return (
+    <section
+      ref={elementRef}
+      id={id}
+      className={`transition-all duration-1000 ${
+        hasIntersected 
+          ? 'opacity-100 translate-y-0' 
+          : 'opacity-0 translate-y-8'
+      } ${className}`}
+    >
+      {children}
+    </section>
+  );
 }
 
 export default function LandingPage() {
   // Hero animated line chart
   const heroChartSpec = {
-    type: 'line',
-    data: {
-      values: [
-        { month: 'Jan', value: 100, type: 'Manual Process' },
-        { month: 'Feb', value: 120, type: 'Manual Process' },
-        { month: 'Mar', value: 140, type: 'Manual Process' },
-        { month: 'Apr', value: 160, type: 'Manual Process' },
-        { month: 'May', value: 180, type: 'Manual Process' },
-        { month: 'Jun', value: 200, type: 'Manual Process' },
-        { month: 'Jan', value: 100, type: 'With chartz.ai' },
-        { month: 'Feb', value: 300, type: 'With chartz.ai' },
-        { month: 'Mar', value: 600, type: 'With chartz.ai' },
-        { month: 'Apr', value: 1200, type: 'With chartz.ai' },
-        { month: 'May', value: 2000, type: 'With chartz.ai' },
-        { month: 'Jun', value: 3500, type: 'With chartz.ai' },
-      ]
-    },
-    xField: 'month',
-    yField: 'value',
-    seriesField: 'type',
-    color: ['#8b5cf6', '#3b82f6'],
-    background: 'rgba(1,1,1,0)',
-    line: {
-      style: {
-        lineWidth: 3
-      }
-    },
-    point: {
-      style: {
-        size: 6
-      }
-    },
-    animationAppear: {
-      duration: 2000
-    },
-    axes: [
+    type: 'common',
+    seriesField: 'color',
+    data: [
       {
-        orient: 'bottom',
-        type: 'band'
+        id: 'id0',
+        values: [
+          { x: 'Week 1', type: 'Product Development', y: 30 },
+          { x: 'Week 1', type: 'Marketing Spend', y: 20 },
+          { x: 'Week 2', type: 'Product Development', y: 35 },
+          { x: 'Week 2', type: 'Marketing Spend', y: 25 },
+          { x: 'Week 3', type: 'Product Development', y: 28 },
+          { x: 'Week 3', type: 'Marketing Spend', y: 32 },
+          { x: 'Week 4', type: 'Product Development', y: 25 },
+          { x: 'Week 4', type: 'Marketing Spend', y: 22 }
+        ]
       },
       {
-        orient: 'left',
-        type: 'linear'
+        id: 'id1',
+        values: [
+          { x: 'Week 1', type: 'New Signups', y: 120 },
+          { x: 'Week 2', type: 'New Signups', y: 180 },
+          { x: 'Week 3', type: 'New Signups', y: 160 },
+          { x: 'Week 4', type: 'New Signups', y: 220 }
+        ]
       }
+    ],
+    series: [
+      {
+        type: 'bar',
+        id: 'bar',
+        dataIndex: 0,
+        label: { visible: true, formatMethod: val => val + 'k' },
+        seriesField: 'type',
+        xField: ['x', 'type'],
+        yField: 'y'
+      },
+      {
+        type: 'line',
+        id: 'line',
+        dataIndex: 1,
+        label: { visible: true, formatMethod: val => val + 'k' },
+        seriesField: 'type',
+        xField: 'x',
+        yField: 'y',
+        stack: false
+      }
+    ],
+    axes: [
+      { 
+        orient: 'left', 
+        seriesIndex: [0], 
+        title: { text: 'Expenses (k$)' },
+        label: { formatMethod: val => val + 'k' }
+      },
+      { 
+        orient: 'right', 
+        seriesId: ['line'], 
+        grid: { visible: false }, 
+        title: { text: 'Customers (k)' },
+        label: { formatMethod: val => val + 'k' }
+      },
+      { orient: 'bottom', label: { visible: true }, type: 'band', title: { text: 'Weeks' } }
     ],
     legends: {
       visible: true,
@@ -199,6 +282,151 @@ export default function LandingPage() {
     color: ['#10b981', '#059669']
   };
 
+  // Bubble scatter chart data
+  const bubbleData = [
+    { continent: 'Americas', Country: 'Argentina', LifeExpectancy: 75.32, GDP: 12779.37964, Population: 40301927 },
+    { continent: 'Americas', Country: 'Brazil', LifeExpectancy: 72.39, GDP: 9065.800825, Population: 190010647 },
+    { continent: 'Americas', Country: 'Canada', LifeExpectancy: 80.653, GDP: 36319.23501, Population: 33390141 },
+    { continent: 'Americas', Country: 'Chile', LifeExpectancy: 78.553, GDP: 13171.63885, Population: 16284741 },
+    { continent: 'Americas', Country: 'Colombia', LifeExpectancy: 72.889, GDP: 7006.580419, Population: 44227550 },
+    { continent: 'Americas', Country: 'United States', LifeExpectancy: 78.242, GDP: 42951.65309, Population: 301139947 },
+    { continent: 'Americas', Country: 'Mexico', LifeExpectancy: 76.195, GDP: 11977.57496, Population: 108700891 },
+    { continent: 'Asia', Country: 'China', LifeExpectancy: 72.961, GDP: 4959.114854, Population: 1318683096 },
+    { continent: 'Asia', Country: 'Japan', LifeExpectancy: 82.603, GDP: 31656.06806, Population: 127467972 },
+    { continent: 'Asia', Country: 'Korea, Rep.', LifeExpectancy: 78.623, GDP: 23348.13973, Population: 49044790 },
+    { continent: 'Europe', Country: 'Austria', LifeExpectancy: 79.829, GDP: 36126.4927, Population: 8199783 },
+    { continent: 'Europe', Country: 'Belgium', LifeExpectancy: 79.441, GDP: 33692.60508, Population: 10392226 },
+    { continent: 'Europe', Country: 'Denmark', LifeExpectancy: 78.332, GDP: 35278.41874, Population: 5468120 },
+    { continent: 'Europe', Country: 'Finland', LifeExpectancy: 79.313, GDP: 33207.0844, Population: 5238460 },
+    { continent: 'Europe', Country: 'France', LifeExpectancy: 80.657, GDP: 30470.0167, Population: 61083916 },
+    { continent: 'Europe', Country: 'Germany', LifeExpectancy: 79.406, GDP: 32170.37442, Population: 82400996 },
+    { continent: 'Europe', Country: 'Italy', LifeExpectancy: 80.546, GDP: 28569.7197, Population: 58147733 },
+    { continent: 'Europe', Country: 'Netherlands', LifeExpectancy: 79.762, GDP: 36797.93332, Population: 16570613 },
+    { continent: 'Europe', Country: 'Norway', LifeExpectancy: 80.196, GDP: 49357.19017, Population: 4627926 },
+    { continent: 'Europe', Country: 'Spain', LifeExpectancy: 80.941, GDP: 28821.0637, Population: 40448191 },
+    { continent: 'Europe', Country: 'Sweden', LifeExpectancy: 80.884, GDP: 33859.74835, Population: 9031088 },
+    { continent: 'Europe', Country: 'Switzerland', LifeExpectancy: 81.701, GDP: 37506.41907, Population: 7554661 },
+    { continent: 'Europe', Country: 'United Kingdom', LifeExpectancy: 79.425, GDP: 33203.26128, Population: 60776238 },
+    { continent: 'Oceania', Country: 'Australia', LifeExpectancy: 81.235, GDP: 34435.36744, Population: 20434176 },
+    { continent: 'Oceania', Country: 'New Zealand', LifeExpectancy: 80.204, GDP: 25185.00911, Population: 4115771 }
+  ];
+
+  function logScale(value: number, domain: [number, number], range: [number, number]) {
+    const logDomain = domain.map(x => (x !== 0 ? Math.log10(x) : 0));
+    const logRange = range.map(x => Math.log10(x));
+    const t = (Math.log10(value) - logDomain[0]) / (logDomain[1] - logDomain[0]);
+    const newValue = (logRange[1] - logRange[0]) * t + logRange[0];
+    return Math.pow(10, newValue);
+  }
+
+  // Bubble scatter chart spec
+  const bubbleChartSpec = {
+    type: 'common',
+    series: [
+      {
+        type: 'scatter',
+        xField: 'GDP',
+        yField: 'LifeExpectancy',
+        seriesField: 'continent',
+        sizeField: 'Population',
+        size: (d: any) => logScale(d.Population, [0, Math.max(...bubbleData.map(d => d.Population))], [1, 20])
+      }
+    ],
+    data: [
+      {
+        id: 'data',
+        values: bubbleData
+      }
+    ],
+    axes: [
+      {
+        orient: 'left',
+        type: 'linear',
+        range: {
+          min: Math.min(...bubbleData.map(d => d.LifeExpectancy)),
+          max: Math.max(...bubbleData.map(d => d.LifeExpectancy))
+        },
+        title: {
+          visible: true,
+          text: 'Life Expectancy'
+        }
+      },
+      {
+        orient: 'bottom',
+        type: 'linear',
+        title: {
+          visible: true,
+          text: 'GDP per Capita'
+        }
+      }
+    ],
+    legends: [
+      {
+        visible: true,
+        orient: 'right'
+      }
+    ]
+  };
+
+  // Sankey chart spec
+  const sankeyChartSpec = {
+    type: 'sankey',
+    data: [
+      {
+        values: [
+          {
+            nodes: [
+              { nodeName: 'Solar' },
+              { nodeName: 'Wind' },
+              { nodeName: 'Hydro' },
+              { nodeName: 'Nuclear' },
+              { nodeName: 'Coal' },
+              { nodeName: 'Gas' },
+              { nodeName: 'Oil' },
+              { nodeName: 'Electricity Grid' },
+              { nodeName: 'Industry' },
+              { nodeName: 'Transport' },
+              { nodeName: 'Residential' },
+              { nodeName: 'Commercial' },
+              { nodeName: 'Losses' }
+            ],
+            links: [
+              { source: 0, target: 7, value: 150 },
+              { source: 1, target: 7, value: 200 },
+              { source: 2, target: 7, value: 180 },
+              { source: 3, target: 7, value: 300 },
+              { source: 4, target: 7, value: 400 },
+              { source: 5, target: 7, value: 350 },
+              { source: 6, target: 7, value: 100 },
+              { source: 7, target: 8, value: 450 },
+              { source: 7, target: 9, value: 280 },
+              { source: 7, target: 10, value: 380 },
+              { source: 7, target: 11, value: 220 },
+              { source: 7, target: 12, value: 150 }
+            ]
+          }
+        ]
+      }
+    ],
+    categoryField: 'nodeName',
+    valueField: 'value',
+    sourceField: 'source',
+    targetField: 'target',
+    nodeAlign: 'justify',
+    nodeGap: 8,
+    nodeWidth: 15,
+    minNodeHeight: 4,
+    title: {
+      visible: false
+    },
+    label: {
+      visible: true,
+      style: {
+        fontSize: 10
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -249,14 +477,14 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 flex items-center justify-center h-[300px] lg:h-[400px]">
-              <ChartComponent spec={heroChartSpec} className="w-full h-full" />
+              <ChartComponent spec={heroChartSpec} className="w-full h-full" shouldAnimate={false} />
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50">
+      <AnimatedSection id="features" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose chartz.ai?</h2>
@@ -297,10 +525,10 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20">
+      <AnimatedSection id="how-it-works" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">How chartz.ai Works</h2>
@@ -346,10 +574,47 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
+
+      {/* Complex Charts Section */}
+      <AnimatedSection className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Complex charts or data structures? No problem!</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              We handle dozens of chart types, from simple bar charts to advanced visualizations like bubble plots and flow diagrams. 
+              Whatever your data tells, we help you visualize it perfectly.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="bg-gradient-to-br from-orange-50 to-red-100 rounded-xl p-4 mb-6 flex items-center justify-center h-[300px]">
+                <ChartComponent spec={bubbleChartSpec} className="w-full h-full" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Multi-Dimensional Analysis</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Bubble scatter plots reveal relationships between three or more variables, perfect for exploring correlations 
+                in complex datasets like economic indicators, scientific research, or market analysis.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-100 rounded-xl p-4 mb-6 flex items-center justify-center h-[300px]">
+                <ChartComponent spec={sankeyChartSpec} className="w-full h-full" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Flow & Process Visualization</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Sankey diagrams excel at showing how quantities flow through systems - from energy consumption 
+                and budget allocation to user journeys and supply chain optimization.
+              </p>
+            </div>
+          </div>
+        </div>
+      </AnimatedSection>
 
       {/* Use Cases Section */}
-      <section className="py-20 bg-gray-50">
+      <AnimatedSection className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Who is chartz.ai for?</h2>
@@ -382,10 +647,10 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Testimonials Section */}
-      <section className="py-20">
+      <AnimatedSection className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Loved by Data-Driven Teams</h2>
@@ -429,10 +694,10 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gray-50">
+      <AnimatedSection id="pricing" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
@@ -522,10 +787,10 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-600 to-purple-700 text-white">
+      <AnimatedSection className="py-20 bg-gradient-to-br from-blue-600 to-purple-700 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold mb-6">Start Creating Beautiful Charts with AI Today</h2>
           <p className="text-xl opacity-90 mb-8">Join thousands of professionals who trust chartz.ai for their data visualization needs</p>
@@ -539,7 +804,7 @@ export default function LandingPage() {
             </svg>
           </Link>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
