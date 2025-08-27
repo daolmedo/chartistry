@@ -1,6 +1,22 @@
 [
   {
-    "Action": [],
-    "Resource": []
+    "Action": [
+      "s3:PutObject",
+      "s3:PutObjectAcl",
+      "s3:GetObject",
+      "s3:GetObjectAcl",
+      "s3:DeleteObject"
+    ],
+    "Resource": [
+      "arn:aws:s3:::chartz-datasets/*"
+    ]
+  },
+  {
+    "Action": [
+      "s3:ListBucket"
+    ],
+    "Resource": [
+      "arn:aws:s3:::chartz-datasets"
+    ]
   }
 ]
