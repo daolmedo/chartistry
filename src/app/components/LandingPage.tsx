@@ -169,7 +169,7 @@ export default function LandingPage() {
         type: 'bar',
         id: 'bar',
         dataIndex: 0,
-        label: { visible: true, formatMethod: val => val + 'k' },
+        label: { visible: true, formatMethod: (val: number) => val + 'k' },
         seriesField: 'type',
         xField: ['x', 'type'],
         yField: 'y'
@@ -178,7 +178,7 @@ export default function LandingPage() {
         type: 'line',
         id: 'line',
         dataIndex: 1,
-        label: { visible: true, formatMethod: val => val + 'k' },
+        label: { visible: true, formatMethod: (val: number) => val + 'k' },
         seriesField: 'type',
         xField: 'x',
         yField: 'y',
@@ -190,14 +190,14 @@ export default function LandingPage() {
         orient: 'left', 
         seriesIndex: [0], 
         title: { text: 'Expenses (k$)' },
-        label: { formatMethod: val => val + 'k' }
+        label: { formatMethod: (val: number) => val + 'k' }
       },
       { 
         orient: 'right', 
         seriesId: ['line'], 
         grid: { visible: false }, 
         title: { text: 'Customers (k)' },
-        label: { formatMethod: val => val + 'k' }
+        label: { formatMethod: (val: number) => val + 'k' }
       },
       { orient: 'bottom', label: { visible: true }, type: 'band', title: { text: 'Weeks' } }
     ],
@@ -463,7 +463,7 @@ export default function LandingPage() {
               <a href="#features" className="text-gray-600 hover:text-gray-900">Features</a>
               <a href="#how-it-works" className="text-gray-600 hover:text-gray-900">How it Works</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900">Pricing</a>
-              <Link href="/app" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+              <Link href="/login" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
                 Get Started Free
               </Link>
             </div>
@@ -488,7 +488,7 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
                 <Link
-                  href="/app"
+                  href="/login"
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Get Started Free
@@ -744,7 +744,7 @@ export default function LandingPage() {
                   Basic customization
                 </li>
               </ul>
-              <Link href="/app" className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3 px-6 rounded-lg font-semibold text-center block transition-colors">
+              <Link href="/login" className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3 px-6 rounded-lg font-semibold text-center block transition-colors">
                 Get Started
               </Link>
             </div>
@@ -775,7 +775,7 @@ export default function LandingPage() {
                   Team dashboards
                 </li>
               </ul>
-              <Link href="/app" className="w-full bg-white text-blue-600 py-3 px-6 rounded-lg font-semibold text-center block hover:bg-gray-50 transition-colors">
+              <Link href="/login" className="w-full bg-white text-blue-600 py-3 px-6 rounded-lg font-semibold text-center block hover:bg-gray-50 transition-colors">
                 Start Pro Trial
               </Link>
             </div>
@@ -817,7 +817,7 @@ export default function LandingPage() {
           <h2 className="text-4xl font-bold mb-6">Start Creating Beautiful Charts with AI Today</h2>
           <p className="text-xl opacity-90 mb-8">Join thousands of professionals who trust chartz.ai for their data visualization needs</p>
           <Link
-            href="/app"
+            href="/login"
             className="inline-flex items-center bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Try chartz.ai Free
@@ -847,7 +847,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="/app" className="hover:text-white transition-colors">Get Started</a></li>
+                <li><a href="/login" className="hover:text-white transition-colors">Get Started</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">API</a></li>
               </ul>
             </div>

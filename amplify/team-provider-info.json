@@ -16,6 +16,18 @@
         "chartgenerator": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
           "s3Key": "amplify-builds/chartgenerator-456f79634258394b7337-build.zip"
+        },
+        "datasets": {
+          "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
+          "s3Key": "amplify-builds/datasets-6a694777776549526263-build.zip"
+        },
+        "customers": {
+          "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
+          "s3Key": "amplify-builds/customers-64643031775a754a5865-build.zip"
+        },
+        "checkout": {
+          "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
+          "s3Key": "amplify-builds/checkout-444f386b33386b6a2b62-build.zip"
         }
       },
       "api": {

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import DataInput from '../components/DataInput';
 import ChartPreview from '../components/ChartPreview';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VChartSpec {
   type: string;
@@ -24,6 +26,8 @@ export default function ChartApp() {
   const [generationTime, setGenerationTime] = useState<number | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const { currentUser, logout } = useAuth();
   
   const handleGenerate = async () => {
     if (!csv.trim() || !prompt.trim()) {
@@ -68,40 +72,51 @@ export default function ChartApp() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="bg-white/95 backdrop-blur-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"></div>
-              <span className="text-2xl font-bold text-gray-900">chartz.ai</span>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors">
-                ← Back to Home
+    <ProtectedRoute>
+      <div className="min-h-screen bg-white">
+        {/* Navigation */}
+        <nav className="bg-white/95 backdrop-blur-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-4">
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"></div>
+                <span className="text-2xl font-bold text-gray-900">chartz.ai</span>
               </Link>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">
+                  Welcome, {currentUser?.displayName || currentUser?.email}
+                </span>
+                <button
+                  onClick={() => logout()}
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Sign Out
+                </button>
+                <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors">
+                  ← Back to Home
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Main App Content */}
-      <div className="flex h-[calc(100vh-80px)]">
-        <DataInput
-          csv={csv}
-          setCsv={setCsv}
-          prompt={prompt}
-          setPrompt={setPrompt}
-          onGenerate={handleGenerate}
-          isLoading={isLoading}
-        />
-        <ChartPreview
-          spec={chartSpec}
-          generationTime={generationTime}
-          error={error}
-        />
+        {/* Main App Content */}
+        <div className="flex h-[calc(100vh-80px)]">
+          <DataInput
+            csv={csv}
+            setCsv={setCsv}
+            prompt={prompt}
+            setPrompt={setPrompt}
+            onGenerate={handleGenerate}
+            isLoading={isLoading}
+          />
+          <ChartPreview
+            spec={chartSpec}
+            generationTime={generationTime}
+            error={error}
+          />
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

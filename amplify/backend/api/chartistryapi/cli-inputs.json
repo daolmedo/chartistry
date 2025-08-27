@@ -7,6 +7,27 @@
       "permissions": {
         "setting": "open"
       }
+    },
+    "/datasets": {
+      "name": "/datasets",
+      "lambdaFunction": "datasets",
+      "permissions": {
+        "setting": "open"
+      }
+    },
+    "/customers": {
+      "name": "/customers",
+      "lambdaFunction": "customers",
+      "permissions": {
+        "setting": "open"
+      }
+    },
+    "/checkout": {
+      "name": "/checkout",
+      "lambdaFunction": "checkout",
+      "permissions": {
+        "setting": "open"
+      }
     }
   }
 }

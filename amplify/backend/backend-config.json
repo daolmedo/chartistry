@@ -9,6 +9,30 @@
           ],
           "category": "function",
           "resourceName": "chartgenerator"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "datasets"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "customers"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "checkout"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -17,6 +41,21 @@
   },
   "function": {
     "chartgenerator": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "checkout": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "customers": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "datasets": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
@@ -36,6 +75,54 @@
         {
           "category": "function",
           "resourceName": "chartgenerator"
+        }
+      ]
+    },
+    "AMPLIFY_function_checkout_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "checkout"
+        }
+      ]
+    },
+    "AMPLIFY_function_checkout_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "checkout"
+        }
+      ]
+    },
+    "AMPLIFY_function_customers_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "customers"
+        }
+      ]
+    },
+    "AMPLIFY_function_customers_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "customers"
+        }
+      ]
+    },
+    "AMPLIFY_function_datasets_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "datasets"
+        }
+      ]
+    },
+    "AMPLIFY_function_datasets_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "datasets"
         }
       ]
     }
