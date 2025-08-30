@@ -271,6 +271,7 @@ def handler(event, context):
         
         if http_method == 'POST':
             action = body.get('action', 'upload')  # 'upload' or 'ingest'
+            print(f"Processing POST request with action: {action}")
             
             if action == 'upload':
                 # Generate upload URL (existing functionality)
@@ -403,9 +404,11 @@ def handler(event, context):
             
             elif action == 'getData':
                 # Get data from a user's dataset table
+                print(f"getData action triggered")
                 dataset_id = body.get('datasetId')
                 table_name = body.get('tableName')
                 limit = body.get('limit', 1000)  # Default to 1000 rows
+                print(f"Parameters: dataset_id={dataset_id}, table_name={table_name}, limit={limit}")
                 
                 if not dataset_id or not table_name or not conn:
                     return {

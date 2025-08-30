@@ -35,7 +35,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(response.response);
+    // The response from Amplify API is wrapped, need to parse the body
+    const responseBody = typeof response.response === 'string' 
+      ? JSON.parse(response.response)
+      : response.response;
+    
+    return NextResponse.json(responseBody);
   } catch (error) {
     console.error('Error fetching dataset data:', error);
     return NextResponse.json(

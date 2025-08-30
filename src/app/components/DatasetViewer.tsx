@@ -36,6 +36,7 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
         return response.json();
       })
       .then((result) => {
+        console.log('API response:', result); // Debug log
         setData(result);
       })
       .catch(err => {
@@ -133,7 +134,7 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
                   <th className="w-12 px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
                     #
                   </th>
-                  {data.columns.map((column, index) => (
+                  {data.columns?.map((column, index) => (
                     <th
                       key={index}
                       className="px-3 py-2 text-left text-xs font-medium text-gray-900 uppercase tracking-wider border-b border-r border-gray-200 min-w-32"
@@ -144,7 +145,7 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {data.rows.map((row, rowIndex) => (
+                {data.rows?.map((row, rowIndex) => (
                   <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     <td className="px-3 py-2 text-sm text-gray-500 border-b border-r border-gray-200 font-mono">
                       {rowIndex + 1}
@@ -168,7 +169,7 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
             </table>
             
             {/* Show message if no data */}
-            {data.rows.length === 0 && (
+            {(!data.rows || data.rows.length === 0) && (
               <div className="text-center py-8 text-gray-500">
                 <p>No data rows found</p>
               </div>
@@ -178,7 +179,7 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
       </div>
       
       {/* Footer with info */}
-      {data && data.rows.length > 0 && (
+      {data && data.rows && data.rows.length > 0 && (
         <div className="px-6 py-2 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
           Showing {data.rows.length} of {dataset.row_count} rows
         </div>
