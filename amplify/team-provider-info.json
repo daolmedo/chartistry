@@ -19,15 +19,15 @@
         },
         "datasets": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
-          "s3Key": "amplify-builds/datasets-6a694777776549526263-build.zip"
+          "s3Key": "amplify-builds/datasets-72395a4174782f6a664c-build.zip"
         },
-        "customers": {
+        "customerschartz": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
-          "s3Key": "amplify-builds/customers-64643031775a754a5865-build.zip"
+          "s3Key": "amplify-builds/customerschartz-7965636f59536c5a5331-build.zip"
         },
-        "checkout": {
+        "stripecheckoutchartz": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
-          "s3Key": "amplify-builds/checkout-444f386b33386b6a2b62-build.zip"
+          "s3Key": "amplify-builds/stripecheckoutchartz-78495374794d4146544c-build.zip"
         }
       },
       "api": {

@@ -17,14 +17,14 @@
     },
     "/customers": {
       "name": "/customers",
-      "lambdaFunction": "customers",
+      "lambdaFunction": "customerschartz",
       "permissions": {
         "setting": "open"
       }
     },
     "/checkout": {
       "name": "/checkout",
-      "lambdaFunction": "checkout",
+      "lambdaFunction": "stripecheckoutchartz",
       "permissions": {
         "setting": "open"
       }

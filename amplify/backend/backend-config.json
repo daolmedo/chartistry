@@ -24,7 +24,7 @@
             "Arn"
           ],
           "category": "function",
-          "resourceName": "customers"
+          "resourceName": "customerschartz"
         },
         {
           "attributes": [
@@ -32,7 +32,7 @@
             "Arn"
           ],
           "category": "function",
-          "resourceName": "checkout"
+          "resourceName": "stripecheckoutchartz"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -45,17 +45,17 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
-    "checkout": {
-      "build": true,
-      "providerPlugin": "awscloudformation",
-      "service": "Lambda"
-    },
-    "customers": {
+    "customerschartz": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
     "datasets": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "stripecheckoutchartz": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
@@ -78,35 +78,19 @@
         }
       ]
     },
-    "AMPLIFY_function_checkout_deploymentBucketName": {
+    "AMPLIFY_function_customerschartz_deploymentBucketName": {
       "usedBy": [
         {
           "category": "function",
-          "resourceName": "checkout"
+          "resourceName": "customerschartz"
         }
       ]
     },
-    "AMPLIFY_function_checkout_s3Key": {
+    "AMPLIFY_function_customerschartz_s3Key": {
       "usedBy": [
         {
           "category": "function",
-          "resourceName": "checkout"
-        }
-      ]
-    },
-    "AMPLIFY_function_customers_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "customers"
-        }
-      ]
-    },
-    "AMPLIFY_function_customers_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "customers"
+          "resourceName": "customerschartz"
         }
       ]
     },
@@ -123,6 +107,22 @@
         {
           "category": "function",
           "resourceName": "datasets"
+        }
+      ]
+    },
+    "AMPLIFY_function_stripecheckoutchartz_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "stripecheckoutchartz"
+        }
+      ]
+    },
+    "AMPLIFY_function_stripecheckoutchartz_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "stripecheckoutchartz"
         }
       ]
     }

@@ -1,6 +1,6 @@
 // Updated DataInput.tsx with CORS preflight workaround
 // Replace the uploadToS3 function with this implementation
-
+/*
 const uploadToS3 = useCallback(async (file: File) => {
   if (!currentUser?.uid) {
     setUploadError('User not authenticated');
@@ -173,3 +173,4 @@ const uploadToS3WithProgress = useCallback(async (file: File) => {
     setUploadError(error instanceof Error ? error.message : 'Upload failed');
   }
 }, [currentUser, setCsv]);
+*/

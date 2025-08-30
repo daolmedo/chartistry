@@ -47,12 +47,12 @@
         "FunctionName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "checkout",
+            "customerschartz",
             {
               "Fn::Join": [
                 "",
                 [
-                  "checkout",
+                  "customerschartz",
                   "-",
                   {
                     "Ref": "env"
@@ -89,12 +89,12 @@
         "RoleName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "chartistryLambdaRole0458ed07",
+            "chartistryLambdaRole05046998",
             {
               "Fn::Join": [
                 "",
                 [
-                  "chartistryLambdaRole0458ed07",
+                  "chartistryLambdaRole05046998",
                   "-",
                   {
                     "Ref": "env"
