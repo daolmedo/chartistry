@@ -1,4 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Amplify } from 'aws-amplify';
+import { post } from 'aws-amplify/api';
+import amplifyConfig from '@/amplifyconfiguration.json';
+
+// Configure Amplify for SSR
+Amplify.configure(amplifyConfig, { ssr: true });
+
+const myAPI = "chartistryapi";
+const datasetsPath = '/datasets';
 
 async function verifyAuthToken(authToken: string): Promise<string | null> {
   try {
@@ -43,27 +52,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the API Gateway URL from your amplifyconfiguration.json
-    const apiUrl = process.env.AMPLIFY_API_URL || 'https://4tbgy1hj3m.execute-api.eu-west-2.amazonaws.com/dev';
-    
-    const response = await fetch(`${apiUrl}/datasets`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-        fileName,
-        fileType: fileType || 'text/csv'
-      }),
-    });
+    // Call the Lambda function via API Gateway using aws-amplify
+    const response = await post({
+      apiName: myAPI,
+      path: datasetsPath,
+      options: {
+        body: {
+          userId,
+          fileName,
+          fileType: fileType || 'text/csv'
+        }
+      }
+    }).response;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Lambda error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
+    const data = await response.body.json() as {
+      uploadUrl: string;
+      fields: any;
+      fileId: string;
+      s3Key: string;
+      expiresIn: number;
+    };
 
     return NextResponse.json({
       uploadUrl: data.uploadUrl,

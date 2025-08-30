@@ -80,22 +80,18 @@ DECLARE
     counter INTEGER := 0;
     final_name VARCHAR;
 BEGIN
-    -- Clean the filename to be SQL-safe
     clean_name := regexp_replace(lower(original_name), '[^a-z0-9_]', '_', 'g');
     clean_name := regexp_replace(clean_name, '_+', '_', 'g');
     clean_name := trim(both '_' from clean_name);
     clean_name := regexp_replace(clean_name, '\.(csv|txt)$', '', 'i');
     
-    -- Limit length
     clean_name := left(clean_name, 20);
     
-    -- Create base table name
     table_name := 'user_' || replace(user_uuid, '-', '_') || '_' || clean_name;
     
-    -- Ensure uniqueness
     final_name := table_name;
     WHILE EXISTS (
-        SELECT 1 FROM datasets WHERE table_name = final_name
+        SELECT 1 FROM datasets WHERE datasets.table_name = final_name
     ) LOOP
         counter := counter + 1;
         final_name := table_name || '_' || counter::text;

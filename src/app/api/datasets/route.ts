@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Amplify } from 'aws-amplify';
-import awsExports from '../../../aws-exports';
+import awsExports from "../../../amplifyconfiguration.json";
+import { get, post } from 'aws-amplify/api';
 
-Amplify.configure(awsExports);
+const myAPI = "chartistryapi";
+const path = '/datasets';
 
-const DATASETS_API_URL = 'https://9sp5mz6tgi.execute-api.eu-west-2.amazonaws.com/dev/datasets';
+Amplify.configure(awsExports, {
+  ssr: true // required when using Amplify with Next.js
+});
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -21,18 +25,18 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const response = await fetch(DATASETS_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+    const response = await post({
+      apiName: myAPI,
+      path: path,
+      options: {
+        body: body
+      }
+    }).response;
 
-    const data = await response.json();
+    const data = await response.body.json();
     
     return NextResponse.json(data, { 
-      status: response.status,
+      status: response.statusCode,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -74,17 +78,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const response = await fetch(`${DATASETS_API_URL}?userId=${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await get({
+      apiName: myAPI,
+      path: path,
+      options: {
+        queryParams: {
+          userId: userId
+        }
+      }
+    }).response;
 
-    const data = await response.json();
+    const data = await response.body.json();
     
     return NextResponse.json(data, { 
-      status: response.status,
+      status: response.statusCode,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',

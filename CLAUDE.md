@@ -24,8 +24,12 @@ This is a **Next.js 14 App Router** project with **AWS Amplify** backend integra
 
 **Backend Stack:**
 - AWS Amplify with API Gateway
-- Lambda function (`chartgenerator`) for AI chart generation
-- Anthropic Claude SDK integration (in Lambda)
+- PostgreSQL database (AWS RDS) for data storage
+- Lambda functions:
+  - `chartgenerator` - AI chart generation using Anthropic Claude SDK
+  - `customers` - User profile management (create, get, update)
+  - `datasets` - CSV file upload, S3 storage, and database ingestion
+  - `stripecheckout` - Payment processing (Stripe integration)
 
 ### Key Directories
 - `src/app/` - Next.js App Router pages and components
@@ -34,13 +38,31 @@ This is a **Next.js 14 App Router** project with **AWS Amplify** backend integra
   - `components/` - React components (currently empty)
 - `amplify/` - AWS Amplify configuration and Lambda functions
   - `backend/function/chartgenerator/` - Lambda function for chart generation
+  - `backend/function/customers/` - Lambda function for user management
+  - `backend/function/datasets/` - Lambda function for CSV upload and ingestion
+  - `backend/function/stripecheckout/` - Lambda function for payment processing
+- `database_schema.sql` - PostgreSQL schema for user profiles, datasets, and charts
+- `migration_remove_monitoring.sql` - Migration script to simplify existing database
 
 ### API Flow
+
+**Chart Generation:**
 1. Frontend calls `/api/generate-chart` with user message
 2. Next.js API route forwards to AWS API Gateway (`chartistryapi`)
 3. API Gateway triggers Lambda function (`chartgenerator`)
 4. Lambda uses Anthropic Claude SDK to generate chart code
 5. Response flows back through the chain
+
+**Dataset Management:**
+1. Frontend requests upload URL from `datasets` lambda
+2. Lambda generates presigned S3 URL and creates database record
+3. Frontend uploads CSV directly to S3 using presigned URL
+4. Frontend triggers ingestion via `datasets` lambda
+5. Lambda downloads CSV from S3, creates dynamic table, and populates data
+
+**User Management:**
+- `customers` lambda handles user profile CRUD operations
+- Integrates with authentication system for user identification
 
 ### Configuration Files
 - `amplifyconfiguration.json` - AWS Amplify configuration (API Gateway endpoint)
@@ -52,4 +74,41 @@ This is a **Next.js 14 App Router** project with **AWS Amplify** backend integra
 - Amplify is configured for SSR in the API route
 - CORS is handled in the API route OPTIONS method
 - Error handling includes both client and server-side error types
-- The Lambda function appears to be a stub implementation (incomplete)
+- Database uses PostgreSQL with dynamic table creation for CSV data
+- S3 integration for file storage with presigned URLs
+
+### Lambda Debugging Commands
+
+To view real-time execution logs for the Lambda functions:
+
+**Windows (PowerShell):**
+```powershell
+# Chart generation lambda logs
+powershell -Command "aws logs tail '/aws/lambda/chartgenerator-dev' --region eu-west-2 --since 5m"
+
+# Payment processing lambda logs  
+powershell -Command "aws logs tail '/aws/lambda/stripecheckoutchartz-dev' --region eu-west-2 --since 5m"
+
+# User management lambda logs
+powershell -Command "aws logs tail '/aws/lambda/customerschartz-dev' --region eu-west-2 --since 5m"
+
+# Dataset upload/ingestion lambda logs
+powershell -Command "aws logs tail '/aws/lambda/datasets-dev' --region eu-west-2 --since 10m"
+```
+
+**Unix/Linux/MacOS:**
+```bash
+# Chart generation lambda logs
+aws logs tail /aws/lambda/chartgenerator-dev --region eu-west-2 --since 5m
+
+# Payment processing lambda logs  
+aws logs tail /aws/lambda/stripecheckoutchartz-dev --region eu-west-2 --since 5m
+
+# User management lambda logs
+aws logs tail /aws/lambda/customerschartz-dev --region eu-west-2 --since 5m
+
+# Dataset upload/ingestion lambda logs
+aws logs tail /aws/lambda/datasets-dev --region eu-west-2 --since 5m
+```
+
+Use `--since` parameter to control time range (e.g., `1h`, `30m`, `5m`)
