@@ -400,6 +400,78 @@ def handler(event, context):
                             'details': result['error']
                         })
                     }
+            
+            elif action == 'getData':
+                # Get data from a user's dataset table
+                dataset_id = body.get('datasetId')
+                table_name = body.get('tableName')
+                limit = body.get('limit', 1000)  # Default to 1000 rows
+                
+                if not dataset_id or not table_name or not conn:
+                    return {
+                        'statusCode': 400,
+                        'headers': cors_headers,
+                        'body': json.dumps({
+                            'error': 'Missing datasetId, tableName, or database connection'
+                        })
+                    }
+                
+                try:
+                    cursor = conn.cursor()
+                    
+                    # First verify the dataset exists and get table info
+                    cursor.execute("""
+                        SELECT dataset_id, table_name, row_count, column_count, ingestion_status
+                        FROM datasets 
+                        WHERE dataset_id = %s AND table_name = %s AND ingestion_status = 'completed'
+                    """, (dataset_id, table_name))
+                    
+                    dataset_info = cursor.fetchone()
+                    if not dataset_info:
+                        return {
+                            'statusCode': 404,
+                            'headers': cors_headers,
+                            'body': json.dumps({
+                                'error': 'Dataset not found or not completed ingestion'
+                            })
+                        }
+                    
+                    # Get column names first
+                    cursor.execute(f'SELECT column_name FROM information_schema.columns WHERE table_name = %s ORDER BY ordinal_position', (table_name,))
+                    column_info = cursor.fetchall()
+                    column_names = [col[0] for col in column_info if col[0] not in ['id', 'created_at']]
+                    
+                    # Get the actual data (excluding id and created_at columns)
+                    columns_sql = ', '.join([f'"{col}"' for col in column_names])
+                    query = f'SELECT {columns_sql} FROM "{table_name}" LIMIT %s'
+                    cursor.execute(query, (limit,))
+                    
+                    rows = cursor.fetchall()
+                    
+                    # Convert to list format for JSON serialization
+                    data_rows = [list(row) for row in rows]
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': cors_headers,
+                        'body': json.dumps({
+                            'columns': column_names,
+                            'rows': data_rows,
+                            'totalRows': dataset_info[2],  # row_count from dataset
+                            'returnedRows': len(data_rows)
+                        })
+                    }
+                
+                except Exception as e:
+                    print(f"Error fetching dataset data: {e}")
+                    return {
+                        'statusCode': 500,
+                        'headers': cors_headers,
+                        'body': json.dumps({
+                            'error': 'Failed to fetch dataset data',
+                            'details': str(e)
+                        })
+                    }
         
         elif http_method == 'GET':
             # Get user's datasets

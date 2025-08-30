@@ -4,8 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import DataInput from '../components/DataInput';
 import ChartPreview from '../components/ChartPreview';
+import DatasetViewer from '../components/DatasetViewer';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dataset } from '../lib/api';
 
 interface VChartSpec {
   type: string;
@@ -26,8 +28,17 @@ export default function ChartApp() {
   const [generationTime, setGenerationTime] = useState<number | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
   
   const { currentUser, logout } = useAuth();
+  
+  const handleDatasetSelect = (dataset: Dataset) => {
+    setSelectedDataset(dataset);
+  };
+  
+  const handleDatasetClose = () => {
+    setSelectedDataset(null);
+  };
   
   const handleGenerate = async () => {
     if (!csv.trim() || !prompt.trim()) {
@@ -101,7 +112,7 @@ export default function ChartApp() {
         </nav>
 
         {/* Main App Content */}
-        <div className="flex h-[calc(100vh-80px)]">
+        <div className="flex h-[calc(100vh-80px)] relative">
           <DataInput
             csv={csv}
             setCsv={setCsv}
@@ -109,11 +120,18 @@ export default function ChartApp() {
             setPrompt={setPrompt}
             onGenerate={handleGenerate}
             isLoading={isLoading}
+            onDatasetSelect={handleDatasetSelect}
           />
           <ChartPreview
             spec={chartSpec}
             generationTime={generationTime}
             error={error}
+          />
+          
+          {/* Dataset Viewer - Bottom Bar */}
+          <DatasetViewer
+            dataset={selectedDataset}
+            onClose={handleDatasetClose}
           />
         </div>
       </div>

@@ -12,6 +12,7 @@ interface DataInputProps {
   setPrompt: (prompt: string) => void;
   onGenerate: () => void;
   isLoading: boolean;
+  onDatasetSelect?: (dataset: Dataset) => void;
 }
 
 export default function DataInput({
@@ -20,7 +21,8 @@ export default function DataInput({
   prompt,
   setPrompt,
   onGenerate,
-  isLoading
+  isLoading,
+  onDatasetSelect
 }: DataInputProps) {
   const [selectedDemo, setSelectedDemo] = useState<string>('');
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -322,8 +324,9 @@ export default function DataInput({
                     key={dataset.dataset_id}
                     className="flex items-center justify-between p-2 bg-gray-50 rounded border hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
-                      // TODO: Load dataset CSV content
-                      console.log('Load dataset:', dataset);
+                      if (onDatasetSelect) {
+                        onDatasetSelect(dataset);
+                      }
                     }}
                   >
                     <div className="flex-1 min-w-0">
