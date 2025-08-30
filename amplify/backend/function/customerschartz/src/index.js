@@ -7,12 +7,12 @@ let pool;
 function getPool() {
     if (!pool) {
         pool = new Pool({
-            host: process.env.DB_HOST,
-            port: process.env.DB_PORT,
-            database: process.env.DB_NAME,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+            host: "chartz-ai.cexryffwmiie.eu-west-2.rds.amazonaws.com",
+            port: "5432",
+            database: "chartz",
+            user: "postgres",
+            password: "ppddA4all.P",
+            ssl: { rejectUnauthorized: false },
             max: 20,
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 2000,
