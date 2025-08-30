@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { demoDataList, demoDataKeys } from '../constants/mockData';
+import { getUserDatasets, type Dataset } from '../lib/api';
 
 interface DataInputProps {
   csv: string;
@@ -25,8 +26,22 @@ export default function DataInput({
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string>('');
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [showDatasets, setShowDatasets] = useState(false);
+  const [loadingDatasets, setLoadingDatasets] = useState(false);
   
   const { currentUser } = useAuth();
+
+  // Load user datasets
+  useEffect(() => {
+    if (currentUser?.uid && showDatasets) {
+      setLoadingDatasets(true);
+      getUserDatasets(currentUser.uid)
+        .then(setDatasets)
+        .catch(console.error)
+        .finally(() => setLoadingDatasets(false));
+    }
+  }, [currentUser?.uid, showDatasets]);
 
   const handleDemoChange = useCallback((demoKey: string) => {
     if (demoKey && demoDataList[demoKey as keyof typeof demoDataList]) {
@@ -61,17 +76,14 @@ export default function DataInput({
     setUploadError('');
 
     try {
-      // Get the user's ID token for authentication
-      const idToken = await currentUser.getIdToken();
-
-      // Step 1: Get pre-signed URL from our API
-      const uploadResponse = await fetch('/api/upload-dataset', {
+      // Step 1: Get pre-signed URL from our datasets API
+      const uploadResponse = await fetch('/api/datasets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
+          action: 'upload',
           userId: currentUser.uid,
           fileName: file.name,
           fileType: file.type
@@ -83,7 +95,7 @@ export default function DataInput({
         throw new Error(errorData.error || 'Failed to get upload URL');
       }
 
-      const { uploadUrl, fields, fileId, s3Key } = await uploadResponse.json();
+      const { uploadUrl, fields, fileId, datasetId, s3Key } = await uploadResponse.json();
 
       // Step 2: Upload file using pre-signed POST with form data
       const formData = new FormData();
@@ -96,39 +108,72 @@ export default function DataInput({
       // Add the file last
       formData.append('file', file);
 
-      const uploadRequest = new XMLHttpRequest();
-      
-      uploadRequest.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(progress);
-        }
-      };
+      // Use XMLHttpRequest for progress tracking, but avoid CORS preflight
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        // Progress tracking
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(progress);
+          }
+        };
 
-      uploadRequest.onload = () => {
-        if (uploadRequest.status >= 200 && uploadRequest.status < 300) {
-          setUploadStatus('success');
-          
-          // Also read the file content for immediate use
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const content = e.target?.result as string;
-            setCsv(content);
-            setSelectedDemo('');
-          };
-          reader.readAsText(file);
-        } else {
-          throw new Error(`Upload failed with status: ${uploadRequest.status}`);
-        }
-      };
+        xhr.onload = async () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            // Step 3: Trigger ingestion after successful upload
+            try {
+              const ingestResponse = await fetch('/api/datasets', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  action: 'ingest',
+                  userId: currentUser.uid,
+                  datasetId: datasetId,
+                  s3Key: s3Key,
+                  originalFilename: file.name
+                }),
+              });
 
-      uploadRequest.onerror = () => {
-        throw new Error('Upload failed due to network error');
-      };
+              if (ingestResponse.ok) {
+                const ingestResult = await ingestResponse.json();
+                console.log('Ingestion successful:', ingestResult);
+                setUploadStatus('success');
+              } else {
+                console.warn('Upload successful but ingestion failed');
+                setUploadStatus('success'); // Still show success for upload
+              }
+            } catch (ingestError) {
+              console.warn('Upload successful but ingestion failed:', ingestError);
+              setUploadStatus('success'); // Still show success for upload
+            }
+            
+            // Also read the file content for immediate use
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const content = e.target?.result as string;
+              setCsv(content);
+              setSelectedDemo('');
+            };
+            reader.readAsText(file);
+            resolve(xhr.response);
+          } else {
+            reject(new Error(`Upload failed with status: ${xhr.status}`));
+          }
+        };
 
-      uploadRequest.open('POST', uploadUrl);
-      // Don't set Content-Type header for FormData - browser will set it with boundary
-      uploadRequest.send(formData);
+        xhr.onerror = () => {
+          reject(new Error('Upload failed due to network error'));
+        };
+
+        xhr.open('POST', uploadUrl);
+        // CRITICAL: Don't set any headers manually to avoid CORS preflight
+        // Browser will automatically set correct Content-Type for FormData
+        xhr.send(formData);
+      });
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -246,6 +291,66 @@ export default function DataInput({
               </div>
             )}
           </div>
+        </div>
+
+        {/* My Datasets */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">
+              My Datasets
+            </label>
+            <button
+              onClick={() => setShowDatasets(!showDatasets)}
+              className="text-sm text-blue-600 hover:text-blue-700"
+            >
+              {showDatasets ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          
+          {showDatasets && (
+            <div className="border border-gray-200 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+              {loadingDatasets ? (
+                <div className="flex items-center justify-center py-2">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-2 text-sm text-gray-600">Loading datasets...</span>
+                </div>
+              ) : datasets.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-2">No datasets uploaded yet</p>
+              ) : (
+                datasets.map((dataset) => (
+                  <div
+                    key={dataset.dataset_id}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded border hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      // TODO: Load dataset CSV content
+                      console.log('Load dataset:', dataset);
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {dataset.original_filename}
+                      </p>
+                      <div className="flex items-center space-x-2 text-xs text-gray-500">
+                        <span>{dataset.row_count} rows</span>
+                        <span>•</span>
+                        <span>{dataset.column_count} cols</span>
+                        <span>•</span>
+                        <span className={`px-1.5 py-0.5 rounded text-xs ${
+                          dataset.ingestion_status === 'completed' 
+                            ? 'bg-green-100 text-green-700' 
+                            : dataset.ingestion_status === 'failed'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {dataset.ingestion_status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* CSV Data Input */}

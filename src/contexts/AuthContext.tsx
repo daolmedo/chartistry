@@ -12,6 +12,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { createUserProfile } from '@/app/lib/api';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -45,6 +46,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (name) {
       await updateProfile(user, { displayName: name });
     }
+    
+    // Create user profile in database
+    try {
+      await createUserProfile(user.uid, email, name);
+    } catch (error) {
+      console.error('Failed to create user profile in database:', error);
+      // Don't throw error here to prevent signup failure
+      // User can still use the app, profile creation can be retried later
+    }
   };
 
   const signIn = async (email: string, password: string) => {
@@ -53,7 +63,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const { user } = await signInWithPopup(auth, provider);
+    
+    // Check if this is a new user and create profile if needed
+    // Google sign-in can be used for both new users and existing users
+    if (user.metadata.creationTime === user.metadata.lastSignInTime) {
+      // This is likely a new user (creation time equals last sign-in time)
+      try {
+        await createUserProfile(user.uid, user.email || '', user.displayName || undefined);
+      } catch (error) {
+        console.error('Failed to create user profile in database:', error);
+        // Don't throw error here to prevent signin failure
+        // User can still use the app, profile creation can be retried later
+      }
+    }
   };
 
   const logout = async () => {
