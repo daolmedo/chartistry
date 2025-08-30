@@ -22,9 +22,9 @@ EXPIRATION_TIME = 3600  # 1 hour
 DB_CONFIG = {
     'host': "chartz-ai.cexryffwmiie.eu-west-2.rds.amazonaws.com",
     'port': "5432",
-    'dbname': "postgres",
+    'dbname': "chartz",
     'user': "postgres",
-    'password': os.environ.get('DB_PASSWORD', 'your-db-password')  # Set via environment variable
+    'password': "ppddA4all.P"  # Set via environment variable
 }
 
 def test_internet_connectivity():
