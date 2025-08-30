@@ -6,7 +6,6 @@ import csv
 import io
 import pandas as pd
 import psycopg2
-from psycopg2.extras import RealDictCursor
 import requests
 from datetime import datetime
 from botocore.exceptions import ClientError
@@ -154,7 +153,7 @@ def ingest_csv_from_s3(s3_key, user_id, original_filename, dataset_id):
         
         # Connect to database
         conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
         
         # Generate table name
         cursor.execute("SELECT generate_dataset_table_name(%s, %s)", (user_id, original_filename))
@@ -413,7 +412,7 @@ def handler(event, context):
                     'body': json.dumps({'error': 'Missing userId or database connection'})
                 }
             
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor = conn.cursor()
             cursor.execute("""
                 SELECT dataset_id, original_filename, row_count, column_count, 
                        upload_date, ingestion_status, table_name
@@ -423,11 +422,17 @@ def handler(event, context):
             """, (user_id,))
             
             datasets = cursor.fetchall()
+            
+            # Convert tuples to dictionaries
+            column_names = ['dataset_id', 'original_filename', 'row_count', 'column_count', 
+                           'upload_date', 'ingestion_status', 'table_name']
+            datasets_dict = [dict(zip(column_names, row)) for row in datasets]
+            
             return {
                 'statusCode': 200,
                 'headers': cors_headers,
                 'body': json.dumps({
-                    'datasets': [dict(row) for row in datasets]
+                    'datasets': datasets_dict
                 }, default=str)
             }
         
