@@ -173,9 +173,9 @@ def ingest_csv_from_s3(s3_key, user_id, original_filename, dataset_id):
                 'column_index': i,
                 'data_type': logical_type,
                 'postgres_type': postgres_type,
-                'is_nullable': df[col_name].isnull().any(),
+                'is_nullable': bool(df[col_name].isnull().any()),
                 'sample_values': non_null_values.head(5).tolist() if len(non_null_values) > 0 else [],
-                'unique_count': len(non_null_values.unique()) if len(non_null_values) > 0 else 0
+                'unique_count': int(len(non_null_values.unique())) if len(non_null_values) > 0 else 0
             })
         
         # Create table
