@@ -421,6 +421,7 @@ def handler(event, context):
                 
                 try:
                     cursor = conn.cursor()
+                    print(f"Created cursor, about to verify dataset exists")
                     
                     # First verify the dataset exists and get table info
                     cursor.execute("""
@@ -428,8 +429,10 @@ def handler(event, context):
                         FROM datasets 
                         WHERE dataset_id = %s AND table_name = %s AND ingestion_status = 'completed'
                     """, (dataset_id, table_name))
+                    print(f"Executed dataset verification query")
                     
                     dataset_info = cursor.fetchone()
+                    print(f"Dataset verification result: {dataset_info}")
                     if not dataset_info:
                         return {
                             'statusCode': 404,
