@@ -308,12 +308,17 @@ def handler(event, context):
                 if conn:
                     try:
                         cursor = conn.cursor()
+                        
+                        # Generate table name first
+                        cursor.execute("SELECT generate_dataset_table_name(%s, %s)", (user_id, file_name))
+                        table_name = cursor.fetchone()[0]
+                        
                         # Insert dataset record (user must already exist)
                         cursor.execute("""
                             INSERT INTO datasets 
-                            (dataset_id, user_id, original_filename, s3_key, ingestion_status)
-                            VALUES (%s, %s, %s, %s, 'pending')
-                        """, (dataset_id, user_id, file_name, s3_key))
+                            (dataset_id, user_id, original_filename, s3_key, table_name, ingestion_status)
+                            VALUES (%s, %s, %s, %s, %s, 'pending')
+                        """, (dataset_id, user_id, file_name, s3_key, table_name))
                         conn.commit()
                     except Exception as e:
                         print(f"Database insert error: {e}")
