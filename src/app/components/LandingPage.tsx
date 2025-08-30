@@ -484,7 +484,7 @@ export default function LandingPage() {
                 Alternative
               </h1>
               <p className="text-xl text-gray-600 mt-6 leading-relaxed">
-                Turn Data into Stunning Dashboards and Charts in Seconds. chartz.ai lets you create dashboards and beautiful data visualizations effortlessly with AI.
+                Turn Data into Stunning Dashboards and Charts in Seconds. chartz.ai lets you create dashboards and beautiful data visualizations effortlessly with AI, no learning curve.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
                 <Link

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Amplify } from 'aws-amplify';
-import { generateClient } from 'aws-amplify/api';
+import { post } from 'aws-amplify/api';
 import awsExports from '../../../../aws-exports';
 
 Amplify.configure(awsExports, { ssr: true });
@@ -18,11 +18,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Create the API client
-    const client = generateClient();
-
     // Call the datasets Lambda function to get the actual data
-    const response = await client.post({
+    const response = await post({
       apiName: 'chartistryapi',
       path: '/datasets',
       options: {
