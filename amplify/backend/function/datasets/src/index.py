@@ -443,29 +443,38 @@ def handler(event, context):
                         }
                     
                     # Get column names first
+                    print(f"About to query information_schema.columns for table: {table_name}")
                     cursor.execute(f'SELECT column_name FROM information_schema.columns WHERE table_name = %s ORDER BY ordinal_position', (table_name,))
                     column_info = cursor.fetchall()
+                    print(f"Column info from information_schema: {column_info}")
                     column_names = [col[0] for col in column_info if col[0] not in ['id', 'created_at']]
+                    print(f"Filtered column names: {column_names}")
                     
                     # Get the actual data (excluding id and created_at columns)
                     columns_sql = ', '.join([f'"{col}"' for col in column_names])
                     query = f'SELECT {columns_sql} FROM "{table_name}" LIMIT %s'
+                    print(f"About to execute data query: {query} with limit: {limit}")
                     cursor.execute(query, (limit,))
+                    print(f"Data query executed successfully")
                     
                     rows = cursor.fetchall()
+                    print(f"Fetched {len(rows) if rows else 0} rows from the table")
                     
                     # Convert to list format for JSON serialization
                     data_rows = [list(row) for row in rows]
                     
+                    response_data = {
+                        'columns': column_names,
+                        'rows': data_rows,
+                        'totalRows': dataset_info[2],  # row_count from dataset
+                        'returnedRows': len(data_rows)
+                    }
+                    print(f"Returning successful response with {len(column_names)} columns and {len(data_rows)} rows")
+                    
                     return {
                         'statusCode': 200,
                         'headers': cors_headers,
-                        'body': json.dumps({
-                            'columns': column_names,
-                            'rows': data_rows,
-                            'totalRows': dataset_info[2],  # row_count from dataset
-                            'returnedRows': len(data_rows)
-                        })
+                        'body': json.dumps(response_data)
                     }
                 
                 except Exception as e:
