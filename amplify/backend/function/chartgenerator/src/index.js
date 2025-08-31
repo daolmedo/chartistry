@@ -4,6 +4,7 @@ const { HumanMessage, AIMessage } = require('@langchain/core/messages');
 const { tool } = require('@langchain/core/tools');
 const { z } = require('zod');
 const { Pool } = require('pg');
+const { v4: uuidv4 } = require('uuid');
 
 // Import our VMind-inspired components
 const { FieldDetectionService } = require('./field-detection');
@@ -757,7 +758,7 @@ async function initializeGeneration(state) {
     // Skip generation tracking for now since we don't have proper user authentication
     // TODO: Implement proper user ID extraction from request
     console.log('Skipping generation tracking - no user authentication implemented');
-    state.generationId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    state.generationId = uuidv4(); // Generate proper UUID format
     return state;
 }
 
