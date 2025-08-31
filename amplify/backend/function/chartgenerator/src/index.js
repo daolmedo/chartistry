@@ -754,72 +754,23 @@ async function chartGenerationNode(state) {
 
 // VMind-inspired helper: Initialize generation record
 async function initializeGeneration(state) {
-    const client = await pool.connect();
-    try {
-        const query = `
-            INSERT INTO chart_generations 
-            (user_id, dataset_id, user_prompt, generation_date, model_used, was_successful)
-            VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, false)
-            RETURNING generation_id
-        `;
-        
-        const result = await client.query(query, [
-            'anonymous', // Could be enhanced with actual user ID
-            state.datasetId,
-            state.userIntent,
-            'gpt-4o'
-        ]);
-        
-        state.generationId = result.rows[0].generation_id;
-        console.log(`Initialized generation record: ${state.generationId}`);
-        
-        return state;
-    } finally {
-        client.release();
-    }
+    // Skip generation tracking for now since we don't have proper user authentication
+    // TODO: Implement proper user ID extraction from request
+    console.log('Skipping generation tracking - no user authentication implemented');
+    state.generationId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return state;
 }
 
 // VMind-inspired helper: Finalize generation record
 async function finalizeGeneration(state) {
     if (!state.generationId) return state;
     
-    const client = await pool.connect();
-    try {
-        const executionTime = Date.now() - state.startTime;
-        
-        await client.query(`
-            UPDATE chart_generations 
-            SET 
-                generated_chart_config = $1,
-                chart_type = $2,
-                columns_used = $3,
-                execution_time_ms = $4,
-                was_successful = $5,
-                sql_query = $6,
-                field_mappings = $7,
-                confidence_score = $8,
-                data_quality_score = $9,
-                generation_strategy = 'vmind_inspired'
-            WHERE generation_id = $10
-        `, [
-            JSON.stringify(state.chartSpec),
-            state.chartType,
-            JSON.stringify([state.fieldMapping?.dimension, state.fieldMapping?.measure].filter(Boolean)),
-            executionTime,
-            state.currentStep === 'complete',
-            state.sqlQuery,
-            JSON.stringify(state.fieldMapping),
-            state.confidenceScore,
-            state.dataQuality?.score || 0.5,
-            state.generationId
-        ]);
-        
-        console.log(`Finalized generation record: ${state.generationId}, execution time: ${executionTime}ms`);
-        
-        return state;
-    } finally {
-        client.release();
-    }
+    // Skip database tracking for now
+    const executionTime = Date.now() - state.startTime;
+    console.log(`Generation completed: ${state.generationId}, execution time: ${executionTime}ms`);
+    console.log(`Chart type: ${state.chartType}, successful: ${state.currentStep === 'complete'}`);
+    
+    return state;
 }
 
 // Create the enhanced VMind-inspired workflow
