@@ -323,7 +323,9 @@ class ErrorRecoverySystem {
      * Get error context from previous attempts
      */
     async getErrorContext(generationId, stepName) {
-        if (!generationId) return [];
+        if (!generationId || generationId.startsWith('mock_') || generationId.includes('-')) {
+            return [];
+        }
 
         const client = await this.pool.connect();
         try {
@@ -348,7 +350,10 @@ class ErrorRecoverySystem {
      * Log attempt start
      */
     async logAttemptStart(state, stepName, attemptNumber, executionContext) {
-        if (!state.generationId) return;
+        if (!state.generationId || state.generationId.startsWith('mock_') || state.generationId.includes('-')) {
+            // Skip logging for mock/test generation IDs since we're not tracking generations
+            return;
+        }
 
         const client = await this.pool.connect();
         try {
@@ -377,7 +382,9 @@ class ErrorRecoverySystem {
      * Log successful attempt completion
      */
     async logAttemptSuccess(state, stepName, attemptNumber, result, executionTime) {
-        if (!state.generationId) return;
+        if (!state.generationId || state.generationId.startsWith('mock_') || state.generationId.includes('-')) {
+            return;
+        }
 
         const client = await this.pool.connect();
         try {
@@ -411,7 +418,9 @@ class ErrorRecoverySystem {
      * Log attempt failure
      */
     async logAttemptFailure(state, stepName, attemptNumber, error, executionTime) {
-        if (!state.generationId) return;
+        if (!state.generationId || state.generationId.startsWith('mock_') || state.generationId.includes('-')) {
+            return;
+        }
 
         const client = await this.pool.connect();
         try {
@@ -444,7 +453,9 @@ class ErrorRecoverySystem {
      * Log correction applied
      */
     async logCorrection(generationId, stepName, attemptNumber, strategy, corrections) {
-        if (!generationId) return;
+        if (!generationId || generationId.startsWith('mock_') || generationId.includes('-')) {
+            return;
+        }
 
         const client = await this.pool.connect();
         try {

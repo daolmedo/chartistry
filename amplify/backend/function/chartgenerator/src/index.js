@@ -637,9 +637,14 @@ async function sqlGenerationNode(state) {
             throw new Error(`Failed to parse SQL generation response: ${parseError.message}`);
         }
         
-        // Validate the generated SQL by executing it
-        console.log(`Testing SQL query: ${sqlResult.sql_query}`);
-        const queryResults = await executeSqlQuery(sqlResult.sql_query, state.tableName);
+        // Fix table name casing in the generated SQL query
+        const correctedQuery = sqlResult.sql_query.replace(
+            new RegExp(`\\b${state.tableName.toLowerCase()}\\b`, 'gi'),
+            `"${state.tableName}"`
+        );
+        
+        console.log(`Testing SQL query: ${correctedQuery}`);
+        const queryResults = await executeSqlQuery(correctedQuery, state.tableName);
         
         if (!queryResults || queryResults.length === 0) {
             throw new Error('SQL query returned no results');
@@ -649,7 +654,7 @@ async function sqlGenerationNode(state) {
             console.warn(`Query returned ${queryResults.length} rows, might create cluttered pie chart`);
         }
         
-        state.sqlQuery = sqlResult.sql_query;
+        state.sqlQuery = correctedQuery;
         state.queryResults = queryResults;
         state.insightExplanation = `Analysis of ${state.fieldMapping.dimension} by ${state.fieldMapping.measure} with ${queryResults.length} categories`;
         state.currentStep = 'chart_generation';
