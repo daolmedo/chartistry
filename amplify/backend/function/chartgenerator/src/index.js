@@ -912,6 +912,10 @@ exports.handler = async (event) => {
             statusCode: 200,
             headers,
             body: JSON.stringify({
+                // Frontend expects 'spec' field
+                spec: finalState.chartSpec,
+                time: Date.now() - finalState.startTime,
+                
                 // Original response format (backwards compatible)
                 sql_query: finalState.sqlQuery,
                 insight_explanation: finalState.insightExplanation,

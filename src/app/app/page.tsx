@@ -41,8 +41,13 @@ export default function ChartApp() {
   };
   
   const handleGenerate = async () => {
-    if (!csv.trim() || !prompt.trim()) {
-      setError('Please provide CSV data and prompt');
+    if (!selectedDataset) {
+      setError('Please select a dataset first');
+      return;
+    }
+    
+    if (!prompt.trim()) {
+      setError('Please provide a prompt for chart generation');
       return;
     }
 
@@ -59,9 +64,10 @@ export default function ChartApp() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          csv, 
-          prompt 
+        body: JSON.stringify({
+          user_intent: prompt,
+          dataset_id: selectedDataset.dataset_id,
+          table_name: selectedDataset.table_name
         }),
       });
 

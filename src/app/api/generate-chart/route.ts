@@ -14,11 +14,11 @@ const chartGeneratorPath = '/charts';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { csv, prompt } = body;
+    const { user_intent, dataset_id, table_name } = body;
 
-    if (!csv || !prompt) {
+    if (!user_intent || !dataset_id || !table_name) {
       return NextResponse.json({ 
-        error: 'CSV data and prompt are required' 
+        error: 'user_intent, dataset_id, and table_name are required' 
       }, { status: 400 });
     }
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           httpMethod: 'POST',
-          body: JSON.stringify({ csv, prompt })
+          body: JSON.stringify({ user_intent, dataset_id, table_name })
         })
       });
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         apiName: myAPI,
         path: chartGeneratorPath,
         options: {
-          body: { csv, prompt }
+          body: { user_intent, dataset_id, table_name }
         }
       }).response;
 
