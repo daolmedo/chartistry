@@ -17,6 +17,13 @@ const dbConfig = {
     database: "chartz",
     user: "postgres",
     password: "ppddA4all.P",
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 30_000,
+    // 🔑 enable TLS – this makes pg send the SSLRequest packet
+    ssl: {
+        require: true,
+        rejectUnauthorized: false
+    }
 };
 
 // Create database pool
