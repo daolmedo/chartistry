@@ -6,6 +6,7 @@ import { Dataset } from '../lib/api';
 interface DatasetViewerProps {
   dataset: Dataset | null;
   onClose: () => void;
+  onGenerateInsights?: (dataset: Dataset, userIntent: string) => void;
 }
 
 interface DatasetData {

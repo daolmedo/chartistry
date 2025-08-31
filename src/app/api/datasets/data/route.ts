@@ -23,9 +23,6 @@ export async function GET(request: NextRequest) {
       apiName: 'chartistryapi',
       path: '/datasets',
       options: {
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: {
           action: 'getData',
           datasetId,
@@ -33,14 +30,12 @@ export async function GET(request: NextRequest) {
           limit: 1000 // Limit to first 1000 rows for performance
         }
       }
-    });
+    }).response;
 
-    // The response from Amplify API is wrapped, need to parse the body
-    const responseBody = typeof response.response === 'string' 
-      ? JSON.parse(response.response)
-      : response.response;
-    
-    return NextResponse.json(responseBody);
+    console.log("response");
+    console.log(response);
+    const data = await response.body.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching dataset data:', error);
     return NextResponse.json(

@@ -126,6 +126,7 @@ export default function ChartApp() {
             spec={chartSpec}
             generationTime={generationTime}
             error={error}
+            selectedDataset={selectedDataset}
           />
           
           {/* Dataset Viewer - Bottom Bar */}

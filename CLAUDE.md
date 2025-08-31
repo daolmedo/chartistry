@@ -26,7 +26,7 @@ This is a **Next.js 14 App Router** project with **AWS Amplify** backend integra
 - AWS Amplify with API Gateway
 - PostgreSQL database (AWS RDS) for data storage
 - Lambda functions:
-  - `chartgenerator` - AI chart generation using Anthropic Claude SDK
+  - `chartgenerator` - AI chart generation using LangGraph
   - `customers` - User profile management (create, get, update)
   - `datasets` - CSV file upload, S3 storage, and database ingestion
   - `stripecheckout` - Payment processing (Stripe integration)
@@ -50,7 +50,7 @@ This is a **Next.js 14 App Router** project with **AWS Amplify** backend integra
 1. Frontend calls `/api/generate-chart` with user message
 2. Next.js API route forwards to AWS API Gateway (`chartistryapi`)
 3. API Gateway triggers Lambda function (`chartgenerator`)
-4. Lambda uses Anthropic Claude SDK to generate chart code
+4. Lambda uses Langgraph to generate chart code
 5. Response flows back through the chain
 
 **Dataset Management:**
