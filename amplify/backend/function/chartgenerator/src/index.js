@@ -602,18 +602,8 @@ async function sqlGenerationNode(state) {
             throw new Error(`Failed to parse SQL generation response: ${parseError.message}`);
         }
         
-        // Fix table name casing in the generated SQL query
-        // First remove any existing quotes around the table name to avoid double quoting
-        let correctedQuery = sqlResult.sql_query
-            // Remove double quotes: ""table"" -> table
-            .replace(new RegExp(`"+"${state.tableName}"+"`, 'gi'), state.tableName)
-            // Replace unquoted table name with properly quoted schema.table
-            .replace(new RegExp(`\\b${state.tableName.toLowerCase()}\\b`, 'gi'), `public."${state.tableName}"`)
-            // Fix any cases where it's already quoted but missing schema
-            .replace(new RegExp(`"${state.tableName}"`, 'gi'), `public."${state.tableName}"`);
-        
-        console.log(`Testing SQL query: ${correctedQuery}`);
-        const queryResults = await executeSqlQuery(correctedQuery, state.tableName);
+        console.log(`Testing SQL query: ${sqlResult.sql_query}`);
+        const queryResults = await executeSqlQuery(sqlResult.sql_query, state.tableName);
         
         if (!queryResults || queryResults.length === 0) {
             throw new Error('SQL query returned no results');
@@ -623,7 +613,7 @@ async function sqlGenerationNode(state) {
             console.warn(`Query returned ${queryResults.length} rows, might create cluttered pie chart`);
         }
         
-        state.sqlQuery = correctedQuery;
+        state.sqlQuery = sqlResult.sql_query;
         state.queryResults = queryResults;
         state.insightExplanation = `Analysis of ${state.fieldMapping.dimension} by ${state.fieldMapping.measure} with ${queryResults.length} categories`;
         state.currentStep = 'chart_generation';
