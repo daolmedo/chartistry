@@ -66,13 +66,20 @@ export interface IngestionResponse {
 
 export async function generateChart(message: string): Promise<ChartResponse> {
   try {
+    // Create abort controller for timeout (2 minutes for AI-driven chart generation)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
+    
     const response = await fetch('/api/generate-chart', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ message }),
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData: ApiError = await response.json();
@@ -81,6 +88,9 @@ export async function generateChart(message: string): Promise<ChartResponse> {
 
     return await response.json();
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Chart generation timed out. Please try again with a simpler request or a smaller dataset.');
+    }
     console.error('Error generating chart:', error);
     throw error;
   }

@@ -708,6 +708,8 @@ RESPONSE FORMAT EXAMPLE:
                 tools: [getPieChartExamplesTool]
             });
             
+            let specContent;
+            
             // Check if the AI made tool calls (this is expected behavior)
             if (response.tool_calls && response.tool_calls.length > 0) {
                 console.log('AI called tools, making follow-up request for chart specification');
@@ -733,6 +735,8 @@ Generate the VChart pie chart specification now:`;
                 
                 const followUpResponse = await this.llm.invoke(followUpMessages);
                 specContent = followUpResponse.content;
+                console.log('FULL FOLLOW-UP RESPONSE:', JSON.stringify(followUpResponse, null, 2));
+                console.log('FULL FOLLOW-UP CONTENT:', specContent);
             } else {
                 specContent = response.content;
             }
@@ -743,8 +747,7 @@ Generate the VChart pie chart specification now:`;
                 throw new Error('LLM returned empty or invalid response');
             }
             
-            console.log('Raw AI response length:', specContent.length);
-            console.log('Raw AI response preview:', specContent.substring(0, 200) + '...');
+            console.log('FULL SPEC CONTENT BEFORE PARSING:', specContent);
             
             // Clean up response if it has markdown
             if (specContent.includes('```json')) {
@@ -799,6 +802,8 @@ Generate the corrected VChart specification:`;
                         
                         const retryResponse = await this.llm.invoke(retryMessages);
                         specContent = retryResponse.content;
+                        console.log(`FULL RETRY ${parseAttempts} RESPONSE:`, JSON.stringify(retryResponse, null, 2));
+                        console.log(`FULL RETRY ${parseAttempts} CONTENT:`, specContent);
                         
                         if (!specContent || typeof specContent !== 'string') {
                             throw new Error(`Retry attempt ${parseAttempts} returned empty response`);
