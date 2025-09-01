@@ -85,12 +85,8 @@ const PIE_CHART_KNOWLEDGE = {
                     mark: {
                         content: [
                             {
-                                key: 'Category',
-                                value: '{type}'
-                            },
-                            {
-                                key: 'Value',
-                                value: '{value}'
+                                key: datum => datum['type'],
+                                value: datum => datum['value']
                             }
                         ]
                     }
@@ -305,12 +301,8 @@ const PIE_CHART_KNOWLEDGE = {
                     mark: {
                         content: [
                             {
-                                key: 'Category',
-                                value: '{type}'
-                            },
-                            {
-                                key: 'Value',
-                                value: '{value}'
+                                key: datum => datum['type'],
+                                value: datum => datum['value']
                             }
                         ]
                     }
@@ -451,12 +443,8 @@ const PIE_CHART_KNOWLEDGE = {
                     mark: {
                         content: [
                             {
-                                key: 'Category',
-                                value: '{type}'
-                            },
-                            {
-                                key: 'Value',
-                                value: '{value}'
+                                key: datum => datum['type'],
+                                value: datum => datum['value']
                             }
                         ]
                     }
@@ -681,17 +669,29 @@ Return JSON response:
             }
         }
         
-        // Fix tooltip content to use proper field references
+        // Fix tooltip content to use actual JavaScript functions
         if (processedSpec.tooltip && processedSpec.tooltip.mark && processedSpec.tooltip.mark.content) {
-            processedSpec.tooltip.mark.content = processedSpec.tooltip.mark.content.map(item => {
-                if (typeof item.key === 'string' && typeof item.value === 'string') {
-                    return item; // Already properly formatted
+            const categoryField = processedSpec.categoryField || dataKeys[0];
+            const valueField = processedSpec.valueField || dataKeys[1];
+            
+            // Replace with actual functions that VChart can execute
+            processedSpec.tooltip.mark.content = [
+                {
+                    key: datum => datum[categoryField],
+                    value: datum => datum[valueField]
                 }
-                return {
-                    key: item.key || 'Category',
-                    value: item.value || '{' + (processedSpec.categoryField || 'type') + '}'
-                };
-            });
+            ];
+        } else if (processedSpec.tooltip && processedSpec.tooltip.mark) {
+            // Add default tooltip if none exists
+            const categoryField = processedSpec.categoryField || dataKeys[0];
+            const valueField = processedSpec.valueField || dataKeys[1];
+            
+            processedSpec.tooltip.mark.content = [
+                {
+                    key: datum => datum[categoryField],
+                    value: datum => datum[valueField]
+                }
+            ];
         }
         
         return processedSpec;
