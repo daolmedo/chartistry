@@ -600,10 +600,10 @@ async function sqlGenerationNode(state) {
         }
         
         // Fix table name casing in the generated SQL query
-        const correctedQuery = sqlResult.sql_query.replace(
-            new RegExp(`\\b${state.tableName.toLowerCase()}\\b`, 'gi'),
-            `"${state.tableName}"`
-        );
+        // First remove any existing quotes around the table name to avoid double quoting
+        let correctedQuery = sqlResult.sql_query
+            .replace(new RegExp(`"+"${state.tableName}"+"`, 'gi'), state.tableName)
+            .replace(new RegExp(`\\b${state.tableName.toLowerCase()}\\b`, 'gi'), `"${state.tableName}"`);
         
         console.log(`Testing SQL query: ${correctedQuery}`);
         const queryResults = await executeSqlQuery(correctedQuery, state.tableName);
@@ -668,6 +668,13 @@ CONTEXT:
 - Field Mapping: Dimension="${fieldMapping.dimension}", Measure="${fieldMapping.measure}"
 - Data Quality: ${dataCharacteristics.dataQuality?.score || 'N/A'}
 
+CRITICAL OUTPUT FORMAT REQUIREMENTS:
+- You MUST respond with ONLY a valid JSON object
+- NO explanations, NO markdown, NO text before or after the JSON
+- NO \`\`\`json code blocks - just the raw JSON
+- Start your response with { and end with }
+- Ensure the JSON is complete and properly closed
+
 INSTRUCTIONS:
 1. First, call the get_pie_chart_examples tool to get VChart examples and guidelines
 2. Analyze the user intent to determine the best pie chart variation
@@ -675,12 +682,11 @@ INSTRUCTIONS:
 4. Ensure field names match the actual data (categoryField: "${dataSummary.fieldNames.category}", valueField: "${dataSummary.fieldNames.value}")
 
 IMPORTANT REQUIREMENTS:
-- Return ONLY the JSON specification - no explanations or markdown
-- Use actual field names from the data
+- Use actual field names from the data: "${dataSummary.fieldNames.category}" and "${dataSummary.fieldNames.value}"
 - Follow all guidelines from the examples tool
-- Ensure the spec is 100% JSON serializable
+- Ensure the spec is 100% JSON serializable (NO functions in tooltips!)
 - Include proper title based on user intent
-- Use VChart's automatic tooltip behavior
+- Use VChart's automatic tooltip behavior: {"tooltip": {"mark": {"visible": true}}}
 
 User Intent Analysis:
 - If mentions "nested", "hierarchical", "breakdown": Consider nested pie chart
@@ -688,7 +694,8 @@ User Intent Analysis:
 - If simple request: Use basic pie chart
 - Always match the data structure provided
 
-Generate the specification now:`;
+RESPONSE FORMAT EXAMPLE:
+{"type":"pie","data":[{"id":"id0","values":[]}],"categoryField":"${dataSummary.fieldNames.category}","valueField":"${dataSummary.fieldNames.value}","title":{"visible":true,"text":"Your Title"},"tooltip":{"mark":{"visible":true}}}`;
 
         try {
             // Create messages with tool calling capability
@@ -706,6 +713,15 @@ Generate the specification now:`;
             
             let specContent = response.content;
             
+            // Validate response content exists
+            if (!specContent || typeof specContent !== 'string') {
+                console.error('Empty or invalid LLM response:', response);
+                throw new Error('LLM returned empty or invalid response');
+            }
+            
+            console.log('Raw AI response length:', specContent.length);
+            console.log('Raw AI response preview:', specContent.substring(0, 200) + '...');
+            
             // Clean up response if it has markdown
             if (specContent.includes('```json')) {
                 specContent = specContent.split('```json')[1].split('```')[0];
@@ -713,8 +729,73 @@ Generate the specification now:`;
                 specContent = specContent.split('```')[1].split('```')[0];
             }
             
-            // Parse and validate the specification
-            const chartSpec = JSON.parse(specContent.trim());
+            const trimmedContent = specContent.trim();
+            if (!trimmedContent) {
+                throw new Error('LLM response is empty after cleaning');
+            }
+            
+            // Parse and validate the specification with retry mechanism
+            let chartSpec;
+            let parseAttempts = 0;
+            const maxParseAttempts = 3;
+            
+            while (parseAttempts < maxParseAttempts) {
+                try {
+                    chartSpec = JSON.parse(trimmedContent);
+                    console.log(`JSON parsing successful on attempt ${parseAttempts + 1}`);
+                    break;
+                } catch (parseError) {
+                    parseAttempts++;
+                    console.error(`JSON parsing failed on attempt ${parseAttempts}:`, parseError.message);
+                    console.error('Content that failed to parse:', trimmedContent);
+                    
+                    if (parseAttempts < maxParseAttempts) {
+                        console.log(`Retrying AI request (attempt ${parseAttempts + 1}/${maxParseAttempts})`);
+                        
+                        // Create a more specific retry prompt
+                        const retryPrompt = `The previous response was not valid JSON. Here's what went wrong:
+ERROR: ${parseError.message}
+PREVIOUS RESPONSE: ${trimmedContent}
+
+Please provide ONLY a valid JSON object for a VChart pie chart specification. 
+Remember:
+- Start with { and end with }
+- No explanations, no markdown, no code blocks
+- Use field names: categoryField: "${dataSummary.fieldNames.category}", valueField: "${dataSummary.fieldNames.value}"
+- Valid JSON only!
+
+Generate the corrected VChart specification:`;
+
+                        const retryMessages = [
+                            {
+                                role: 'user',
+                                content: retryPrompt
+                            }
+                        ];
+                        
+                        const retryResponse = await this.llm.invoke(retryMessages);
+                        specContent = retryResponse.content;
+                        
+                        if (!specContent || typeof specContent !== 'string') {
+                            throw new Error(`Retry attempt ${parseAttempts} returned empty response`);
+                        }
+                        
+                        // Clean up response again
+                        if (specContent.includes('```json')) {
+                            specContent = specContent.split('```json')[1].split('```')[0];
+                        } else if (specContent.includes('```')) {
+                            specContent = specContent.split('```')[1].split('```')[0];
+                        }
+                        
+                        trimmedContent = specContent.trim();
+                        if (!trimmedContent) {
+                            throw new Error(`Retry attempt ${parseAttempts} returned empty content after cleaning`);
+                        }
+                    } else {
+                        throw new Error(`Failed to get valid JSON after ${maxParseAttempts} attempts. Last error: ${parseError.message}`);
+                    }
+                }
+            }
             
             // Ensure data is properly set
             if (!chartSpec.data || !Array.isArray(chartSpec.data)) {
