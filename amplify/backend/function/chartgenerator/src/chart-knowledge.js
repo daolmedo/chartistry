@@ -670,30 +670,29 @@ Return JSON response:
         }
         
         // Fix tooltip content to use actual JavaScript functions
-        if (processedSpec.tooltip && processedSpec.tooltip.mark && processedSpec.tooltip.mark.content) {
+        if (processedSpec.tooltip && processedSpec.tooltip.mark) {
             const categoryField = processedSpec.categoryField || dataKeys[0];
             const valueField = processedSpec.valueField || dataKeys[1];
+            
+            console.log(`Setting tooltip functions: categoryField=${categoryField}, valueField=${valueField}`);
+            console.log('Sample data for tooltip:', data[0]);
             
             // Replace with actual functions that VChart can execute
             processedSpec.tooltip.mark.content = [
                 {
-                    key: datum => datum[categoryField],
-                    value: datum => datum[valueField]
-                }
-            ];
-        } else if (processedSpec.tooltip && processedSpec.tooltip.mark) {
-            // Add default tooltip if none exists
-            const categoryField = processedSpec.categoryField || dataKeys[0];
-            const valueField = processedSpec.valueField || dataKeys[1];
-            
-            processedSpec.tooltip.mark.content = [
-                {
-                    key: datum => datum[categoryField],
-                    value: datum => datum[valueField]
+                    key: datum => {
+                        console.log('Tooltip key function called with:', datum);
+                        return datum[categoryField];
+                    },
+                    value: datum => {
+                        console.log('Tooltip value function called with:', datum);
+                        return datum[valueField];
+                    }
                 }
             ];
         }
         
+        console.log('Final processed spec:', JSON.stringify(processedSpec, null, 2));
         return processedSpec;
     }
 
