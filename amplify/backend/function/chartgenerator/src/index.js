@@ -74,31 +74,35 @@ const getPieChartExamplesTool = tool(
 
 \`\`\`json
 {
-  "type": "pie",
-  "data": [
+  type: 'pie',
+  data: [
     {
-      "id": "id0",
-      "values": [
-        { "type": "Images", "value": 45 },
-        { "type": "Videos", "value": 30 },
-        { "type": "Documents", "value": 15 },
-        { "type": "Audio", "value": 10 }
+      id: 'id0',
+      values: [
+        { type: 'oxygen', value: '46.60' },
+        { type: 'silicon', value: '27.72' },
+        { type: 'aluminum', value: '8.13' },
+        { type: 'iron', value: '5' },
+        { type: 'calcium', value: '3.63' },
+        { type: 'sodium', value: '2.83' },
+        { type: 'potassium', value: '2.59' },
+        { type: 'others', value: '3.5' }
       ]
     }
   ],
-  "outerRadius": 0.8,
-  "valueField": "value",
-  "categoryField": "type",
-  "title": {
-    "visible": true,
-    "text": "Content Distribution"
+  outerRadius: 0.8,
+  valueField: 'value',
+  categoryField: 'type',
+  title: {
+    visible: true,
+    text: 'Statistics of Surface Element Content'
   },
-  "legends": {
-    "visible": true,
-    "orient": "right"
+  legends: {
+    visible: true,
+    orient: 'left'
   },
-  "label": {
-    "visible": true
+  label: {
+    visible: true
   },
   "tooltip": {
     "mark": {
@@ -115,161 +119,205 @@ const getPieChartExamplesTool = tool(
 
 \`\`\`json
 {
-  "type": "common",
-  "data": [
+  type: 'common',
+  data: [
     {
-      "id": "id0",
-      "values": [
-        { "type": "Images", "value": 65 },
-        { "type": "Videos", "value": 30 },
-        { "type": "Documents", "value": 15 },
-        { "type": "Audio", "value": 10 }
+      id: 'id0',
+      values: [
+        { type: '0~29', value: '126.04' },
+        { type: '30~59', value: '128.77' },
+        { type: '60 and over', value: '77.09' }
       ]
     },
     {
-      "id": "id1",
-      "values": [
-        { "type": "Images_USA", "value": 40 },
-        { "type": "Images_UK", "value": 25 },
-        { "type": "Videos_USA", "value": 18 },
-        { "type": "Videos_UK", "value": 12 },
-        { "type": "Documents_USA", "value": 10 },
-        { "type": "Documents_UK", "value": 5 }
+      id: 'id1',
+      values: [
+        { type: '0~9', value: '39.12' },
+        { type: '10~19', value: '43.01' },
+        { type: '20~29', value: '43.91' },
+        { type: '30~39', value: '45.4' },
+        { type: '40~49', value: '40.89' },
+        { type: '50~59', value: '42.48' },
+        { type: '60~69', value: '39.63' },
+        { type: '70~79', value: '25.17' },
+        { type: '80 and over', value: '12.29' }
       ]
     }
   ],
-  "series": [
+  series: [
     {
-      "type": "pie",
-      "dataIndex": 0,
-      "outerRadius": 0.65,
-      "innerRadius": 0,
-      "valueField": "value",
-      "categoryField": "type",
-      "label": {
-        "position": "inside",
-        "visible": true,
-        "style": {
-          "fill": "white"
+      type: 'pie',
+      dataIndex: 0,
+      outerRadius: 0.65,
+      innerRadius: 0,
+      valueField: 'value',
+      categoryField: 'type',
+      label: {
+        position: 'inside',
+        visible: true,
+        style: {
+          fill: 'white'
+        }
+      },
+      pie: {
+        style: {
+          stroke: '#ffffff',
+          lineWidth: 2
         }
       }
     },
     {
-      "type": "pie",
-      "dataIndex": 1,
-      "outerRadius": 0.8,
-      "innerRadius": 0.67,
-      "valueField": "value",
-      "categoryField": "type",
-      "label": {
-        "visible": true
+      type: 'pie',
+      dataIndex: 1,
+      outerRadius: 0.8,
+      innerRadius: 0.67,
+      valueField: 'value',
+      categoryField: 'type',
+      label: {
+        visible: true
+      },
+      pie: {
+        style: {
+          stroke: '#ffffff',
+          lineWidth: 2
+        }
       }
     }
   ],
-  "title": {
-    "visible": true,
-    "text": "Hierarchical Content Distribution"
-  },
-  "legends": {
-    "visible": true,
-    "orient": "left"
-  },
-  "tooltip": {
-    "mark": {
-      "visible": true
+  color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
+  title: {
+    visible: true,
+    text: 'Population Distribution by Age in the United States, 2021 (in millions)',
+    textStyle: {
+      fontFamily: 'Times New Roman'
     }
+  },
+  legends: {
+    visible: true,
+    orient: 'left'
   }
 }
 \`\`\`
 
-### 3. DONUT CHART (Ring Chart)
+### 3. RADIUS MAPPABLE PIE CHART
 **When to use**: When you want to emphasize the relationship between parts
-**Best for**: Modern design, space for center content
+**Best for**: Pie charts can map data with internal and external radii by configuring custom scales.
 
 \`\`\`json
 {
-  "type": "pie",
-  "data": [
+  type: 'pie',
+  data: [
     {
-      "id": "id0",
-      "values": [
-        { "type": "Active", "value": 60 },
-        { "type": "Inactive", "value": 25 },
-        { "type": "Pending", "value": 15 }
+      id: 'id0',
+      values: [
+        { type: '0~9', value: '39.12' },
+        { type: '10~19', value: '43.01' },
+        { type: '20~29', value: '43.91' },
+        { type: '30~39', value: '45.4' },
+        { type: '40~49', value: '40.89' },
+        { type: '50~59', value: '42.48' },
+        { type: '60~69', value: '39.63' },
+        { type: '70~79', value: '25.17' },
+        { type: '80 and over', value: '12.29' }
       ]
     }
   ],
-  "outerRadius": 0.8,
-  "innerRadius": 0.5,
-  "valueField": "value",
-  "categoryField": "type",
-  "title": {
-    "visible": true,
-    "text": "Status Distribution"
+  valueField: 'value',
+  categoryField: 'type',
+  outerRadius: {
+    field: 'value',
+    scale: 'outer-radius'
   },
-  "legends": {
-    "visible": true,
-    "orient": "bottom"
+  innerRadius: {
+    field: 'value',
+    scale: 'inner-radius'
   },
-  "label": {
-    "visible": true
-  },
-  "tooltip": {
-    "mark": {
-      "visible": true
+  scales: [
+    {
+      id: 'outer-radius',
+      type: 'linear',
+      domain: [10, 50],
+      range: [120, 220]
+    },
+    {
+      id: 'inner-radius',
+      type: 'linear',
+      domain: [10, 50],
+      range: [110, 10]
     }
+  ],
+  label: {
+    visible: true
+  },
+  color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
+  title: {
+    visible: true,
+    text: 'Population Distribution by Age in the United States, 2021 (in millions)',
+    textStyle: {
+      fontFamily: 'Times New Roman'
+    }
+  },
+  legends: {
+    visible: true,
+    orient: 'right'
   }
 }
 \`\`\`
 
-### 4. STYLED PIE CHART
-**When to use**: Professional presentations, branded content
+### 4. RING CHART
+**When to use**: When there are a lot of categories
 **Best for**: Marketing materials, executive dashboards
 
 \`\`\`json
 {
-  "type": "pie",
-  "data": [
+  type: 'pie',
+  data: [
     {
-      "id": "id0",
-      "values": [
-        { "type": "Q1", "value": 25 },
-        { "type": "Q2", "value": 30 },
-        { "type": "Q3", "value": 28 },
-        { "type": "Q4", "value": 17 }
+      id: 'id0',
+      values: [
+        { type: 'oxygen', value: '46.60' },
+        { type: 'silicon', value: '27.72' },
+        { type: 'aluminum', value: '8.13' },
+        { type: 'iron', value: '5' },
+        { type: 'calcium', value: '3.63' },
+        { type: 'sodium', value: '2.83' },
+        { type: 'potassium', value: '2.59' },
+        { type: 'others', value: '3.5' }
       ]
     }
   ],
-  "outerRadius": 0.8,
-  "innerRadius": 0.4,
-  "padAngle": 0.02,
-  "valueField": "value",
-  "categoryField": "type",
-  "pie": {
-    "style": {
-      "cornerRadius": 6,
-      "stroke": "#ffffff",
-      "lineWidth": 2
+  outerRadius: 0.8,
+  innerRadius: 0.5,
+  padAngle: 0.6,
+  valueField: 'value',
+  categoryField: 'type',
+  pie: {
+    style: {
+      cornerRadius: 10
     },
-    "state": {
-      "hover": {
-        "outerRadius": 0.85,
-        "stroke": "#000",
-        "lineWidth": 1
+    state: {
+      hover: {
+        outerRadius: 0.85,
+        stroke: '#000',
+        lineWidth: 1
+      },
+      selected: {
+        outerRadius: 0.85,
+        stroke: '#000',
+        lineWidth: 1
       }
     }
   },
-  "color": ["#5B8FF9", "#5AD8A6", "#5D7092", "#F6BD16"],
-  "title": {
-    "visible": true,
-    "text": "Quarterly Performance"
+  title: {
+    visible: true,
+    text: 'Statistics of Surface Element Content'
   },
-  "legends": {
-    "visible": true,
-    "orient": "right"
+  legends: {
+    visible: true,
+    orient: 'left'
   },
-  "label": {
-    "visible": true
+  label: {
+    visible: true
   },
   "tooltip": {
     "mark": {
@@ -360,7 +408,7 @@ Remember: Keep it simple, match field names, and let VChart handle the complexit
 const llm = new ChatOpenAI({
     model: "gpt-5",
     apiKey: process.env.OPENAI_API_KEY,
-    temperature: 0.1, // Low temperature for consistent, deterministic responses
+    // Note: temperature parameter not supported with gpt-5 model
 });
 
 // Initialize VMind-inspired services
