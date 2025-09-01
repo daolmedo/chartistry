@@ -686,14 +686,27 @@ async function chartGenerationNode(state) {
             throw new Error('No query results available for chart generation');
         }
         
-        // Standardize data format using VMind principles
+        // Standardize data format using VMind principles - keep original field names
+        const keys = Object.keys(state.queryResults[0]);
+        const categoryFieldName = keys.find(key => !['id', 'created_at'].includes(key.toLowerCase()) && 
+                                           (key.toLowerCase().includes('category') || 
+                                            key.toLowerCase().includes('type') ||
+                                            key === state.fieldMapping.dimension)) || keys[0];
+        const valueFieldName = keys.find(key => !['id', 'created_at'].includes(key.toLowerCase()) && 
+                                        (key.toLowerCase().includes('value') || 
+                                         key.toLowerCase().includes('count') ||
+                                         key.toLowerCase().includes('amount') ||
+                                         key === state.fieldMapping.measure)) || keys[1];
+        
         const standardizedData = state.queryResults.map(row => {
-            const keys = Object.keys(row);
-            return {
-                type: String(row[keys[0]] || 'Unknown'),  // Use 'type' to match VChart examples
-                value: String(Number(row[keys[1]]) || 0)   // Convert to string to match VChart format
-            };
+            const result = {};
+            result[categoryFieldName] = String(row[categoryFieldName] || 'Unknown');
+            result[valueFieldName] = Number(row[valueFieldName]) || 0;
+            return result;
         });
+        
+        console.log(`Data mapping: ${categoryFieldName} -> ${valueFieldName}`);
+        console.log('Sample data:', standardizedData.slice(0, 2));
         
         // Validate data using chart knowledge system
         const validation = ChartKnowledgeManager.validateDataForChart(
@@ -709,12 +722,18 @@ async function chartGenerationNode(state) {
             console.warn('Data validation issues:', validation.issues);
         }
         
-        // Use AI-driven chart generation
+        // Use AI-driven chart generation with enhanced field mapping
+        const enhancedFieldMapping = {
+            ...state.fieldMapping,
+            categoryFieldName,
+            valueFieldName
+        };
+        
         const chartResult = await aiChartGenerator.generateChartSpec({
             chartType: 'pie',
             data: standardizedData,
             userIntent: state.userIntent,
-            fieldMapping: state.fieldMapping,
+            fieldMapping: enhancedFieldMapping,
             dataCharacteristics: {
                 categoryCount: standardizedData.length,
                 hasTimeData: false,

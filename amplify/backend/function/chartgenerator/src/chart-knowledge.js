@@ -85,8 +85,12 @@ const PIE_CHART_KNOWLEDGE = {
                     mark: {
                         content: [
                             {
-                                key: datum => datum['type'],
-                                value: datum => datum['value'] + '%'
+                                key: 'Category',
+                                value: '{type}'
+                            },
+                            {
+                                key: 'Value',
+                                value: '{value}'
                             }
                         ]
                     }
@@ -301,8 +305,12 @@ const PIE_CHART_KNOWLEDGE = {
                     mark: {
                         content: [
                             {
-                                key: datum => datum['type'],
-                                value: datum => datum['value'] + '%'
+                                key: 'Category',
+                                value: '{type}'
+                            },
+                            {
+                                key: 'Value',
+                                value: '{value}'
                             }
                         ]
                     }
@@ -443,8 +451,12 @@ const PIE_CHART_KNOWLEDGE = {
                     mark: {
                         content: [
                             {
-                                key: datum => datum['type'],
-                                value: datum => datum['value'] + '%'
+                                key: 'Category',
+                                value: '{type}'
+                            },
+                            {
+                                key: 'Value',
+                                value: '{value}'
                             }
                         ]
                     }
@@ -638,6 +650,54 @@ Return JSON response:
     }
 
     /**
+     * Post-process chart specification to fix function serialization and data mapping
+     */
+    static postProcessChartSpec(chartSpec, data, fieldMapping) {
+        // Clone the spec to avoid mutation
+        let processedSpec = JSON.parse(JSON.stringify(chartSpec));
+        
+        // Ensure data is properly formatted for VChart
+        if (processedSpec.data && Array.isArray(processedSpec.data)) {
+            processedSpec.data[0].values = data;
+        } else {
+            processedSpec.data = [{ id: 'id0', values: data }];
+        }
+        
+        // Fix field mappings based on actual data structure
+        const dataKeys = data.length > 0 ? Object.keys(data[0]) : [];
+        if (dataKeys.length >= 2) {
+            // Use first key as category field, second as value field
+            processedSpec.categoryField = dataKeys[0];
+            processedSpec.valueField = dataKeys[1];
+            
+            // Update series if it exists (for nested charts)
+            if (processedSpec.series && Array.isArray(processedSpec.series)) {
+                processedSpec.series.forEach(series => {
+                    if (series.type === 'pie') {
+                        series.categoryField = dataKeys[0];
+                        series.valueField = dataKeys[1];
+                    }
+                });
+            }
+        }
+        
+        // Fix tooltip content to use proper field references
+        if (processedSpec.tooltip && processedSpec.tooltip.mark && processedSpec.tooltip.mark.content) {
+            processedSpec.tooltip.mark.content = processedSpec.tooltip.mark.content.map(item => {
+                if (typeof item.key === 'string' && typeof item.value === 'string') {
+                    return item; // Already properly formatted
+                }
+                return {
+                    key: item.key || 'Category',
+                    value: item.value || '{' + (processedSpec.categoryField || 'type') + '}'
+                };
+            });
+        }
+        
+        return processedSpec;
+    }
+
+    /**
      * Apply AI-driven customizations to chart specification
      */
     static async customizeChartSpec(baseSpec, template, data, userIntent, fieldMapping, llm) {
@@ -669,7 +729,12 @@ Special Instructions:
 - Always use the data structure: [{ id: 'id0', values: data_array }]
 
 Return the complete customized VChart specification as JSON.
-Ensure all function references use proper syntax (e.g., "key: datum => datum['field']").
+IMPORTANT: For tooltip content, use this format:
+{
+  "key": "Display Name",
+  "value": "{field_name}"
+}
+Do NOT use function syntax like "datum => datum['field']" as it will not work when serialized.
 `;
 
         try {
@@ -681,17 +746,19 @@ Ensure all function references use proper syntax (e.g., "key: datum => datum['fi
                 customizedSpec = customizedSpec.split('```json')[1].split('```')[0];
             }
             
-            return JSON.parse(customizedSpec);
+            const parsedSpec = JSON.parse(customizedSpec);
+            return this.postProcessChartSpec(parsedSpec, data, fieldMapping);
         } catch (error) {
             console.warn('AI customization failed, using base template:', error.message);
-            // Return base template with basic customizations
-            return {
+            // Return base template with basic customizations and post-processing
+            const fallbackSpec = {
                 ...baseSpec,
                 title: {
                     ...baseSpec.title,
                     text: `${fieldMapping.dimension} Analysis - ${userIntent}`
                 }
             };
+            return this.postProcessChartSpec(fallbackSpec, data, fieldMapping);
         }
     }
 
