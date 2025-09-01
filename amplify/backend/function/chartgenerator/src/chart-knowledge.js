@@ -83,12 +83,7 @@ const PIE_CHART_KNOWLEDGE = {
                 },
                 tooltip: {
                     mark: {
-                        content: [
-                            {
-                                key: datum => datum['type'],
-                                value: datum => datum['value']
-                            }
-                        ]
+                        visible: true
                     }
                 }
             },
@@ -299,12 +294,7 @@ const PIE_CHART_KNOWLEDGE = {
                 },
                 tooltip: {
                     mark: {
-                        content: [
-                            {
-                                key: datum => datum['type'],
-                                value: datum => datum['value']
-                            }
-                        ]
+                        visible: true
                     }
                 }
             },
@@ -441,12 +431,7 @@ const PIE_CHART_KNOWLEDGE = {
                 },
                 tooltip: {
                     mark: {
-                        content: [
-                            {
-                                key: datum => datum['type'],
-                                value: datum => datum['value']
-                            }
-                        ]
+                        visible: true
                     }
                 }
             },
@@ -669,30 +654,23 @@ Return JSON response:
             }
         }
         
-        // Fix tooltip content to use actual JavaScript functions
-        if (processedSpec.tooltip && processedSpec.tooltip.mark) {
-            const categoryField = processedSpec.categoryField || dataKeys[0];
-            const valueField = processedSpec.valueField || dataKeys[1];
+        // Use VChart's automatic tooltip behavior - no functions needed
+        if (processedSpec.tooltip) {
+            console.log('Using VChart automatic tooltip with fields:', {
+                categoryField: processedSpec.categoryField || dataKeys[0],
+                valueField: processedSpec.valueField || dataKeys[1]
+            });
             
-            console.log(`Setting tooltip functions: categoryField=${categoryField}, valueField=${valueField}`);
-            console.log('Sample data for tooltip:', data[0]);
-            
-            // Replace with actual functions that VChart can execute
-            processedSpec.tooltip.mark.content = [
-                {
-                    key: datum => {
-                        console.log('Tooltip key function called with:', datum);
-                        return datum[categoryField];
-                    },
-                    value: datum => {
-                        console.log('Tooltip value function called with:', datum);
-                        return datum[valueField];
-                    }
-                }
-            ];
+            // Ensure tooltip is enabled but let VChart handle content automatically
+            if (processedSpec.tooltip.mark) {
+                processedSpec.tooltip.mark.visible = true;
+                // Remove any content configuration to use VChart's automatic behavior
+                delete processedSpec.tooltip.mark.content;
+            }
         }
         
-        console.log('Final processed spec:', JSON.stringify(processedSpec, null, 2));
+        // VChart will automatically use field names for tooltip content
+        console.log('Processed spec with automatic tooltips ready');
         return processedSpec;
     }
 
