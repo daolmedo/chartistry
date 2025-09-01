@@ -406,7 +406,7 @@ Remember: Keep it simple, match field names, and let VChart handle the complexit
 
 // Initialize LLM
 const llm = new ChatOpenAI({
-    model: "gpt-5",
+    model: "gpt-5-mini",
     apiKey: process.env.OPENAI_API_KEY,
     // Note: temperature parameter not supported with gpt-5 model
 });
@@ -555,7 +555,7 @@ async function sqlGenerationNode(state) {
         Generate a PostgreSQL query for pie chart data based on field analysis.
         
         User Intent: "${state.userIntent}"
-        Table: "${state.tableName}"
+        Table: public."${state.tableName}" (use this EXACT format - include schema and quotes)
         
         Field Analysis:
         - Recommended Dimension (categories): ${state.fieldMapping.dimension}
@@ -571,12 +571,15 @@ async function sqlGenerationNode(state) {
         })), null, 2)}
         
         Generate a SQL query that:
-        1. Groups by the dimension field (${state.fieldMapping.dimension})
-        2. Aggregates the measure field (${state.fieldMapping.measure}) using SUM
-        3. Filters out NULL values 
-        4. Orders by aggregated value DESC for better pie chart readability
-        5. Limits to reasonable number of categories (15 max)
-        6. Handles any data quality issues: ${state.dataQuality.issues.join(', ')}
+        1. Uses the table name EXACTLY as: public."${state.tableName}" (with schema and quotes)
+        2. Groups by the dimension field (${state.fieldMapping.dimension})
+        3. Aggregates the measure field (${state.fieldMapping.measure}) using SUM
+        4. Filters out NULL values 
+        5. Orders by aggregated value DESC for better pie chart readability
+        6. Limits to reasonable number of categories (15 max)
+        7. Handles any data quality issues: ${state.dataQuality.issues.join(', ')}
+        
+        CRITICAL: Always use public."${state.tableName}" for the table name - never use quotes around the entire name like ""table""
         
         Return JSON:
         {
@@ -602,8 +605,12 @@ async function sqlGenerationNode(state) {
         // Fix table name casing in the generated SQL query
         // First remove any existing quotes around the table name to avoid double quoting
         let correctedQuery = sqlResult.sql_query
+            // Remove double quotes: ""table"" -> table
             .replace(new RegExp(`"+"${state.tableName}"+"`, 'gi'), state.tableName)
-            .replace(new RegExp(`\\b${state.tableName.toLowerCase()}\\b`, 'gi'), `"${state.tableName}"`);
+            // Replace unquoted table name with properly quoted schema.table
+            .replace(new RegExp(`\\b${state.tableName.toLowerCase()}\\b`, 'gi'), `public."${state.tableName}"`)
+            // Fix any cases where it's already quoted but missing schema
+            .replace(new RegExp(`"${state.tableName}"`, 'gi'), `public."${state.tableName}"`);
         
         console.log(`Testing SQL query: ${correctedQuery}`);
         const queryResults = await executeSqlQuery(correctedQuery, state.tableName);
