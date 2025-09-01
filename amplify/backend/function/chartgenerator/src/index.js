@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 // Import our VMind-inspired components
 const { FieldDetectionService } = require('./field-detection');
 const { ErrorRecoverySystem } = require('./error-recovery');
-const { PIE_CHART_KNOWLEDGE, ChartKnowledgeManager, AIChartGenerator } = require('./chart-knowledge');
+// Removed old chart knowledge dependencies - now using AI agent with tools
 
 // Database configuration
 const dbConfig = {
@@ -37,415 +37,328 @@ const headers = {
     "Access-Control-Allow-Methods": "OPTIONS,POST"
 };
 
-// Tool for getting VChart pie chart examples
+// Tool for getting VChart pie chart examples and guidelines
 const getPieChartExamplesTool = tool(
     async () => {
         return `
-        VChart Pie Chart Examples:
-        
-        1. Basic Pie Chart:
-        {
-            type: 'pie',
-            data: [
-                {
-                id: 'id0',
-                values: [
-                    { type: 'oxygen', value: '46.60' },
-                    { type: 'silicon', value: '27.72' },
-                    { type: 'aluminum', value: '8.13' },
-                    { type: 'iron', value: '5' },
-                    { type: 'calcium', value: '3.63' },
-                    { type: 'sodium', value: '2.83' },
-                    { type: 'potassium', value: '2.59' },
-                    { type: 'others', value: '3.5' }
-                ]
-                }
-            ],
-            outerRadius: 0.8,
-            valueField: 'value',
-            categoryField: 'type',
-            title: {
-                visible: true,
-                text: 'Statistics of Surface Element Content'
-            },
-            legends: {
-                visible: true,
-                orient: 'left'
-            },
-            label: {
-                visible: true
-            },
-            tooltip: {
-                mark: {
-                content: [
-                    {
-                    key: datum => datum['type'],
-                    value: datum => datum['value'] + '%'
-                    }
-                ]
-                }
-            }
-            }
-        
-        2. Nested Pie Chart:
-        {
-            type: 'common',
-            data: [
-                {
-                id: 'id0',
-                values: [
-                    { type: '0~29', value: '126.04' },
-                    { type: '30~59', value: '128.77' },
-                    { type: '60 and over', value: '77.09' }
-                ]
-                },
-                {
-                id: 'id1',
-                values: [
-                    { type: '0~9', value: '39.12' },
-                    { type: '10~19', value: '43.01' },
-                    { type: '20~29', value: '43.91' },
-                    { type: '30~39', value: '45.4' },
-                    { type: '40~49', value: '40.89' },
-                    { type: '50~59', value: '42.48' },
-                    { type: '60~69', value: '39.63' },
-                    { type: '70~79', value: '25.17' },
-                    { type: '80 and over', value: '12.29' }
-                ]
-                }
-            ],
-            series: [
-                {
-                type: 'pie',
-                dataIndex: 0,
-                outerRadius: 0.65,
-                innerRadius: 0,
-                valueField: 'value',
-                categoryField: 'type',
-                label: {
-                    position: 'inside',
-                    visible: true,
-                    style: {
-                    fill: 'white'
-                    }
-                },
-                pie: {
-                    style: {
-                    stroke: '#ffffff',
-                    lineWidth: 2
-                    }
-                }
-                },
-                {
-                type: 'pie',
-                dataIndex: 1,
-                outerRadius: 0.8,
-                innerRadius: 0.67,
-                valueField: 'value',
-                categoryField: 'type',
-                label: {
-                    visible: true
-                },
-                pie: {
-                    style: {
-                    stroke: '#ffffff',
-                    lineWidth: 2
-                    }
-                }
-                }
-            ],
-            color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
-            title: {
-                visible: true,
-                text: 'Population Distribution by Age in the United States, 2021 (in millions)',
-                textStyle: {
-                fontFamily: 'Times New Roman'
-                }
-            },
-            legends: {
-                visible: true,
-                orient: 'left'
-            }
+# VChart Pie Chart Examples and Guidelines
+
+## 🎯 CRITICAL GUARDRAILS FOR PIE CHARTS
+
+### ❌ NEVER DO:
+1. **Never use JavaScript functions in JSON** - They break serialization!
+   - WRONG: key: datum => datum['field']
+   - RIGHT: Use VChart's automatic tooltip behavior
+
+2. **Never use complex tooltip content** - Keep it simple!
+   - WRONG: Complex function-based tooltip configurations
+   - RIGHT: tooltip: { mark: { visible: true } }
+
+3. **Never ignore data structure** - Match your field names!
+   - Always use actual field names from the data
+   - Update categoryField and valueField to match your data
+
+### ✅ ALWAYS DO:
+1. **Use VChart's automatic tooltips** for reliability
+2. **Match field names** to the actual data structure
+3. **Keep data in the format**: [{ id: 'id0', values: actualDataArray }]
+4. **Ensure all values are positive** for pie charts
+
+---
+
+## 📊 PIE CHART VARIATIONS
+
+### 1. BASIC PIE CHART
+**When to use**: Simple categorical data (2-8 categories)
+**Best for**: Market share, survey results, simple distributions
+
+\`\`\`json
+{
+  "type": "pie",
+  "data": [
+    {
+      "id": "id0",
+      "values": [
+        { "type": "Images", "value": 45 },
+        { "type": "Videos", "value": 30 },
+        { "type": "Documents", "value": 15 },
+        { "type": "Audio", "value": 10 }
+      ]
+    }
+  ],
+  "outerRadius": 0.8,
+  "valueField": "value",
+  "categoryField": "type",
+  "title": {
+    "visible": true,
+    "text": "Content Distribution"
+  },
+  "legends": {
+    "visible": true,
+    "orient": "right"
+  },
+  "label": {
+    "visible": true
+  },
+  "tooltip": {
+    "mark": {
+      "visible": true
+    }
+  }
+}
+\`\`\`
+
+### 2. NESTED PIE CHART (Two Levels)
+**When to use**: Hierarchical data with parent-child relationships
+**Best for**: Category breakdowns, regional analysis, detailed segments
+**IMPORTANT**: Requires TWO separate data arrays!
+
+\`\`\`json
+{
+  "type": "common",
+  "data": [
+    {
+      "id": "id0",
+      "values": [
+        { "type": "Images", "value": 65 },
+        { "type": "Videos", "value": 30 },
+        { "type": "Documents", "value": 15 },
+        { "type": "Audio", "value": 10 }
+      ]
+    },
+    {
+      "id": "id1",
+      "values": [
+        { "type": "Images_USA", "value": 40 },
+        { "type": "Images_UK", "value": 25 },
+        { "type": "Videos_USA", "value": 18 },
+        { "type": "Videos_UK", "value": 12 },
+        { "type": "Documents_USA", "value": 10 },
+        { "type": "Documents_UK", "value": 5 }
+      ]
+    }
+  ],
+  "series": [
+    {
+      "type": "pie",
+      "dataIndex": 0,
+      "outerRadius": 0.65,
+      "innerRadius": 0,
+      "valueField": "value",
+      "categoryField": "type",
+      "label": {
+        "position": "inside",
+        "visible": true,
+        "style": {
+          "fill": "white"
         }
-        
-        3. Radius mappable pie chart:
-        {
-            type: 'pie',
-            data: [
-                {
-                id: 'id0',
-                values: [
-                    { type: '0~9', value: '39.12' },
-                    { type: '10~19', value: '43.01' },
-                    { type: '20~29', value: '43.91' },
-                    { type: '30~39', value: '45.4' },
-                    { type: '40~49', value: '40.89' },
-                    { type: '50~59', value: '42.48' },
-                    { type: '60~69', value: '39.63' },
-                    { type: '70~79', value: '25.17' },
-                    { type: '80 and over', value: '12.29' }
-                ]
-                }
-            ],
-            valueField: 'value',
-            categoryField: 'type',
-            outerRadius: {
-                field: 'value',
-                scale: 'outer-radius'
-            },
-            innerRadius: {
-                field: 'value',
-                scale: 'inner-radius'
-            },
-            scales: [
-                {
-                id: 'outer-radius',
-                type: 'linear',
-                domain: [10, 50],
-                range: [120, 220]
-                },
-                {
-                id: 'inner-radius',
-                type: 'linear',
-                domain: [10, 50],
-                range: [110, 10]
-                }
-            ],
-            label: {
-                visible: true
-            },
-            color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
-            title: {
-                visible: true,
-                text: 'Population Distribution by Age in the United States, 2021 (in millions)',
-                textStyle: {
-                fontFamily: 'Times New Roman'
-                }
-            },
-            legends: {
-                visible: true,
-                orient: 'right'
-            }
-        }
+      }
+    },
+    {
+      "type": "pie",
+      "dataIndex": 1,
+      "outerRadius": 0.8,
+      "innerRadius": 0.67,
+      "valueField": "value",
+      "categoryField": "type",
+      "label": {
+        "visible": true
+      }
+    }
+  ],
+  "title": {
+    "visible": true,
+    "text": "Hierarchical Content Distribution"
+  },
+  "legends": {
+    "visible": true,
+    "orient": "left"
+  },
+  "tooltip": {
+    "mark": {
+      "visible": true
+    }
+  }
+}
+\`\`\`
 
-        4. Ring Chart:
-        {
-            type: 'pie',
-            data: [
-                {
-                id: 'id0',
-                values: [
-                    { type: 'oxygen', value: '46.60' },
-                    { type: 'silicon', value: '27.72' },
-                    { type: 'aluminum', value: '8.13' },
-                    { type: 'iron', value: '5' },
-                    { type: 'calcium', value: '3.63' },
-                    { type: 'sodium', value: '2.83' },
-                    { type: 'potassium', value: '2.59' },
-                    { type: 'others', value: '3.5' }
-                ]
-                }
-            ],
-            outerRadius: 0.8,
-            innerRadius: 0.5,
-            padAngle: 0.6,
-            valueField: 'value',
-            categoryField: 'type',
-            pie: {
-                style: {
-                cornerRadius: 10
-                },
-                state: {
-                hover: {
-                    outerRadius: 0.85,
-                    stroke: '#000',
-                    lineWidth: 1
-                },
-                selected: {
-                    outerRadius: 0.85,
-                    stroke: '#000',
-                    lineWidth: 1
-                }
-                }
-            },
-            title: {
-                visible: true,
-                text: 'Statistics of Surface Element Content'
-            },
-            legends: {
-                visible: true,
-                orient: 'left'
-            },
-            label: {
-                visible: true
-            },
-            tooltip: {
-                mark: {
-                content: [
-                    {
-                    key: datum => datum['type'],
-                    value: datum => datum['value'] + '%'
-                    }
-                ]
-                }
-            }
-        }
+### 3. DONUT CHART (Ring Chart)
+**When to use**: When you want to emphasize the relationship between parts
+**Best for**: Modern design, space for center content
 
-        5. Linear Gradient Color Pie Chart:
-        {
-            type: 'pie',
-            data: [
-                {
-                id: 'id0',
-                values: pieData
-                }
-            ],
-            outerRadius: 0.8,
-            innerRadius: 0.5,
-            padAngle: 0.6,
-            valueField: 'value',
-            categoryField: 'type',
-            color: {
-                id: 'color',
-                type: 'linear',
-                range: ['#1664FF', '#B2CFFF', '#1AC6FF', '#94EFFF'],
-                domain: [
-                {
-                    dataId: 'id0',
-                    fields: ['value']
-                }
-                ]
-            },
-            pie: {
-                style: {
-                cornerRadius: 10,
-                fill: {
-                    scale: 'color',
-                    field: 'value'
-                }
-                }
-            },
-            legends: {
-                visible: true,
-                orient: 'left',
-                data: (data, scale) => {
-                return data.map(datum => {
-                    const pickDatum = pieData.find(pieDatum => pieDatum.type === datum.label);
+\`\`\`json
+{
+  "type": "pie",
+  "data": [
+    {
+      "id": "id0",
+      "values": [
+        { "type": "Active", "value": 60 },
+        { "type": "Inactive", "value": 25 },
+        { "type": "Pending", "value": 15 }
+      ]
+    }
+  ],
+  "outerRadius": 0.8,
+  "innerRadius": 0.5,
+  "valueField": "value",
+  "categoryField": "type",
+  "title": {
+    "visible": true,
+    "text": "Status Distribution"
+  },
+  "legends": {
+    "visible": true,
+    "orient": "bottom"
+  },
+  "label": {
+    "visible": true
+  },
+  "tooltip": {
+    "mark": {
+      "visible": true
+    }
+  }
+}
+\`\`\`
 
-                    datum.shape.fill = scale?.scale?.(pickDatum?.value);
-                    return datum;
-                });
-                }
-            },
-            label: {
-                visible: true
-            }
-        }
+### 4. STYLED PIE CHART
+**When to use**: Professional presentations, branded content
+**Best for**: Marketing materials, executive dashboards
 
-        6. Auto-wrap richtext label in pie chart:
+\`\`\`json
+{
+  "type": "pie",
+  "data": [
+    {
+      "id": "id0",
+      "values": [
+        { "type": "Q1", "value": 25 },
+        { "type": "Q2", "value": 30 },
+        { "type": "Q3", "value": 28 },
+        { "type": "Q4", "value": 17 }
+      ]
+    }
+  ],
+  "outerRadius": 0.8,
+  "innerRadius": 0.4,
+  "padAngle": 0.02,
+  "valueField": "value",
+  "categoryField": "type",
+  "pie": {
+    "style": {
+      "cornerRadius": 6,
+      "stroke": "#ffffff",
+      "lineWidth": 2
+    },
+    "state": {
+      "hover": {
+        "outerRadius": 0.85,
+        "stroke": "#000",
+        "lineWidth": 1
+      }
+    }
+  },
+  "color": ["#5B8FF9", "#5AD8A6", "#5D7092", "#F6BD16"],
+  "title": {
+    "visible": true,
+    "text": "Quarterly Performance"
+  },
+  "legends": {
+    "visible": true,
+    "orient": "right"
+  },
+  "label": {
+    "visible": true
+  },
+  "tooltip": {
+    "mark": {
+      "visible": true
+    }
+  }
+}
+\`\`\`
 
-        {
-            type: 'pie',
-            data: [
-                {
-                id: 'id0',
-                values: [
-                    { type: 'This is a long Auto-Wrap Category Text for Category1', value: 24 },
-                    { type: 'Category2', value: 20 },
-                    { type: 'Category3', value: 18 },
-                    { type: 'Category4', value: 18 },
-                    { type: 'Category5', value: 16 },
-                    {
-                    type: 'This is a long Auto-Wrap Category Text for Category6. This is a long Auto-Wrap Category Text for Category6',
-                    value: 14
-                    }
-                ]
-                }
-            ],
-            outerRadius: 0.8,
-            innerRadius: 0.5,
-            padAngle: 0.6,
-            valueField: 'value',
-            categoryField: 'type',
-            pie: {
-                style: {
-                cornerRadius: 10
-                },
-                state: {
-                hover: {
-                    outerRadius: 0.85,
-                    stroke: '#000',
-                    lineWidth: 1
-                },
-                selected: {
-                    outerRadius: 0.85,
-                    stroke: '#000',
-                    lineWidth: 1
-                }
-                }
-            },
-            legends: {
-                visible: true
-            },
-            label: {
-                visible: true,
-                formatMethod: (label, data) => {
-                return {
-                    type: 'rich',
-                    text: [
-                    {
-                        text: '${data.value}%\n',
-                        fill: 'rgba(0, 0, 0, 0.92)',
-                        fontSize: 16,
-                        fontWeight: 500,
-                        stroke: false
-                    },
-                    {
-                        text: data.type,
-                        fill: 'rgba(0, 0, 0, 0.55)',
-                        fontSize: 12,
-                        fontWeight: 400,
-                        stroke: false
-                    }
-                    ]
-                };
-                },
-                style: {
-                wordBreak: 'break-word',
-                maxHeight: 50
-                }
-            },
-            tooltip: {
-                mark: {
-                content: [
-                    {
-                    key: datum => datum['type'],
-                    value: datum => datum['value'] + '%'
-                    }
-                ]
-                }
-            }
-            }
-        
-        Key properties:
-        - type: "pie"
-        - categoryField: field containing category names
-        - valueField: field containing numeric values
-        - innerRadius: 0-1, creates donut if > 0
-        - color: can use range array for custom colors
-        - label: controls text labels on slices
+---
+
+## 🔧 FIELD MAPPING INSTRUCTIONS
+
+### Data Structure Requirements:
+- **categoryField**: Must match the field name containing category labels
+- **valueField**: Must match the field name containing numeric values
+- **Data format**: Always use [{ id: 'id0', values: actualDataArray }]
+
+### Example Field Mapping:
+If your data looks like:
+\`\`\`json
+[{ "category": "Images", "total_count": 45 }]
+\`\`\`
+
+Then use:
+\`\`\`json
+{
+  "categoryField": "category",
+  "valueField": "total_count"
+}
+\`\`\`
+
+---
+
+## 📏 CHART SELECTION GUIDELINES
+
+### Choose BASIC PIE when:
+- 2-8 categories
+- Simple distribution analysis
+- All values are positive
+- Clear category names
+
+### Choose NESTED PIE when:
+- Hierarchical data available
+- Parent-child relationships exist
+- User specifically requests "nested" or "hierarchical"
+- Need to show breakdown within categories
+
+### Choose DONUT when:
+- Modern aesthetic needed
+- Want to emphasize total vs parts
+- Need space in center for additional info
+- 3-6 categories work best
+
+### Choose STYLED PIE when:
+- Professional presentation
+- Brand colors needed
+- Interactive features desired
+- Executive dashboard context
+
+---
+
+## ⚠️ TROUBLESHOOTING COMMON ISSUES
+
+### Issue: Tooltip shows "{field_name}" instead of values
+**Solution**: Use '"tooltip": { "mark": { "visible": true } }' - let VChart handle automatically
+
+### Issue: Chart doesn't render
+**Solution**: Check that categoryField and valueField match your actual data field names
+
+### Issue: Data not showing
+**Solution**: Ensure data is in format [{ id: 'id0', values: [...] }] and values are positive numbers
+
+### Issue: Too many categories
+**Solution**: Limit to top 8-10 categories, group others as "Others"
+
+Remember: Keep it simple, match field names, and let VChart handle the complexity!
         `;
     },
     {
         name: "get_pie_chart_examples",
-        description: "Get VChart pie chart examples and documentation for creating pie charts",
+        description: "Get comprehensive VChart pie chart examples, guidelines, and best practices for generating pie chart specifications",
         schema: z.object({})
     }
 );
 
 // Initialize LLM
 const llm = new ChatOpenAI({
-    model: "gpt-4o",
+    model: "gpt-5",
     apiKey: process.env.OPENAI_API_KEY,
     temperature: 0.1, // Low temperature for consistent, deterministic responses
 });
@@ -453,7 +366,7 @@ const llm = new ChatOpenAI({
 // Initialize VMind-inspired services
 const fieldDetectionService = new FieldDetectionService(pool, llm);
 const errorRecoverySystem = new ErrorRecoverySystem(pool, llm, 3);
-const aiChartGenerator = new AIChartGenerator(llm);
+// AI Chart Generation now handled by ChartSpecificationAgent with tools
 
 // Database helper functions
 async function getDatasetStructure(datasetId, tableName) {
@@ -677,16 +590,135 @@ async function sqlGenerationNode(state) {
     );
 }
 
-// VMind-inspired Step 3: AI-Driven Chart Specification Generation
+// AI Agent for Chart Specification Generation
+class ChartSpecificationAgent {
+    constructor(llm) {
+        this.llm = llm;
+    }
+
+    async generatePieChartSpec(data, userIntent, fieldMapping, dataCharacteristics) {
+        console.log('AI Agent generating pie chart specification');
+        
+        // Prepare data summary for the agent
+        const dataSummary = {
+            sampleData: data.slice(0, 3),
+            totalRecords: data.length,
+            fieldNames: {
+                category: Object.keys(data[0])[0],
+                value: Object.keys(data[0])[1]
+            },
+            dataCharacteristics
+        };
+        
+        const agentPrompt = `You are a VChart specification expert. Your task is to generate a complete, valid VChart pie chart specification based on user intent and data.
+
+CONTEXT:
+- User Intent: "${userIntent}"
+- Data Sample: ${JSON.stringify(dataSummary.sampleData)}
+- Total Records: ${dataSummary.totalRecords}
+- Field Names: Category="${dataSummary.fieldNames.category}", Value="${dataSummary.fieldNames.value}"
+- Field Mapping: Dimension="${fieldMapping.dimension}", Measure="${fieldMapping.measure}"
+- Data Quality: ${dataCharacteristics.dataQuality?.score || 'N/A'}
+
+INSTRUCTIONS:
+1. First, call the get_pie_chart_examples tool to get VChart examples and guidelines
+2. Analyze the user intent to determine the best pie chart variation
+3. Generate a complete VChart specification that matches the data structure
+4. Ensure field names match the actual data (categoryField: "${dataSummary.fieldNames.category}", valueField: "${dataSummary.fieldNames.value}")
+
+IMPORTANT REQUIREMENTS:
+- Return ONLY the JSON specification - no explanations or markdown
+- Use actual field names from the data
+- Follow all guidelines from the examples tool
+- Ensure the spec is 100% JSON serializable
+- Include proper title based on user intent
+- Use VChart's automatic tooltip behavior
+
+User Intent Analysis:
+- If mentions "nested", "hierarchical", "breakdown": Consider nested pie chart
+- If mentions "modern", "ring", "donut": Use donut/ring style  
+- If simple request: Use basic pie chart
+- Always match the data structure provided
+
+Generate the specification now:`;
+
+        try {
+            // Create messages with tool calling capability
+            const messages = [
+                {
+                    role: 'user',
+                    content: agentPrompt
+                }
+            ];
+            
+            // Let the LLM call the tool and generate the spec
+            const response = await this.llm.invoke(messages, {
+                tools: [getPieChartExamplesTool]
+            });
+            
+            let specContent = response.content;
+            
+            // Clean up response if it has markdown
+            if (specContent.includes('```json')) {
+                specContent = specContent.split('```json')[1].split('```')[0];
+            } else if (specContent.includes('```')) {
+                specContent = specContent.split('```')[1].split('```')[0];
+            }
+            
+            // Parse and validate the specification
+            const chartSpec = JSON.parse(specContent.trim());
+            
+            // Ensure data is properly set
+            if (!chartSpec.data || !Array.isArray(chartSpec.data)) {
+                chartSpec.data = [{ id: 'id0', values: data }];
+            } else {
+                chartSpec.data[0].values = data;
+            }
+            
+            // Ensure field mapping is correct
+            if (chartSpec.categoryField !== dataSummary.fieldNames.category) {
+                chartSpec.categoryField = dataSummary.fieldNames.category;
+            }
+            if (chartSpec.valueField !== dataSummary.fieldNames.value) {
+                chartSpec.valueField = dataSummary.fieldNames.value;
+            }
+            
+            // For nested charts, also update series field mappings
+            if (chartSpec.series && Array.isArray(chartSpec.series)) {
+                chartSpec.series.forEach(series => {
+                    if (series.type === 'pie') {
+                        series.categoryField = dataSummary.fieldNames.category;
+                        series.valueField = dataSummary.fieldNames.value;
+                    }
+                });
+            }
+            
+            console.log('AI Agent successfully generated pie chart specification');
+            console.log(`Chart type: ${chartSpec.type}, Data points: ${data.length}`);
+            
+            return {
+                chartSpec,
+                confidence: 0.9,
+                reasoning: 'AI agent generated specification using VChart examples and user intent analysis'
+            };
+            
+        } catch (error) {
+            console.error('AI Agent failed to generate specification:', error.message);
+            throw new Error(`Chart specification generation failed: ${error.message}`);
+        }
+    }
+}
+
+// VMind-inspired Step 3: AI Agent-Driven Chart Specification Generation
 async function chartGenerationNode(state) {
-    console.log('Starting AI-driven chart specification generation');
+    console.log('Starting AI Agent-driven chart specification generation');
     
     const stepFunction = async (state) => {
         if (!state.queryResults || state.queryResults.length === 0) {
             throw new Error('No query results available for chart generation');
         }
         
-        // Standardize data format using VMind principles - keep original field names
+        // Standardize data format - keep original field names
         const keys = Object.keys(state.queryResults[0]);
         const categoryFieldName = keys.find(key => !['id', 'created_at'].includes(key.toLowerCase()) && 
                                            (key.toLowerCase().includes('category') || 
@@ -708,61 +740,43 @@ async function chartGenerationNode(state) {
         console.log(`Data mapping: ${categoryFieldName} -> ${valueFieldName}`);
         console.log('Sample data:', standardizedData.slice(0, 2));
         
-        // Validate data using chart knowledge system
-        const validation = ChartKnowledgeManager.validateDataForChart(
-            'pie',
+        // Create the AI Agent and generate chart specification
+        const chartAgent = new ChartSpecificationAgent(llm);
+        
+        const result = await chartAgent.generatePieChartSpec(
             standardizedData,
+            state.userIntent,
             {
-                dimensions: [state.fieldMapping.dimension],
-                measures: [state.fieldMapping.measure]
-            }
-        );
-        
-        if (!validation.valid) {
-            console.warn('Data validation issues:', validation.issues);
-        }
-        
-        // Use AI-driven chart generation with enhanced field mapping
-        const enhancedFieldMapping = {
-            ...state.fieldMapping,
-            categoryFieldName,
-            valueFieldName
-        };
-        
-        const chartResult = await aiChartGenerator.generateChartSpec({
-            chartType: 'pie',
-            data: standardizedData,
-            userIntent: state.userIntent,
-            fieldMapping: enhancedFieldMapping,
-            dataCharacteristics: {
+                ...state.fieldMapping,
+                categoryFieldName,
+                valueFieldName
+            },
+            {
                 categoryCount: standardizedData.length,
                 hasTimeData: false,
                 complexity: standardizedData.length <= 5 ? 'simple' : 
                            standardizedData.length <= 10 ? 'medium' : 'complex',
                 dataQuality: state.dataQuality
             }
-        });
+        );
         
-        state.chartSpec = chartResult.chartSpec;
+        state.chartSpec = result.chartSpec;
         state.chartType = 'pie';
         state.currentStep = 'complete';
-        state.processingSteps.push('ai_chart_generation_completed');
+        state.processingSteps.push('ai_agent_chart_generation_completed');
         
-        // Store AI-driven metadata
-        state.aiMetadata = chartResult.metadata;
-        state.templateUsed = chartResult.template;
-        state.confidenceScore = chartResult.aiRecommendation?.confidence || state.confidenceScore;
+        // Store AI agent metadata
+        state.confidenceScore = result.confidence;
+        state.aiReasoning = result.reasoning;
         
-        console.log(`AI chart generation completed. Template: ${chartResult.template}, Confidence: ${state.confidenceScore}`);
-        if (chartResult.aiRecommendation) {
-            console.log(`AI reasoning: ${chartResult.aiRecommendation.reasoning}`);
-        }
+        console.log(`AI Agent chart generation completed. Confidence: ${state.confidenceScore}`);
+        console.log(`AI reasoning: ${state.aiReasoning}`);
         
         return state;
     };
     
     return errorRecoverySystem.executeWithRecovery(
-        'ai_chart_generation',
+        'ai_agent_chart_generation',
         stepFunction,
         state,
         {
@@ -914,10 +928,10 @@ exports.handler = async (event) => {
                     steps_completed: finalState.processingSteps,
                     execution_time_ms: Date.now() - finalState.startTime,
                     attempt_counts: finalState.attemptCount,
-                    generation_strategy: 'ai_driven_vmind',
+                    generation_strategy: 'ai_agent_with_tools',
                     workflow_complete: finalState.currentStep === 'complete',
-                    template_used: finalState.templateUsed,
-                    ai_metadata: finalState.aiMetadata
+                    ai_reasoning: finalState.aiReasoning,
+                    agent_approach: 'tool_assisted_generation'
                 },
                 data_quality: finalState.dataQuality
             })
