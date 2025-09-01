@@ -89,7 +89,7 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
       </div>
 
       {/* Content */}
-      <div className="h-48 overflow-auto">
+      <div className="h-48Ok overflow-auto">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="flex items-center space-x-3 text-gray-600">

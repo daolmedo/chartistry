@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 // Import our VMind-inspired components
 const { FieldDetectionService } = require('./field-detection');
 const { ErrorRecoverySystem } = require('./error-recovery');
-const { PIE_CHART_KNOWLEDGE, ChartKnowledgeManager } = require('./chart-knowledge');
+const { PIE_CHART_KNOWLEDGE, ChartKnowledgeManager, AIChartGenerator } = require('./chart-knowledge');
 
 // Database configuration
 const dbConfig = {
@@ -453,6 +453,7 @@ const llm = new ChatOpenAI({
 // Initialize VMind-inspired services
 const fieldDetectionService = new FieldDetectionService(pool, llm);
 const errorRecoverySystem = new ErrorRecoverySystem(pool, llm, 3);
+const aiChartGenerator = new AIChartGenerator(llm);
 
 // Database helper functions
 async function getDatasetStructure(datasetId, tableName) {
@@ -676,9 +677,9 @@ async function sqlGenerationNode(state) {
     );
 }
 
-// VMind-inspired Step 3: Chart Specification Generation
+// VMind-inspired Step 3: AI-Driven Chart Specification Generation
 async function chartGenerationNode(state) {
-    console.log('Starting chart specification generation');
+    console.log('Starting AI-driven chart specification generation');
     
     const stepFunction = async (state) => {
         if (!state.queryResults || state.queryResults.length === 0) {
@@ -689,8 +690,8 @@ async function chartGenerationNode(state) {
         const standardizedData = state.queryResults.map(row => {
             const keys = Object.keys(row);
             return {
-                category: String(row[keys[0]] || 'Unknown'),
-                value: Number(row[keys[1]]) || 0
+                type: String(row[keys[0]] || 'Unknown'),  // Use 'type' to match VChart examples
+                value: String(Number(row[keys[1]]) || 0)   // Convert to string to match VChart format
             };
         });
         
@@ -708,52 +709,47 @@ async function chartGenerationNode(state) {
             console.warn('Data validation issues:', validation.issues);
         }
         
-        // Select appropriate chart template
-        const chartTemplate = ChartKnowledgeManager.selectChartTemplate('pie', {
-            categoryCount: standardizedData.length,
-            hasTimeData: false,
-            complexity: standardizedData.length <= 5 ? 'simple' : 'medium'
+        // Use AI-driven chart generation
+        const chartResult = await aiChartGenerator.generateChartSpec({
+            chartType: 'pie',
+            data: standardizedData,
+            userIntent: state.userIntent,
+            fieldMapping: state.fieldMapping,
+            dataCharacteristics: {
+                categoryCount: standardizedData.length,
+                hasTimeData: false,
+                complexity: standardizedData.length <= 5 ? 'simple' : 
+                           standardizedData.length <= 10 ? 'medium' : 'complex',
+                dataQuality: state.dataQuality
+            }
         });
         
-        if (!chartTemplate) {
-            throw new Error('No suitable chart template found');
-        }
-        
-        // Generate VChart specification using structured knowledge
-        const chartSpec = {
-            ...chartTemplate.vchartSpec,
-            data: { values: standardizedData },
-            categoryField: 'category',
-            valueField: 'value',
-            title: {
-                visible: true,
-                text: `${state.userIntent} - ${state.fieldMapping.dimension} Analysis`
-            }
-        };
-        
-        // Apply style variations if needed
-        if (standardizedData.length > 8) {
-            // Use donut style for better readability
-            chartSpec.innerRadius = 0.4;
-        }
-        
-        state.chartSpec = chartSpec;
+        state.chartSpec = chartResult.chartSpec;
         state.chartType = 'pie';
         state.currentStep = 'complete';
-        state.processingSteps.push('chart_generation_completed');
+        state.processingSteps.push('ai_chart_generation_completed');
         
-        console.log(`Chart generation completed. Generated ${state.chartType} chart with ${standardizedData.length} categories`);
+        // Store AI-driven metadata
+        state.aiMetadata = chartResult.metadata;
+        state.templateUsed = chartResult.template;
+        state.confidenceScore = chartResult.aiRecommendation?.confidence || state.confidenceScore;
+        
+        console.log(`AI chart generation completed. Template: ${chartResult.template}, Confidence: ${state.confidenceScore}`);
+        if (chartResult.aiRecommendation) {
+            console.log(`AI reasoning: ${chartResult.aiRecommendation.reasoning}`);
+        }
         
         return state;
     };
     
     return errorRecoverySystem.executeWithRecovery(
-        'chart_generation',
+        'ai_chart_generation',
         stepFunction,
         state,
         {
             dataLength: state.queryResults?.length,
-            fieldMapping: state.fieldMapping
+            fieldMapping: state.fieldMapping,
+            userIntent: state.userIntent
         }
     );
 }
@@ -899,8 +895,10 @@ exports.handler = async (event) => {
                     steps_completed: finalState.processingSteps,
                     execution_time_ms: Date.now() - finalState.startTime,
                     attempt_counts: finalState.attemptCount,
-                    generation_strategy: 'vmind_inspired',
-                    workflow_complete: finalState.currentStep === 'complete'
+                    generation_strategy: 'ai_driven_vmind',
+                    workflow_complete: finalState.currentStep === 'complete',
+                    template_used: finalState.templateUsed,
+                    ai_metadata: finalState.aiMetadata
                 },
                 data_quality: finalState.dataQuality
             })
