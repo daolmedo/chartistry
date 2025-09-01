@@ -708,7 +708,34 @@ RESPONSE FORMAT EXAMPLE:
                 tools: [getPieChartExamplesTool]
             });
             
-            let specContent = response.content;
+            // Check if the AI made tool calls (this is expected behavior)
+            if (response.tool_calls && response.tool_calls.length > 0) {
+                console.log('AI called tools, making follow-up request for chart specification');
+                
+                // Make a follow-up call without tools to get the actual chart spec
+                const followUpPrompt = `Based on the VChart examples you've accessed, generate the pie chart specification for this data:
+
+Data Sample: ${JSON.stringify(dataSummary.sampleData)}
+Field Names: Category="${dataSummary.fieldNames.category}", Value="${dataSummary.fieldNames.value}"
+User Intent: "${userIntent}"
+
+CRITICAL: Respond with ONLY the JSON specification - no explanations, no markdown, no code blocks.
+Start with { and end with }
+
+Generate the VChart pie chart specification now:`;
+
+                const followUpMessages = [
+                    {
+                        role: 'user',
+                        content: followUpPrompt
+                    }
+                ];
+                
+                const followUpResponse = await this.llm.invoke(followUpMessages);
+                specContent = followUpResponse.content;
+            } else {
+                specContent = response.content;
+            }
             
             // Validate response content exists
             if (!specContent || typeof specContent !== 'string') {
