@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Amplify } from 'aws-amplify';
-import { post } from 'aws-amplify/api';
-import awsExports from '../../../amplifyconfiguration.json';
 
-// Configure Amplify for SSR
-Amplify.configure(awsExports, {
-  ssr: true
-});
-
-const myAPI = "chartistryapi";
-const chartGeneratorPath = '/charts';
+const CHART_GENERATOR_FUNCTION_URL = 'https://7xj5vtwghbnjb3p6cupkx7jjc40nfznv.lambda-url.eu-west-2.on.aws/';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,16 +36,24 @@ export async function POST(request: NextRequest) {
       const data = await response.json();
       return NextResponse.json(data);
     } else {
-      // Call the Lambda function via API Gateway using aws-amplify
-      const response = await post({
-        apiName: myAPI,
-        path: chartGeneratorPath,
-        options: {
-          body: { user_intent, dataset_id, table_name }
-        }
-      }).response;
+      // Call the Lambda Function URL directly (bypasses API Gateway timeout)
+      const response = await fetch(CHART_GENERATOR_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_intent,
+          dataset_id,
+          table_name
+        })
+      });
 
-      const data = await response.body.json();
+      if (!response.ok) {
+        throw new Error(`Lambda function returned status: ${response.status}`);
+      }
+
+      const data = await response.json();
       return NextResponse.json(data);
     }
 

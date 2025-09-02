@@ -167,6 +167,10 @@ const CHART_CATALOG = {
   defs: {
     "pie.basic": {
       id: "pie_basic_v1",
+      requirement: "pie.basic: columns => type, value",
+      sql: {
+        output: { categoryAlias: "type", valueAlias: "value" }
+      },
       expectedDataShapes: [
         // Agent should adapt to any of these shapes and produce a valid spec.
         { rows: "[{ type: string, value: number }]" },
@@ -187,22 +191,23 @@ const CHART_CATALOG = {
         {
           name: "Pie • Basic",
           js: String.raw`const spec = {
-  type: 'pie',
-  data: [{ id: 'id0', values: [{ type: 'oxygen', value: 46.60 }, { type: 'silicon', value: 27.72 }] }],
-  outerRadius: 0.8,
-  valueField: 'value',
-  categoryField: 'type',
-  title: { visible: true, text: 'Statistics of Surface Element Content' },
-  legends: { visible: true, orient: 'left' },
-  label: { visible: true },
-  tooltip: { mark: { content: [{ key: d => d['type'], value: d => d['value'] + '%' }] } }
-};`
+            type: 'pie',
+            data: [{ id: 'id0', values: [{ type: 'oxygen', value: 46.60 }, { type: 'silicon', value: 27.72 }] }],
+            outerRadius: 0.8,
+            valueField: 'value',
+            categoryField: 'type',
+            title: { visible: true, text: 'Statistics of Surface Element Content' },
+            legends: { visible: true, orient: 'left' },
+            label: { visible: true },
+            tooltip: { mark: { content: [{ key: d => d['type'], value: d => d['value'] + '%' }] } }
+          };`
         }
       ]
     },
 
     "pie.nested": {
       id: "pie_nested_v1",
+      requirement: "pie.nested (outer): type, value   (category total)\n  * pie.nested (inner): type, value   (category • subcategory)",
       expectedDataShapes: [
         { outer: "[{ type: string, value: number }]", inner: "[{ type: string, value: number }]" },
         { outer: "[{ [categoryField]: string, [valueField]: number }]", inner: "[{ [categoryField]: string, [valueField]: number }]" }
@@ -221,26 +226,27 @@ const CHART_CATALOG = {
         {
           name: "Pie • Nested",
           js: String.raw`const spec = {
-  type: 'common',
-  data: [
-    { id: 'id0', values: [{ type: '0~29', value: 126.04 }, { type: '30~59', value: 128.77 }] },
-    { id: 'id1', values: [{ type: '0~9', value: 39.12 }, { type: '10~19', value: 43.01 }] }
-  ],
-  series: [
-    { type: 'pie', dataIndex: 0, outerRadius: 0.65, innerRadius: 0, valueField: 'value', categoryField: 'type',
-      label: { position: 'inside', visible: true }, pie: { style: { stroke: '#ffffff', lineWidth: 2 } } },
-    { type: 'pie', dataIndex: 1, outerRadius: 0.8, innerRadius: 0.67, valueField: 'value', categoryField: 'type',
-      label: { visible: true }, pie: { style: { stroke: '#ffffff', lineWidth: 2 } } }
-  ],
-  legends: { visible: true, orient: 'left' },
-  title: { visible: true, text: 'Population Distribution by Age' }
-};`
+            type: 'common',
+            data: [
+              { id: 'id0', values: [{ type: '0~29', value: 126.04 }, { type: '30~59', value: 128.77 }] },
+              { id: 'id1', values: [{ type: '0~9', value: 39.12 }, { type: '10~19', value: 43.01 }] }
+            ],
+            series: [
+              { type: 'pie', dataIndex: 0, outerRadius: 0.65, innerRadius: 0, valueField: 'value', categoryField: 'type',
+                label: { position: 'inside', visible: true }, pie: { style: { stroke: '#ffffff', lineWidth: 2 } } },
+              { type: 'pie', dataIndex: 1, outerRadius: 0.8, innerRadius: 0.67, valueField: 'value', categoryField: 'type',
+                label: { visible: true }, pie: { style: { stroke: '#ffffff', lineWidth: 2 } } }
+            ],
+            legends: { visible: true, orient: 'left' },
+            title: { visible: true, text: 'Population Distribution by Age' }
+          };`
         }
       ]
     },
 
     "funnel.basic": {
       id: "funnel_basic_v1",
+      requirement: "funnel.basic: columns => step, value",
       expectedDataShapes: [
         { rows: "[{ step: string, value: number }]" },
         { rows: "[{ name: string, value: number }]" }
@@ -255,19 +261,20 @@ const CHART_CATALOG = {
         {
           name: "Funnel • Basic",
           js: String.raw`const spec = {
-  type: 'funnel',
-  categoryField: 'name',
-  valueField: 'value',
-  data: [{ id: 'funnel', values: [{ value: 100, name: 'Step1' }, { value: 80, name: 'Step2' }] }],
-  label: { visible: true },
-  legends: { visible: true, orient: 'bottom' }
-};`
+            type: 'funnel',
+            categoryField: 'name',
+            valueField: 'value',
+            data: [{ id: 'funnel', values: [{ value: 100, name: 'Step1' }, { value: 80, name: 'Step2' }] }],
+            label: { visible: true },
+            legends: { visible: true, orient: 'bottom' }
+          };`
         }
       ]
     },
 
     "funnel.conversion": {
       id: "funnel_conversion_v1",
+      requirement: "funnel.conversion: columns => step, value",
       expectedDataShapes: [
         { rows: "[{ step: string, value: number }]" }
       ],
@@ -282,18 +289,18 @@ const CHART_CATALOG = {
         {
           name: "Funnel • Conversion",
           js: String.raw`const spec = {
-  type: 'funnel',
-  categoryField: 'name',
-  valueField: 'value',
-  isTransform: true,
-  isCone: false,
-  data: [{ id: 'funnel', values: [{ value: 5676, name: 'Sent' }, { value: 3872, name: 'Viewed' }] }],
-  title: { visible: true, text: 'Percentage of customers dropped' },
-  label: { visible: true },
-  transformLabel: { visible: true },
-  outerLabel: { position: 'right', visible: true },
-  legends: { visible: true, orient: 'top' }
-};`
+            type: 'funnel',
+            categoryField: 'name',
+            valueField: 'value',
+            isTransform: true,
+            isCone: false,
+            data: [{ id: 'funnel', values: [{ value: 5676, name: 'Sent' }, { value: 3872, name: 'Viewed' }] }],
+            title: { visible: true, text: 'Percentage of customers dropped' },
+            label: { visible: true },
+            transformLabel: { visible: true },
+            outerLabel: { position: 'right', visible: true },
+            legends: { visible: true, orient: 'top' }
+          };`
         }
       ]
     }
@@ -384,7 +391,6 @@ function buildSystemPrompt() {
     "Mapping must use actual column names from the dataset.",
     "If requirements for the user's preferred chart aren't met, pick the closest valid option.",
     "Prefer low-cardinality dimensions for pies; ensure numeric measures when required.",
-    "For funnel.conversion, you MUST require an identifier column.",
     "",
     "Output format:",
     "Return ONLY one JSON object, no markdown, no prose.",
@@ -520,20 +526,18 @@ function buildAggregationGraph({ table_name, selection }) {
 
 /* -------- Prompts for Step 2 (with output example) -------- */
 
-function buildStep2SystemPrompt() {
+function buildStep2SystemPrompt(chartRequirement) {
   return [
     "You are a SQL aggregation assistant.",
     "Goal: given {chart, mapping, table} produce exactly one read-only SQL query that returns the aggregated rows required by the chart.",
     "Then CALL the execute_sql tool with that query.",
     "Rules:",
     "- Use ONLY the provided fully-qualified table name.",
+    "- First, explore the data with a simple SELECT * LIMIT 5 to understand all the fields and how the data can be mapped to the mapping.",
+    "- Then, perform the query and execute it to validate it.",
     "- SELECT or WITH ... SELECT only. No writes, no joins, no subqueries to other tables.",
     "- Alias output columns exactly as required:",
-    "  * pie.basic: columns => type, value",
-    "  * pie.nested (outer): type, value   (category total)",
-    "  * pie.nested (inner): type, value   (category • subcategory)",
-    "  * funnel.basic: columns => step, value",
-    "  * funnel.conversion: columns => step, value (distinct identifier per step)",
+    `  * ${chartRequirement}`,
     "- Prefer SUM for numeric measures, COUNT(DISTINCT id) for conversion if mapping includes 'id'.",
     "- Keep results small; add ORDER BY and LIMIT when sensible.",
     "",
@@ -754,7 +758,12 @@ export const handler = async (event) => {
     console.log('Building aggregation graph for table:', tableFQ);
     const step2App = buildAggregationGraph({ table_name: tableFQ, selection });
 
-    const step2System = new SystemMessage(buildStep2SystemPrompt());
+    // Get chart requirement from catalog
+    const chartKey = `${selection.chart.type}.${selection.chart.subtype}`;
+    const chartDef = CHART_CATALOG.defs[chartKey];
+    const chartRequirement = chartDef?.requirement || `${selection.chart.type}.${selection.chart.subtype}: columns => [specify based on chart definition]`;
+    
+    const step2System = new SystemMessage(buildStep2SystemPrompt(chartRequirement));
     const step2Human = new HumanMessage(buildStep2UserPrompt({ table_name: tableFQ, selection }));
 
     console.log('Invoking aggregation graph...');

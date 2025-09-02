@@ -68,7 +68,6 @@ export async function generateChart(message: string): Promise<ChartResponse> {
   try {
     // Create abort controller for timeout (2 minutes for AI-driven chart generation)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
     
     const response = await fetch('/api/generate-chart', {
       method: 'POST',
@@ -79,8 +78,6 @@ export async function generateChart(message: string): Promise<ChartResponse> {
       signal: controller.signal,
     });
     
-    clearTimeout(timeoutId);
-
     if (!response.ok) {
       const errorData: ApiError = await response.json();
       throw new Error(errorData.error || 'Failed to generate chart');
