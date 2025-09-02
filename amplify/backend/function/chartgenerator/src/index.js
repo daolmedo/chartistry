@@ -37,11 +37,12 @@ const headers = {
     "Access-Control-Allow-Methods": "OPTIONS,POST"
 };
 
-// Tool for getting VChart pie chart examples and guidelines
-const getPieChartExamplesTool = tool(
-    async () => {
-        return `
-# VChart Pie Chart Examples and Guidelines
+// Tool for getting available chart types and their specifications
+const getAvailableChartsTool = tool(
+    async ({ chartType }) => {
+        if (chartType === 'pie' || !chartType) {
+            return `
+# VChart Pie Chart Specifications and Guidelines
 
 ## 🎯 CRITICAL GUARDRAILS FOR PIE CHARTS
 
@@ -112,160 +113,8 @@ const getPieChartExamplesTool = tool(
 }
 \`\`\`
 
-### 2. NESTED PIE CHART (Two Levels)
-**When to use**: Hierarchical data with parent-child relationships
-**Best for**: Category breakdowns, regional analysis, detailed segments
-**IMPORTANT**: Requires TWO separate data arrays!
-
-\`\`\`json
-{
-  type: 'common',
-  data: [
-    {
-      id: 'id0',
-      values: [
-        { type: '0~29', value: '126.04' },
-        { type: '30~59', value: '128.77' },
-        { type: '60 and over', value: '77.09' }
-      ]
-    },
-    {
-      id: 'id1',
-      values: [
-        { type: '0~9', value: '39.12' },
-        { type: '10~19', value: '43.01' },
-        { type: '20~29', value: '43.91' },
-        { type: '30~39', value: '45.4' },
-        { type: '40~49', value: '40.89' },
-        { type: '50~59', value: '42.48' },
-        { type: '60~69', value: '39.63' },
-        { type: '70~79', value: '25.17' },
-        { type: '80 and over', value: '12.29' }
-      ]
-    }
-  ],
-  series: [
-    {
-      type: 'pie',
-      dataIndex: 0,
-      outerRadius: 0.65,
-      innerRadius: 0,
-      valueField: 'value',
-      categoryField: 'type',
-      label: {
-        position: 'inside',
-        visible: true,
-        style: {
-          fill: 'white'
-        }
-      },
-      pie: {
-        style: {
-          stroke: '#ffffff',
-          lineWidth: 2
-        }
-      }
-    },
-    {
-      type: 'pie',
-      dataIndex: 1,
-      outerRadius: 0.8,
-      innerRadius: 0.67,
-      valueField: 'value',
-      categoryField: 'type',
-      label: {
-        visible: true
-      },
-      pie: {
-        style: {
-          stroke: '#ffffff',
-          lineWidth: 2
-        }
-      }
-    }
-  ],
-  color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
-  title: {
-    visible: true,
-    text: 'Population Distribution by Age in the United States, 2021 (in millions)',
-    textStyle: {
-      fontFamily: 'Times New Roman'
-    }
-  },
-  legends: {
-    visible: true,
-    orient: 'left'
-  }
-}
-\`\`\`
-
-### 3. RADIUS MAPPABLE PIE CHART
-**When to use**: When you want to emphasize the relationship between parts
-**Best for**: Pie charts can map data with internal and external radii by configuring custom scales.
-
-\`\`\`json
-{
-  type: 'pie',
-  data: [
-    {
-      id: 'id0',
-      values: [
-        { type: '0~9', value: '39.12' },
-        { type: '10~19', value: '43.01' },
-        { type: '20~29', value: '43.91' },
-        { type: '30~39', value: '45.4' },
-        { type: '40~49', value: '40.89' },
-        { type: '50~59', value: '42.48' },
-        { type: '60~69', value: '39.63' },
-        { type: '70~79', value: '25.17' },
-        { type: '80 and over', value: '12.29' }
-      ]
-    }
-  ],
-  valueField: 'value',
-  categoryField: 'type',
-  outerRadius: {
-    field: 'value',
-    scale: 'outer-radius'
-  },
-  innerRadius: {
-    field: 'value',
-    scale: 'inner-radius'
-  },
-  scales: [
-    {
-      id: 'outer-radius',
-      type: 'linear',
-      domain: [10, 50],
-      range: [120, 220]
-    },
-    {
-      id: 'inner-radius',
-      type: 'linear',
-      domain: [10, 50],
-      range: [110, 10]
-    }
-  ],
-  label: {
-    visible: true
-  },
-  color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
-  title: {
-    visible: true,
-    text: 'Population Distribution by Age in the United States, 2021 (in millions)',
-    textStyle: {
-      fontFamily: 'Times New Roman'
-    }
-  },
-  legends: {
-    visible: true,
-    orient: 'right'
-  }
-}
-\`\`\`
-
-### 4. RING CHART
-**When to use**: When there are a lot of categories
+### 2. RING/DONUT CHART
+**When to use**: Modern aesthetic, emphasize total vs parts
 **Best for**: Marketing materials, executive dashboards
 
 \`\`\`json
@@ -329,78 +178,68 @@ const getPieChartExamplesTool = tool(
 
 ---
 
-## 🔧 FIELD MAPPING INSTRUCTIONS
+## 🔧 DATA MAPPING REQUIREMENTS
 
-### Data Structure Requirements:
-- **categoryField**: Must match the field name containing category labels
-- **valueField**: Must match the field name containing numeric values
-- **Data format**: Always use [{ id: 'id0', values: actualDataArray }]
+### For Pie Charts:
+- **categoryField**: Field containing category labels (text/string)
+- **valueField**: Field containing numeric values (positive numbers preferred)
+- **Data structure**: [{ id: 'id0', values: actualDataArray }]
 
-### Example Field Mapping:
-If your data looks like:
-\`\`\`json
-[{ "category": "Images", "total_count": 45 }]
-\`\`\`
+### Field Selection Criteria:
+- **Dimension (Category)**: 
+  - Low cardinality (2-15 unique values)
+  - Text or categorical data
+  - Meaningful category names
+  - Good for pie slices
 
-Then use:
-\`\`\`json
-{
-  "categoryField": "category",
-  "valueField": "total_count"
-}
-\`\`\`
+- **Measure (Value)**:
+  - Numeric data suitable for aggregation
+  - Positive values preferred
+  - Can be summed meaningfully
+  - Represents quantities/amounts
 
----
-
-## 📏 CHART SELECTION GUIDELINES
-
-### Choose BASIC PIE when:
-- 2-8 categories
-- Simple distribution analysis
-- All values are positive
-- Clear category names
-
-### Choose NESTED PIE when:
-- Hierarchical data available
-- Parent-child relationships exist
-- User specifically requests "nested" or "hierarchical"
-- Need to show breakdown within categories
-
-### Choose DONUT when:
-- Modern aesthetic needed
-- Want to emphasize total vs parts
-- Need space in center for additional info
-- 3-6 categories work best
-
-### Choose STYLED PIE when:
-- Professional presentation
-- Brand colors needed
-- Interactive features desired
-- Executive dashboard context
+### Suitability Assessment:
+- ✅ 2-8 categories: Excellent
+- ✅ 9-15 categories: Good (consider grouping)
+- ❌ 16+ categories: Not suitable (too cluttered)
+- ✅ Positive values: Perfect
+- ⚠️ Mixed positive/negative: Possible with absolute values
+- ❌ All negative: Not suitable
 
 ---
 
-## ⚠️ TROUBLESHOOTING COMMON ISSUES
+## 📏 CHART SELECTION LOGIC
 
-### Issue: Tooltip shows "{field_name}" instead of values
-**Solution**: Use '"tooltip": { "mark": { "visible": true } }' - let VChart handle automatically
+### Choose PIE CHART when:
+- Showing parts of a whole
+- Categorical data with 2-15 categories
+- User wants to see proportional relationships
+- Data represents distribution or composition
 
-### Issue: Chart doesn't render
-**Solution**: Check that categoryField and valueField match your actual data field names
+### PIE CHART VARIATIONS:
+- **Basic Pie**: Simple distributions, clear categories
+- **Donut/Ring**: Modern look, space for center content
+- **Interactive**: Hover effects, selection states
 
-### Issue: Data not showing
-**Solution**: Ensure data is in format [{ id: 'id0', values: [...] }] and values are positive numbers
-
-### Issue: Too many categories
-**Solution**: Limit to top 8-10 categories, group others as "Others"
+### NOT suitable for PIE when:
+- Too many categories (>15)
+- Negative values dominant
+- Time series data (use line chart)
+- Comparison across multiple series (use bar chart)
 
 Remember: Keep it simple, match field names, and let VChart handle the complexity!
         `;
+        }
+        
+        // Future expansion for other chart types
+        return `Chart type "${chartType}" not yet available. Currently supported: pie`;
     },
     {
-        name: "get_pie_chart_examples",
-        description: "Get comprehensive VChart pie chart examples, guidelines, and best practices for generating pie chart specifications",
-        schema: z.object({})
+        name: "get_available_charts",
+        description: "Get available chart types, their specifications, data mapping requirements, and suitability guidelines",
+        schema: z.object({
+            chartType: z.string().optional().describe("Specific chart type to get info for (e.g., 'pie'). If not provided, returns all available charts.")
+        })
     }
 );
 
@@ -504,41 +343,310 @@ class WorkflowState {
     }
 }
 
-// VMind-inspired Step 1: Field Detection and Analysis
-async function fieldDetectionNode(state) {
-    console.log(`Starting field detection for dataset ${state.datasetId}`);
+// AI Agent for Data Mapping and Chart Selection
+class DataMappingAgent {
+    constructor(llm, pool) {
+        this.llm = llm;
+        this.pool = pool;
+    }
+
+    async analyzeDataAndSelectChart(datasetId, tableName, userIntent, datasetStructure) {
+        console.log('AI Agent analyzing data for mapping and chart selection');
+        
+        // Get comprehensive dataset information
+        const dataContext = await this.gatherDataContext(datasetId, tableName, datasetStructure);
+        
+        const analysisPrompt = `You are an expert data visualization consultant. Based on the user's intent and the dataset, you need to:
+
+1. **Determine the best chart type** for the user's visualization needs
+2. **Map the data fields** to the chosen chart type
+3. **Provide reasoning** for your decisions
+
+CONTEXT:
+- **User Intent**: "${userIntent}"
+- **Dataset**: "${tableName}"
+- **Available Fields**: ${JSON.stringify(dataContext.fields.map(f => ({
+    name: f.column_name,
+    type: f.data_type,
+    unique_values: f.unique_count,
+    sample_values: f.sample_values?.slice(0, 3) || [],
+    cardinality_ratio: f.cardinality_ratio,
+    null_percentage: f.null_percentage || 0
+})), null, 2)}
+
+- **Sample Data** (first 3 rows):
+${JSON.stringify(dataContext.sampleData.slice(0, 3), null, 2)}
+
+- **Data Summary**:
+  - Total rows: ${dataContext.rowCount}
+  - Total columns: ${dataContext.columnCount}
+  - Data quality indicators: ${JSON.stringify(dataContext.qualityIndicators)}
+
+TASKS:
+1. First, call the get_available_charts tool to understand available chart options
+2. Analyze the user intent to determine what they want to visualize
+3. Evaluate which fields are suitable for visualization
+4. Select the best chart type based on:
+   - Data characteristics (categorical vs numerical, cardinality, etc.)
+   - User intent (distribution, comparison, trend, composition, etc.)
+   - Data quality and completeness
+5. Map the selected fields to chart dimensions (category/dimension fields and value/measure fields)
+
+IMPORTANT DECISION CRITERIA:
+- **For composition/parts-of-whole**: Consider pie charts if 2-15 categories
+- **For comparison**: Consider bar charts if implemented
+- **For trends over time**: Consider line charts if implemented  
+- **For distributions**: Consider histograms if implemented
+
+USER INTENT ANALYSIS:
+- If user mentions "distribution", "composition", "breakdown", "share", "proportion": Favor pie charts
+- If user mentions "compare", "versus", "difference": Favor bar charts
+- If user mentions "trend", "over time", "timeline": Favor line charts
+- If no specific intent: Choose based on data characteristics
+
+RETURN FORMAT:
+{
+  "selected_chart_type": "pie|bar|line|...",
+  "confidence_score": 0.0-1.0,
+  "reasoning": "detailed explanation of why this chart type and mapping",
+  "field_mapping": {
+    "dimension": "field_name_for_categories",
+    "measure": "field_name_for_values",
+    "additional_fields": {}
+  },
+  "data_suitability": {
+    "suitable": true/false,
+    "issues": ["list any data quality or suitability concerns"],
+    "recommendations": ["suggestions for data preparation"]
+  },
+  "chart_configuration_hints": {
+    "suggested_aggregation": "SUM|COUNT|AVG|etc",
+    "expected_categories": number,
+    "value_range_info": "description",
+    "special_considerations": ["any special handling needed"]
+  }
+}`;
+
+        try {
+            // Create messages with tool calling capability
+            const messages = [{
+                role: 'user',
+                content: analysisPrompt
+            }];
+            
+            // Let the LLM call the tool and generate analysis
+            const response = await this.llm.invoke(messages, {
+                tools: [getAvailableChartsTool]
+            });
+            
+            let analysisContent;
+            
+            // Check if AI made tool calls
+            if (response.tool_calls && response.tool_calls.length > 0) {
+                console.log('AI called chart info tool, making follow-up request for analysis');
+                
+                const followUpPrompt = `Based on the chart information you've accessed, provide your data mapping and chart selection analysis:
+
+User Intent: "${userIntent}"
+Dataset Fields: ${JSON.stringify(dataContext.fields.map(f => f.column_name))}
+Sample Data: ${JSON.stringify(dataContext.sampleData.slice(0, 2))}
+
+Provide your analysis in the exact JSON format specified earlier. Focus on:
+1. Which chart type best matches the user intent and data characteristics
+2. How to map the fields to the chosen chart type
+3. Any data quality considerations
+
+Your JSON response:`;
+
+                const followUpMessages = [{
+                    role: 'user',
+                    content: followUpPrompt
+                }];
+                
+                const followUpResponse = await this.llm.invoke(followUpMessages);
+                analysisContent = followUpResponse.content;
+            } else {
+                analysisContent = response.content;
+            }
+            
+            if (!analysisContent || typeof analysisContent !== 'string') {
+                throw new Error('LLM returned empty or invalid response');
+            }
+            
+            console.log('RAW AI ANALYSIS RESPONSE:', analysisContent);
+            
+            // Parse AI analysis
+            let aiAnalysis;
+            try {
+                let content = analysisContent;
+                if (content.includes('```json')) {
+                    content = content.split('```json')[1].split('```')[0];
+                } else if (content.includes('```')) {
+                    const codeBlocks = content.split('```');
+                    if (codeBlocks.length >= 2) {
+                        content = codeBlocks[1];
+                    }
+                }
+                
+                const trimmedContent = content.trim();
+                aiAnalysis = JSON.parse(trimmedContent);
+                console.log('PARSED AI ANALYSIS:', JSON.stringify(aiAnalysis, null, 2));
+            } catch (parseError) {
+                console.error('Failed to parse AI analysis:', parseError.message);
+                console.error('Content that failed:', analysisContent);
+                throw new Error(`AI analysis parsing failed: ${parseError.message}`);
+            }
+            
+            // Validate the analysis has required fields
+            if (!aiAnalysis.selected_chart_type || !aiAnalysis.field_mapping) {
+                throw new Error('AI analysis missing required fields: selected_chart_type or field_mapping');
+            }
+            
+            // Enhance with data context
+            const result = {
+                chartType: aiAnalysis.selected_chart_type,
+                confidence: aiAnalysis.confidence_score || 0.8,
+                reasoning: aiAnalysis.reasoning,
+                fieldMapping: {
+                    dimension: aiAnalysis.field_mapping.dimension,
+                    measure: aiAnalysis.field_mapping.measure,
+                    additionalFields: aiAnalysis.field_mapping.additional_fields || {}
+                },
+                dataSuitability: aiAnalysis.data_suitability || {
+                    suitable: true,
+                    issues: [],
+                    recommendations: []
+                },
+                chartConfiguration: aiAnalysis.chart_configuration_hints || {},
+                dataContext: dataContext
+            };
+            
+            console.log(`AI Agent selected chart type: ${result.chartType} with confidence: ${result.confidence}`);
+            console.log(`Field mapping - Dimension: ${result.fieldMapping.dimension}, Measure: ${result.fieldMapping.measure}`);
+            
+            return result;
+            
+        } catch (error) {
+            console.error('AI Agent analysis failed:', error.message);
+            throw new Error(`Data mapping and chart selection failed: ${error.message}`);
+        }
+    }
+
+    async gatherDataContext(datasetId, tableName, datasetStructure) {
+        const client = await this.pool.connect();
+        
+        try {
+            // Get field characteristics
+            const fieldsQuery = `
+                SELECT 
+                    column_name,
+                    data_type,
+                    postgres_type,
+                    unique_count,
+                    cardinality_ratio,
+                    contains_nulls_pct,
+                    sample_values,
+                    min_value,
+                    max_value,
+                    COALESCE(field_role, 'unknown') as field_role,
+                    COALESCE(semantic_type, 'text') as semantic_type
+                FROM dataset_columns 
+                WHERE dataset_id = $1
+                ORDER BY column_index
+            `;
+            
+            const fieldsResult = await client.query(fieldsQuery, [datasetId]);
+            
+            // Get sample data
+            const columns = fieldsResult.rows
+                .map(row => row.column_name)
+                .filter(col => !['id', 'created_at'].includes(col));
+            
+            let sampleData = [];
+            if (columns.length > 0) {
+                const sampleQuery = `SELECT ${columns.map(col => `"${col}"`).join(', ')} FROM "${tableName}" LIMIT 5`;
+                const sampleResult = await client.query(sampleQuery);
+                sampleData = sampleResult.rows;
+            }
+            
+            // Basic data quality indicators
+            const qualityIndicators = {
+                hasNulls: fieldsResult.rows.some(f => f.contains_nulls_pct > 0),
+                highCardinalityFields: fieldsResult.rows.filter(f => f.cardinality_ratio > 0.8).length,
+                numericFields: fieldsResult.rows.filter(f => f.semantic_type === 'numerical').length,
+                textFields: fieldsResult.rows.filter(f => f.semantic_type === 'text').length
+            };
+            
+            return {
+                fields: fieldsResult.rows,
+                sampleData: sampleData,
+                rowCount: datasetStructure.rowCount || 0,
+                columnCount: datasetStructure.columnCount || fieldsResult.rows.length,
+                qualityIndicators: qualityIndicators
+            };
+            
+        } finally {
+            client.release();
+        }
+    }
+}
+
+// Updated Step 1: LLM-driven Data Mapping and Chart Selection
+async function dataMappingAndChartSelectionNode(state) {
+    console.log(`Starting AI-driven data mapping and chart selection for dataset ${state.datasetId}`);
     
     const stepFunction = async (state) => {
-        // Analyze fields using our PostgreSQL + AI system
-        const fieldAnalysisResult = await fieldDetectionService.analyzeFields(
-            state.datasetId, 
-            state.tableName
+        // Get dataset structure for context
+        const datasetStructure = await getDatasetStructure(state.datasetId, state.tableName);
+        state.datasetStructure = datasetStructure;
+        
+        // Create AI agent for data mapping and chart selection
+        const dataMappingAgent = new DataMappingAgent(llm, pool);
+        
+        // Let AI analyze data and select chart type
+        const analysisResult = await dataMappingAgent.analyzeDataAndSelectChart(
+            state.datasetId,
+            state.tableName, 
+            state.userIntent,
+            datasetStructure
         );
         
-        state.fieldAnalysis = fieldAnalysisResult;
-        state.fieldMapping = fieldAnalysisResult.recommendedForPieChart;
-        state.dataQuality = fieldAnalysisResult.dataQuality;
-        state.confidenceScore = fieldAnalysisResult.recommendedForPieChart.confidence;
+        // Update state with AI analysis results
+        state.chartType = analysisResult.chartType;
+        state.fieldMapping = analysisResult.fieldMapping;
+        state.confidenceScore = analysisResult.confidence;
+        state.aiReasoning = analysisResult.reasoning;
+        state.dataSuitability = analysisResult.dataSuitability;
+        state.chartConfiguration = analysisResult.chartConfiguration;
+        state.dataQuality = {
+            score: analysisResult.dataSuitability.suitable ? 0.8 : 0.5,
+            issues: analysisResult.dataSuitability.issues || []
+        };
         
-        // Check if data is suitable for pie chart
-        if (!fieldAnalysisResult.recommendedForPieChart.suitable) {
-            console.warn('Data may not be suitable for pie chart:', fieldAnalysisResult.recommendedForPieChart.reason);
+        // Log analysis results
+        console.log(`AI selected chart type: ${state.chartType}`);
+        console.log(`Field mapping - Dimension: ${state.fieldMapping.dimension}, Measure: ${state.fieldMapping.measure}`);
+        console.log(`Confidence score: ${state.confidenceScore}`);
+        console.log(`Data suitable: ${state.dataSuitability.suitable}`);
+        if (!state.dataSuitability.suitable) {
+            console.warn('AI identified data suitability issues:', state.dataSuitability.issues);
         }
         
         state.currentStep = 'sql_generation';
-        state.processingSteps.push('field_detection_completed');
-        
-        console.log(`Field detection completed. Confidence: ${state.confidenceScore}`);
-        console.log(`Recommended fields - Dimension: ${state.fieldMapping.dimension}, Measure: ${state.fieldMapping.measure}`);
+        state.processingSteps.push('ai_data_mapping_completed');
         
         return state;
     };
     
     return errorRecoverySystem.executeWithRecovery(
-        'field_detection', 
+        'ai_data_mapping', 
         stepFunction, 
         state,
-        { service: 'field_detection', dataset: state.datasetId }
+        { 
+            service: 'ai_data_mapping_agent', 
+            dataset: state.datasetId,
+            userIntent: state.userIntent
+        }
     );
 }
 
@@ -705,7 +813,7 @@ RESPONSE FORMAT EXAMPLE:
             
             // Let the LLM call the tool and generate the spec
             const response = await this.llm.invoke(messages, {
-                tools: [getPieChartExamplesTool]
+                tools: [getAvailableChartsTool]
             });
             
             let specContent;
@@ -996,16 +1104,16 @@ function createWorkflow() {
         }
     });
     
-    // Add VMind-inspired nodes
+    // Add enhanced AI-driven nodes
     workflow.addNode('initialize_generation', initializeGeneration);
-    workflow.addNode('field_detection', fieldDetectionNode);
+    workflow.addNode('data_mapping_and_chart_selection', dataMappingAndChartSelectionNode);
     workflow.addNode('sql_generation', sqlGenerationNode); 
     workflow.addNode('chart_generation', chartGenerationNode);
     workflow.addNode('finalize_generation', finalizeGeneration);
     
     // Add edges for sequential processing
-    workflow.addEdge('initialize_generation', 'field_detection');
-    workflow.addEdge('field_detection', 'sql_generation');
+    workflow.addEdge('initialize_generation', 'data_mapping_and_chart_selection');
+    workflow.addEdge('data_mapping_and_chart_selection', 'sql_generation');
     workflow.addEdge('sql_generation', 'chart_generation');
     workflow.addEdge('chart_generation', 'finalize_generation');
     workflow.addEdge('finalize_generation', END);
