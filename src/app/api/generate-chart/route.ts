@@ -5,7 +5,7 @@ const CHART_GENERATOR_FUNCTION_URL = 'https://7xj5vtwghbnjb3p6cupkx7jjc40nfznv.l
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_intent, dataset_id, table_name } = body;
+    const { user_intent, dataset_id, table_name, stream } = body;
 
     if (!user_intent || !dataset_id || !table_name) {
       return NextResponse.json({ 
@@ -15,29 +15,54 @@ export async function POST(request: NextRequest) {
 
     // Check if we're in local development mode
     const isLocal = process.env.LOCAL === 'true';
+    
+    // Check if streaming is requested
+    const isStreaming = stream === true;
 
     if (isLocal) {
       // Call local Lambda function
+      const lambdaPayload = {
+        httpMethod: 'POST',
+        queryStringParameters: isStreaming ? { stream: 'true' } : null,
+        body: JSON.stringify({ user_intent, dataset_id, table_name })
+      };
+
       const response = await fetch('http://localhost:9000/2015-03-31/functions/function/invocations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          httpMethod: 'POST',
-          body: JSON.stringify({ user_intent, dataset_id, table_name })
-        })
+        body: JSON.stringify(lambdaPayload)
       });
 
       if (!response.ok) {
         throw new Error(`Local Lambda call failed: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return NextResponse.json(data);
+      if (isStreaming) {
+        // For streaming, return the response as-is with proper headers
+        const data = await response.text();
+        return new NextResponse(data, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+          }
+        });
+      } else {
+        const data = await response.json();
+        return NextResponse.json(data);
+      }
     } else {
-      // Call the Lambda Function URL directly (bypasses API Gateway timeout)
-      const response = await fetch(CHART_GENERATOR_FUNCTION_URL, {
+      // Build Lambda URL with streaming parameter if needed
+      const lambdaUrl = new URL(CHART_GENERATOR_FUNCTION_URL);
+      if (isStreaming) {
+        lambdaUrl.searchParams.set('stream', 'true');
+      }
+
+      // Call the Lambda Function URL directly
+      const response = await fetch(lambdaUrl.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,8 +78,20 @@ export async function POST(request: NextRequest) {
         throw new Error(`Lambda function returned status: ${response.status}`);
       }
 
-      const data = await response.json();
-      return NextResponse.json(data);
+      if (isStreaming) {
+        // Stream the response back to the client
+        return new NextResponse(response.body, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache', 
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+          }
+        });
+      } else {
+        const data = await response.json();
+        return NextResponse.json(data);
+      }
     }
 
   } catch (error) {

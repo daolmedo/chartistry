@@ -1,4 +1,4 @@
-// index.js - AWS Lambda handler for Step 1 (chart selection only)
+// index.js - AWS Lambda handler with streaming support 
 // npm i @langchain/openai @langchain/langgraph @langchain/core zod pg
 
 import { Pool } from "pg";
@@ -664,197 +664,220 @@ function buildStep3UserPrompt({ selection, aggregation }) {
 
 /* ----------------------------- Lambda Handler ----------------------------- */
 
+// Helper to create streaming response chunks
+function createStreamChunk(type, content) {
+  return `data: ${JSON.stringify({ type, content, timestamp: new Date().toISOString() })}\n\n`;
+}
+
 export const handler = async (event) => {
   console.log('=== Lambda Handler Started ===');
   console.log('Event:', JSON.stringify(event));
   
+  // Check if streaming is requested
+  const isStreaming = event.queryStringParameters?.stream === 'true';
+  
+  if (isStreaming) {
+    // Collect stream chunks for server-sent events
+    const streamChunks = [];
+    
+    const addThought = (content, type = 'progress') => {
+      streamChunks.push(createStreamChunk(type, content));
+    };
+    
+    try {
+      const result = await processChartGeneration(event, addThought);
+      
+      // Add final result
+      streamChunks.push(createStreamChunk('complete', result));
+      
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Content-Type"
+        },
+        body: streamChunks.join('')
+      };
+    } catch (error) {
+      streamChunks.push(createStreamChunk('error', `Error: ${error.message}`));
+      return {
+        statusCode: 500,
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Access-Control-Allow-Origin": "*"
+        },
+        body: streamChunks.join('')
+      };
+    }
+  }
+  
+  // Non-streaming version (original logic)
   const headers = { "Content-Type": "application/json" };
   try {
-    const body = typeof event.body === "string" ? JSON.parse(event.body || "{}") : (event.body || {});
-    console.log('Parsed body:', JSON.stringify(body));
-    
-    const { user_intent, dataset_id, table_name } = body || {};
-    console.log('Extracted params:', { user_intent, dataset_id, table_name });
-
-    if (!user_intent || !dataset_id || !table_name) {
-      console.log('Missing required fields');
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: "Missing required fields: user_intent, dataset_id, table_name"
-        })
-      };
-    }
-
-    // 1) Read dataset schema/metadata
-    console.log('Step 1: Fetching dataset columns for dataset_id:', dataset_id);
-    const columns = await fetchDatasetColumns(dataset_id);
-    console.log('Fetched columns count:', columns?.length);
-    
-    if (!columns || columns.length === 0) {
-      console.log('No columns found for dataset_id:', dataset_id);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: "No column metadata found for dataset_id",
-          dataset_id
-        })
-      };
-    }
-
-    // 2) Build helper candidates for the LLM
-    console.log('Step 2: Building helper candidates');
-    const helper = summarizeColumns(columns);
-    console.log('Helper candidates:', JSON.stringify(helper));
-
-    // 3) Run the graph (agent -> tool -> agent) until it returns a final message
-    console.log('Step 3: Creating system and human messages for chart selection');
-    const system = new SystemMessage(buildSystemPrompt());
-    const human = new HumanMessage(
-      buildUserPrompt({ user_intent, table_name, columns, helper })
-    );
-
-    console.log('Invoking chart selection graph...');
-    const finalState = await app.invoke({ messages: [system, human] });
-    console.log('Chart selection graph completed');
-    const last = finalState.messages[finalState.messages.length - 1];
-    console.log('Last message content:', last?.content);
-    
-    let selection;
-    try {
-      selection = JSON.parse(last.content);
-      console.log('Parsed selection:', JSON.stringify(selection));
-    } catch (e) {
-      console.log('Failed to parse JSON directly, trying fallback:', e.message);
-      // Fallback: try to extract JSON blob
-      const match = (last.content || "").match(/\{[\s\S]*\}$/);
-      if (match) {
-        selection = JSON.parse(match[0]);
-        console.log('Fallback parsing successful:', JSON.stringify(selection));
-      }
-    }
-
-    if (!selection || !selection.chart || !selection.mapping) {
-      console.log('Invalid selection - missing required fields');
-      return {
-        statusCode: 422,
-        headers,
-        body: JSON.stringify({
-          error: "Model did not return a valid selection.",
-          raw: last?.content
-        })
-      };
-    }
-
-    // --- STEP 2: aggregate data via SQL using a tool-called by the LLM ---
-    console.log('\n=== Step 2: Data Aggregation ===');
-    // Build a per-request graph bound to the *exact* table name
-    const tableFQ = `public."${table_name}"`; // ensure the model uses this exact form
-    console.log('Building aggregation graph for table:', tableFQ);
-    const step2App = buildAggregationGraph({ table_name: tableFQ, selection });
-
-    // Get chart requirement from catalog
-    const chartKey = `${selection.chart.type}.${selection.chart.subtype}`;
-    const chartDef = CHART_CATALOG.defs[chartKey];
-    const chartRequirement = chartDef?.requirement || `${selection.chart.type}.${selection.chart.subtype}: columns => [specify based on chart definition]`;
-    
-    const step2System = new SystemMessage(buildStep2SystemPrompt(chartRequirement));
-    const step2Human = new HumanMessage(buildStep2UserPrompt({ table_name: tableFQ, selection }));
-
-    console.log('Invoking aggregation graph...');
-    const step2State = await step2App.invoke({ messages: [step2System, step2Human] });
-    console.log('Aggregation graph completed');
-    const step2Last = step2State.messages[step2State.messages.length - 1];
-    console.log('Step 2 last message content:', step2Last?.content);
-
-    let aggregation;
-    try {
-      aggregation = JSON.parse(step2Last.content);
-      console.log('Parsed aggregation:', JSON.stringify(aggregation));
-    } catch (e) {
-      console.log('Failed to parse aggregation JSON directly, trying fallback:', e.message);
-      const m = (step2Last.content || "").match(/\{[\s\S]*\}$/);
-      if (m) {
-        aggregation = JSON.parse(m[0]);
-        console.log('Fallback aggregation parsing successful');
-      }
-    }
-
-    if (!aggregation || !aggregation.result || !Array.isArray(aggregation.result.rows)) {
-      console.log('Invalid aggregation - missing result.rows');
-      return {
-        statusCode: 422,
-        headers,
-        body: JSON.stringify({
-          error: "Aggregation step did not return valid rows.",
-          raw: step2Last?.content
-        })
-      };
-    }
-    console.log('Aggregation rows count:', aggregation.result.rows.length);
-
-// --- STEP 3: generate VChart spec using the chosen chart + aggregated rows ---
-    console.log('\n=== Step 3: VChart Spec Generation ===');
-    const step3App = buildSpecGraph();
-    const step3System = new SystemMessage(buildStep3SystemPrompt());
-    const step3Human = new HumanMessage(buildStep3UserPrompt({ selection, aggregation }));
-
-    console.log('Invoking spec generation graph...');
-    const step3State = await step3App.invoke({ messages: [step3System, step3Human] });
-    console.log('Spec generation graph completed');
-    const step3Last = step3State.messages[step3State.messages.length - 1];
-    console.log('Step 3 last message content:', step3Last?.content);
-
-    let specOut;
-    try {
-      specOut = JSON.parse(step3Last.content);
-      console.log('Parsed spec output successfully');
-    } catch (e) {
-      console.log('Failed to parse spec JSON directly, trying fallback:', e.message);
-      const m = (step3Last.content || "").match(/\{[\s\S]*\}$/);
-      if (m) {
-        specOut = JSON.parse(m[0]);
-        console.log('Fallback spec parsing successful');
-      }
-    }
-
-    if (!specOut || !specOut.spec) {
-      console.log('Invalid spec output - missing spec field');
-      return {
-        statusCode: 422,
-        headers,
-        body: JSON.stringify({
-          error: "Spec generation step did not return a valid { spec } object.",
-          raw: step3Last?.content
-        })
-      };
-    }
-
-    // --- Final response: Step 1 + Step 2 + Step 3 (frontend expects 'spec') ---
-    console.log('\n=== Success! Returning final response ===');
-    const response = {
+    const result = await processChartGeneration(event);
+    return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        step: "spec",
-        selection,
-        aggregation,
-        spec: specOut.spec
-      })
+      body: JSON.stringify(result)
     };
-    console.log('Response status:', response.statusCode);
-    return response;
-
-  } catch (err) {
+  } catch (error) {
     console.error('=== Lambda Error ===');
-    console.error('Error message:', err?.message || err);
-    console.error('Error stack:', err?.stack);
+    console.error('Error message:', error?.message || error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: String(err?.message || err) })
+      body: JSON.stringify({ error: String(error?.message || error) })
     };
   }
 };
+
+// Main processing function that can work with or without streaming
+async function processChartGeneration(event, streamThought = null) {
+  const body = typeof event.body === "string" ? JSON.parse(event.body || "{}") : (event.body || {});
+  console.log('Parsed body:', JSON.stringify(body));
+  
+  const { user_intent, dataset_id, table_name } = body || {};
+  console.log('Extracted params:', { user_intent, dataset_id, table_name });
+
+  if (!user_intent || !dataset_id || !table_name) {
+    throw new Error("Missing required fields: user_intent, dataset_id, table_name");
+  }
+
+  // 1) Read dataset schema/metadata
+  streamThought?.("🔍 Analyzing dataset structure and column types...");
+  console.log('Step 1: Fetching dataset columns for dataset_id:', dataset_id);
+  const columns = await fetchDatasetColumns(dataset_id);
+  console.log('Fetched columns count:', columns?.length);
+  
+  if (!columns || columns.length === 0) {
+    throw new Error("No column metadata found for dataset_id: " + dataset_id);
+  }
+
+  // 2) Build helper candidates for the LLM
+  streamThought?.("🧠 Building AI-friendly column analysis...");
+  console.log('Step 2: Building helper candidates');
+  const helper = summarizeColumns(columns);
+  console.log('Helper candidates:', JSON.stringify(helper));
+
+  // 3) Step 1: Chart Selection
+  streamThought?.("📊 Choosing the best chart type for your dataset...");
+  console.log('Step 3: Creating system and human messages for chart selection');
+  const system = new SystemMessage(buildSystemPrompt());
+  const human = new HumanMessage(
+    buildUserPrompt({ user_intent, table_name, columns, helper })
+  );
+
+  console.log('Invoking chart selection graph...');
+  const finalState = await app.invoke({ messages: [system, human] });
+  console.log('Chart selection graph completed');
+  const last = finalState.messages[finalState.messages.length - 1];
+  console.log('Last message content:', last?.content);
+  
+  let selection;
+  try {
+    selection = JSON.parse(last.content);
+    console.log('Parsed selection:', JSON.stringify(selection));
+  } catch (e) {
+    console.log('Failed to parse JSON directly, trying fallback:', e.message);
+    const match = (last.content || "").match(/\{[\s\S]*\}$/);
+    if (match) {
+      selection = JSON.parse(match[0]);
+      console.log('Fallback parsing successful:', JSON.stringify(selection));
+    }
+  }
+
+  if (!selection || !selection.chart || !selection.mapping) {
+    throw new Error("Model did not return a valid selection: " + last?.content);
+  }
+
+  streamThought?.(`✅ Selected: ${selection.chart.type} ${selection.chart.subtype} chart`);
+
+  // --- STEP 2: Data Aggregation ---
+  streamThought?.("🔧 Generating and executing SQL query to aggregate your data...");
+  console.log('\n=== Step 2: Data Aggregation ===');
+  
+  const tableFQ = `public."${table_name}"`; 
+  console.log('Building aggregation graph for table:', tableFQ);
+  const step2App = buildAggregationGraph({ table_name: tableFQ, selection });
+
+  // Get chart requirement from catalog
+  const chartKey = `${selection.chart.type}.${selection.chart.subtype}`;
+  const chartDef = CHART_CATALOG.defs[chartKey];
+  const chartRequirement = chartDef?.requirement || `${selection.chart.type}.${selection.chart.subtype}: columns => [specify based on chart definition]`;
+  
+  const step2System = new SystemMessage(buildStep2SystemPrompt(chartRequirement));
+  const step2Human = new HumanMessage(buildStep2UserPrompt({ table_name: tableFQ, selection }));
+
+  console.log('Invoking aggregation graph...');
+  const step2State = await step2App.invoke({ messages: [step2System, step2Human] });
+  console.log('Aggregation graph completed');
+  const step2Last = step2State.messages[step2State.messages.length - 1];
+  console.log('Step 2 last message content:', step2Last?.content);
+
+  let aggregation;
+  try {
+    aggregation = JSON.parse(step2Last.content);
+    console.log('Parsed aggregation:', JSON.stringify(aggregation));
+  } catch (e) {
+    console.log('Failed to parse aggregation JSON directly, trying fallback:', e.message);
+    const m = (step2Last.content || "").match(/\{[\s\S]*\}$/);
+    if (m) {
+      aggregation = JSON.parse(m[0]);
+      console.log('Fallback aggregation parsing successful');
+    }
+  }
+
+  if (!aggregation || !aggregation.result || !Array.isArray(aggregation.result.rows)) {
+    throw new Error("Aggregation step did not return valid rows: " + step2Last?.content);
+  }
+  console.log('Aggregation rows count:', aggregation.result.rows.length);
+  
+  streamThought?.(`📈 Data processed: ${aggregation.result.rows.length} data points ready for visualization`);
+
+  // --- STEP 3: VChart Spec Generation ---
+  streamThought?.("🎨 Building interactive chart specification...");
+  console.log('\n=== Step 3: VChart Spec Generation ===');
+  const step3App = buildSpecGraph();
+  const step3System = new SystemMessage(buildStep3SystemPrompt());
+  const step3Human = new HumanMessage(buildStep3UserPrompt({ selection, aggregation }));
+
+  console.log('Invoking spec generation graph...');
+  const step3State = await step3App.invoke({ messages: [step3System, step3Human] });
+  console.log('Spec generation graph completed');
+  const step3Last = step3State.messages[step3State.messages.length - 1];
+  console.log('Step 3 last message content:', step3Last?.content);
+
+  let specOut;
+  try {
+    specOut = JSON.parse(step3Last.content);
+    console.log('Parsed spec output successfully');
+  } catch (e) {
+    console.log('Failed to parse spec JSON directly, trying fallback:', e.message);
+    const m = (step3Last.content || "").match(/\{[\s\S]*\}$/);
+    if (m) {
+      specOut = JSON.parse(m[0]);
+      console.log('Fallback spec parsing successful');
+    }
+  }
+
+  if (!specOut || !specOut.spec) {
+    throw new Error("Spec generation step did not return a valid { spec } object: " + step3Last?.content);
+  }
+
+  streamThought?.("✨ Chart ready! Rendering your visualization...");
+  
+  // --- Final response ---
+  console.log('\n=== Success! Returning final response ===');
+  const result = {
+    step: "spec",
+    selection,
+    aggregation,
+    spec: specOut.spec
+  };
+  
+  console.log('Response ready');
+  return result;
+}

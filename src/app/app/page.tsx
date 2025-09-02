@@ -29,6 +29,8 @@ export default function ChartApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
+  const [streamingThoughts, setStreamingThoughts] = useState<string[]>([]);
+  const [enableStreaming, setEnableStreaming] = useState(true);
   
   const { currentUser, logout } = useAuth();
   
@@ -55,32 +57,91 @@ export default function ChartApp() {
     setError(null);
     setChartSpec(null);
     setGenerationTime(undefined);
+    setStreamingThoughts([]);
 
     try {
       const startTime = Date.now();
       
-      const response = await fetch('/api/generate-chart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_intent: prompt,
-          dataset_id: selectedDataset.dataset_id,
-          table_name: selectedDataset.table_name
-        }),
-      });
+      if (enableStreaming) {
+        // Streaming mode
+        const response = await fetch('/api/generate-chart', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_intent: prompt,
+            dataset_id: selectedDataset.dataset_id,
+            table_name: selectedDataset.table_name,
+            stream: true
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate chart');
+        if (!response.ok) {
+          throw new Error(`Failed to generate chart: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('No response body reader available');
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.type === 'progress') {
+                  setStreamingThoughts(prev => [...prev, data.content]);
+                } else if (data.type === 'complete') {
+                  const endTime = Date.now();
+                  setChartSpec(data.content.spec);
+                  setGenerationTime(endTime - startTime);
+                } else if (data.type === 'error') {
+                  throw new Error(data.content);
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse streaming data:', line);
+              }
+            }
+          }
+        }
+      } else {
+        // Non-streaming mode (original)
+        const response = await fetch('/api/generate-chart', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_intent: prompt,
+            dataset_id: selectedDataset.dataset_id,
+            table_name: selectedDataset.table_name
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to generate chart');
+        }
+
+        const data: GenerationResponse = await response.json();
+        const endTime = Date.now();
+        
+        setChartSpec(data.spec);
+        setGenerationTime(data.time || (endTime - startTime));
       }
-
-      const data: GenerationResponse = await response.json();
-      const endTime = Date.now();
-      
-      setChartSpec(data.spec);
-      setGenerationTime(data.time || (endTime - startTime));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
@@ -133,6 +194,10 @@ export default function ChartApp() {
             generationTime={generationTime}
             error={error}
             selectedDataset={selectedDataset}
+            streamingThoughts={streamingThoughts}
+            isGenerating={isLoading}
+            enableStreaming={enableStreaming}
+            onToggleStreaming={() => setEnableStreaming(!enableStreaming)}
           />
           
           {/* Dataset Viewer - Bottom Bar */}

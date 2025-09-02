@@ -15,9 +15,22 @@ interface ChartPreviewProps {
   generationTime?: number;
   error?: string | null;
   selectedDataset?: Dataset | null;
+  streamingThoughts?: string[];
+  isGenerating?: boolean;
+  enableStreaming?: boolean;
+  onToggleStreaming?: () => void;
 }
 
-export default function ChartPreview({ spec, generationTime, error, selectedDataset }: ChartPreviewProps) {
+export default function ChartPreview({ 
+  spec, 
+  generationTime, 
+  error, 
+  selectedDataset,
+  streamingThoughts = [],
+  isGenerating = false,
+  enableStreaming = true,
+  onToggleStreaming 
+}: ChartPreviewProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const vchartInstance = useRef<any>(null);
   const [showSpec, setShowSpec] = useState(false);
@@ -192,20 +205,51 @@ export default function ChartPreview({ spec, generationTime, error, selectedData
       <div className="flex-1 flex flex-col">
         <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
           <div className="text-center space-y-6 p-8 bg-white rounded-2xl shadow-lg border border-gray-200 max-w-md">
-            <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
+            <div className={`w-16 h-16 mx-auto bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center ${isGenerating ? 'animate-pulse' : ''}`}>
+              {isGenerating ? (
+                <svg className="w-8 h-8 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              )}
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">AI-Powered Insights</h3>
+              <h3 className="text-lg font-bold text-gray-900">
+                {isGenerating ? 'Generating Chart...' : 'AI-Powered Charts'}
+              </h3>
               <p className="text-sm text-gray-600 mt-2">
-                {selectedDataset 
-                  ? 'Generate intelligent insights and charts from your selected dataset'
-                  : 'Select a dataset first, then generate AI-powered insights and visualizations'
+                {isGenerating 
+                  ? 'AI is analyzing your data and creating the perfect visualization'
+                  : selectedDataset 
+                    ? 'Generate intelligent charts from your selected dataset'
+                    : 'Select a dataset first, then generate AI-powered visualizations'
                 }
               </p>
             </div>
+            
+            {/* Streaming Settings */}
+            {onToggleStreaming && (
+              <div className="flex items-center justify-center space-x-3 pt-4 border-t">
+                <span className="text-xs text-gray-500">Streaming:</span>
+                <button
+                  onClick={onToggleStreaming}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    enableStreaming ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    enableStreaming ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+                <span className="text-xs text-gray-500">
+                  {enableStreaming ? 'ON' : 'OFF'}
+                </span>
+              </div>
+            )}
             
             {selectedDataset && (
               <div className="space-y-4">
@@ -251,16 +295,38 @@ export default function ChartPreview({ spec, generationTime, error, selectedData
           </div>
         </div>
         
-        {/* Workflow Thoughts Panel */}
-        {(workflowThoughts.length > 0 || isGeneratingInsights) && (
+        {/* Streaming Thoughts Panel */}
+        {(streamingThoughts.length > 0 || isGenerating || workflowThoughts.length > 0 || isGeneratingInsights) && (
           <div className="border-t border-gray-200 bg-gray-50 p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-2">🧠 AI Workflow Progress</h4>
-            <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-gray-900 mb-2">
+              {streamingThoughts.length > 0 || isGenerating ? '🤖 AI Agent Progress' : '🧠 AI Workflow Progress'}
+            </h4>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {/* Streaming thoughts (chart generation) */}
+              {streamingThoughts.map((thought, index) => (
+                <div key={`stream-${index}`} className="text-sm text-blue-700 flex items-start space-x-2">
+                  <span className="text-blue-500 text-xs mt-1">•</span>
+                  <span>{thought}</span>
+                </div>
+              ))}
+              
+              {/* Loading state for streaming */}
+              {isGenerating && enableStreaming && streamingThoughts.length === 0 && (
+                <div className="text-sm text-blue-600 animate-pulse flex items-center space-x-2">
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>🚀 Starting AI agent...</span>
+                </div>
+              )}
+              
+              {/* Legacy insights workflow thoughts */}
               {isGeneratingInsights && workflowThoughts.length === 0 && (
                 <div className="text-sm text-blue-600 animate-pulse">🔍 Starting analysis...</div>
               )}
               {workflowThoughts.map((thought, index) => (
-                <div key={index} className="text-sm text-gray-700">
+                <div key={`legacy-${index}`} className="text-sm text-gray-700">
                   {thought}
                 </div>
               ))}
