@@ -1,1417 +1,779 @@
-const { StateGraph, END } = require('@langchain/langgraph');
-const { ChatOpenAI } = require('@langchain/openai');
-const { HumanMessage, AIMessage } = require('@langchain/core/messages');
-const { tool } = require('@langchain/core/tools');
-const { z } = require('zod');
-const { Pool } = require('pg');
-const { v4: uuidv4 } = require('uuid');
+// index.js - AWS Lambda handler for Step 1 (chart selection only)
+// npm i @langchain/openai @langchain/langgraph @langchain/core zod pg
 
-// Import our VMind-inspired components
-const { FieldDetectionService } = require('./field-detection');
-const { ErrorRecoverySystem } = require('./error-recovery');
+import { Pool } from "pg";
+import { z } from "zod";
+import { ChatOpenAI } from "@langchain/openai";
+import { tool } from "@langchain/core/tools";
+import {
+  StateGraph,
+  MessagesAnnotation,
+  END
+} from "@langchain/langgraph";
+import { ToolNode } from "@langchain/langgraph/prebuilt";
+import {
+  HumanMessage,
+  SystemMessage
+} from "@langchain/core/messages";
 
-// Database configuration
+/* ----------------------------- DB Utilities ----------------------------- */
+
+
 const dbConfig = {
-    host: "chartz-ai.cexryffwmiie.eu-west-2.rds.amazonaws.com",
-    port: 5432,
-    database: "chartz",
-    user: "postgres",
-    password: "ppddA4all.P",
-    connectionTimeoutMillis: 5_000,
-    idleTimeoutMillis: 30_000,
-    ssl: {
-        require: true,
-        rejectUnauthorized: false
-    }
+  host: "chartz-ai.cexryffwmiie.eu-west-2.rds.amazonaws.com",
+  port: 5432,
+  database: "chartz",
+  user: "postgres",
+  password: "ppddA4all.",
+  connectionTimeoutMillis: 5_000,
+  idleTimeoutMillis: 30_000,
+  // 🔑 enable TLS – this makes pg send the SSLRequest packet
+  ssl: {
+      require: true,
+      rejectUnauthorized: false
+  }
 };
 
-// Create database pool
 const pool = new Pool(dbConfig);
+const poolRO = new Pool(dbConfig);
 
-// CORS headers
-const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "OPTIONS,POST"
-};
 
-// Tool for getting available chart types and their specifications
-const getAvailableChartsTool = tool(
-    async () => {
-        return `
-# VChart Pie Chart Specifications and Guidelines
-
-## 🎯 CRITICAL GUARDRAILS FOR PIE CHARTS
-
-### ❌ NEVER DO:
-1. **Never use JavaScript functions in JSON** - They break serialization!
-   - WRONG: key: datum => datum['field']
-   - RIGHT: Use VChart's automatic tooltip behavior
-
-2. **Never use complex tooltip content** - Keep it simple!
-   - WRONG: Complex function-based tooltip configurations
-   - RIGHT: tooltip: { mark: { visible: true } }
-
-3. **Never ignore data structure** - Match your field names!
-   - Always use actual field names from the data
-   - Update categoryField and valueField to match your data
-
-### ✅ ALWAYS DO:
-1. **Use VChart's automatic tooltips** for reliability
-2. **Match field names** to the actual data structure
-3. **Keep data in the format**: [{ id: 'id0', values: actualDataArray }]
-4. **Ensure all values are positive** for pie charts
-
----
-
-## 📊 PIE CHART VARIATIONS
-
-### 1. BASIC PIE CHART
-**When to use**: Simple categorical data (2-8 categories)
-**Best for**: Market share, survey results, simple distributions
-
-\`\`\`json
-{
-  type: 'pie',
-  data: [
-    {
-      id: 'id0',
-      values: [
-        { type: 'oxygen', value: '46.60' },
-        { type: 'silicon', value: '27.72' },
-        { type: 'aluminum', value: '8.13' },
-        { type: 'iron', value: '5' },
-        { type: 'calcium', value: '3.63' },
-        { type: 'sodium', value: '2.83' },
-        { type: 'potassium', value: '2.59' },
-        { type: 'others', value: '3.5' }
-      ]
-    }
-  ],
-  outerRadius: 0.8,
-  valueField: 'value',
-  categoryField: 'type',
-  title: {
-    visible: true,
-    text: 'Statistics of Surface Element Content'
-  },
-  legends: {
-    visible: true,
-    orient: 'left'
-  },
-  label: {
-    visible: true
-  },
-  "tooltip": {
-    "mark": {
-      "visible": true
-    }
+async function fetchDatasetColumns(dataset_id) {
+  const client = await pool.connect();
+  try {
+    const sql = `
+      SELECT column_name, field_role, semantic_type, postgres_type,
+             unique_count, cardinality_ratio, contains_nulls_pct
+      FROM dataset_columns
+      WHERE dataset_id = $1
+      ORDER BY column_index ASC
+    `;
+    const { rows } = await client.query(sql, [dataset_id]);
+    return rows;
+  } finally {
+    client.release();
   }
 }
-\`\`\`
 
-### 2. NESTED PIE CHART (Two Levels)
-**When to use**: Hierarchical data with parent-child relationships
-**Best for**: Category breakdowns, regional analysis, detailed segments
-**IMPORTANT**: Requires TWO separate data arrays!
+/** Build a compact helper summary for the LLM */
+function summarizeColumns(cols) {
+  // Lightweight heuristics for suggestions
+  const dims = [];
+  const measures = [];
+  const ids = [];
+  for (const c of cols) {
+    const name = c.column_name;
+    const role = (c.field_role || "").toLowerCase();
+    const sem = (c.semantic_type || "").toLowerCase();
+    const pg = (c.postgres_type || "").toLowerCase();
 
-\`\`\`json
-{
-  type: 'common',
-  data: [
-    {
-      id: 'id0',
-      values: [
-        { type: '0~29', value: '126.04' },
-        { type: '30~59', value: '128.77' },
-        { type: '60 and over', value: '77.09' }
-      ]
-    },
-    {
-      id: 'id1',
-      values: [
-        { type: '0~9', value: '39.12' },
-        { type: '10~19', value: '43.01' },
-        { type: '20~29', value: '43.91' },
-        { type: '30~39', value: '45.4' },
-        { type: '40~49', value: '40.89' },
-        { type: '50~59', value: '42.48' },
-        { type: '60~69', value: '39.63' },
-        { type: '70~79', value: '25.17' },
-        { type: '80 and over', value: '12.29' }
-      ]
+    // identifiers (by role or name hint)
+    if (role === "identifier" || /(^|_)(id|uuid|session|user|account)(_|$)/i.test(name)) {
+      ids.push(name);
+      continue; // id fields shouldn't also be recommended as dims/measures
     }
-  ],
-  series: [
-    {
-      type: 'pie',
-      dataIndex: 0,
-      outerRadius: 0.65,
-      innerRadius: 0,
-      valueField: 'value',
-      categoryField: 'type',
-      label: {
-        position: 'inside',
-        visible: true,
-        style: {
-          fill: 'white'
-        }
-      },
-      pie: {
-        style: {
-          stroke: '#ffffff',
-          lineWidth: 2
-        }
+
+    // measures (numerical)
+    if (
+      role === "measure" ||
+      sem === "numerical" ||
+      ["int", "integer", "bigint", "smallint", "decimal", "numeric", "double", "real", "float"].some(t => pg.includes(t))
+    ) {
+      measures.push(name);
+    }
+
+    // dimensions (categorical/text/bool) with sensible cardinality
+    const card = Number(c.cardinality_ratio ?? 0);
+    if (
+      role === "dimension" ||
+      sem === "categorical" ||
+      sem === "text" ||
+      sem === "boolean"
+    ) {
+      // Avoid extremely high cardinality dims unless nothing else exists
+      if (isFinite(card) && card <= 0.8) {
+        dims.push(name);
+      } else if (!isFinite(card)) {
+        dims.push(name);
       }
-    },
-    {
-      type: 'pie',
-      dataIndex: 1,
-      outerRadius: 0.8,
-      innerRadius: 0.67,
-      valueField: 'value',
-      categoryField: 'type',
-      label: {
-        visible: true
-      },
-      pie: {
-        style: {
-          stroke: '#ffffff',
-          lineWidth: 2
-        }
-      }
-    }
-  ],
-  color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
-  title: {
-    visible: true,
-    text: 'Population Distribution by Age in the United States, 2021 (in millions)',
-    textStyle: {
-      fontFamily: 'Times New Roman'
-    }
-  },
-  legends: {
-    visible: true,
-    orient: 'left'
-  }
-}
-\`\`\`
-
-### 3. RADIUS MAPPABLE PIE CHART
-**When to use**: When you want to emphasize the relationship between parts
-**Best for**: Pie charts can map data with internal and external radii by configuring custom scales.
-
-\`\`\`json
-{
-  type: 'pie',
-  data: [
-    {
-      id: 'id0',
-      values: [
-        { type: '0~9', value: '39.12' },
-        { type: '10~19', value: '43.01' },
-        { type: '20~29', value: '43.91' },
-        { type: '30~39', value: '45.4' },
-        { type: '40~49', value: '40.89' },
-        { type: '50~59', value: '42.48' },
-        { type: '60~69', value: '39.63' },
-        { type: '70~79', value: '25.17' },
-        { type: '80 and over', value: '12.29' }
-      ]
-    }
-  ],
-  valueField: 'value',
-  categoryField: 'type',
-  outerRadius: {
-    field: 'value',
-    scale: 'outer-radius'
-  },
-  innerRadius: {
-    field: 'value',
-    scale: 'inner-radius'
-  },
-  scales: [
-    {
-      id: 'outer-radius',
-      type: 'linear',
-      domain: [10, 50],
-      range: [120, 220]
-    },
-    {
-      id: 'inner-radius',
-      type: 'linear',
-      domain: [10, 50],
-      range: [110, 10]
-    }
-  ],
-  label: {
-    visible: true
-  },
-  color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
-  title: {
-    visible: true,
-    text: 'Population Distribution by Age in the United States, 2021 (in millions)',
-    textStyle: {
-      fontFamily: 'Times New Roman'
-    }
-  },
-  legends: {
-    visible: true,
-    orient: 'right'
-  }
-}
-\`\`\`
-
-### 4. RING CHART
-**When to use**: When there are a lot of categories
-**Best for**: Marketing materials, executive dashboards
-
-\`\`\`json
-{
-  type: 'pie',
-  data: [
-    {
-      id: 'id0',
-      values: [
-        { type: 'oxygen', value: '46.60' },
-        { type: 'silicon', value: '27.72' },
-        { type: 'aluminum', value: '8.13' },
-        { type: 'iron', value: '5' },
-        { type: 'calcium', value: '3.63' },
-        { type: 'sodium', value: '2.83' },
-        { type: 'potassium', value: '2.59' },
-        { type: 'others', value: '3.5' }
-      ]
-    }
-  ],
-  outerRadius: 0.8,
-  innerRadius: 0.5,
-  padAngle: 0.6,
-  valueField: 'value',
-  categoryField: 'type',
-  pie: {
-    style: {
-      cornerRadius: 10
-    },
-    state: {
-      hover: {
-        outerRadius: 0.85,
-        stroke: '#000',
-        lineWidth: 1
-      },
-      selected: {
-        outerRadius: 0.85,
-        stroke: '#000',
-        lineWidth: 1
-      }
-    }
-  },
-  title: {
-    visible: true,
-    text: 'Statistics of Surface Element Content'
-  },
-  legends: {
-    visible: true,
-    orient: 'left'
-  },
-  label: {
-    visible: true
-  },
-  "tooltip": {
-    "mark": {
-      "visible": true
     }
   }
-}
-\`\`\`
 
----
-
-## 🔧 FIELD MAPPING INSTRUCTIONS
-
-### Data Structure Requirements:
-- **categoryField**: Must match the field name containing category labels
-- **valueField**: Must match the field name containing numeric values
-- **Data format**: Always use [{ id: 'id0', values: actualDataArray }]
-
-### Example Field Mapping:
-If your data looks like:
-\`\`\`json
-[{ "category": "Images", "total_count": 45 }]
-\`\`\`
-
-Then use:
-\`\`\`json
-{
-  "categoryField": "category",
-  "valueField": "total_count"
-}
-\`\`\`
-
----
-
-## 📏 CHART SELECTION GUIDELINES
-
-### Choose BASIC PIE when:
-- 2-8 categories
-- Simple distribution analysis
-- All values are positive
-- Clear category names
-
-### Choose NESTED PIE when:
-- Hierarchical data available
-- Parent-child relationships exist
-- User specifically requests "nested" or "hierarchical"
-- Need to show breakdown within categories
-
-### Choose DONUT when:
-- Modern aesthetic needed
-- Want to emphasize total vs parts
-- Need space in center for additional info
-- 3-6 categories work best
-
-### Choose STYLED PIE when:
-- Professional presentation
-- Brand colors needed
-- Interactive features desired
-- Executive dashboard context
-
----
-
-## ⚠️ TROUBLESHOOTING COMMON ISSUES
-
-### Issue: Tooltip shows "{field_name}" instead of values
-**Solution**: Use '"tooltip": { "mark": { "visible": true } }' - let VChart handle automatically
-
-### Issue: Chart doesn't render
-**Solution**: Check that categoryField and valueField match your actual data field names
-
-### Issue: Data not showing
-**Solution**: Ensure data is in format [{ id: 'id0', values: [...] }] and values are positive numbers
-
-### Issue: Too many categories
-**Solution**: Limit to top 8-10 categories, group others as "Others"
-
-Remember: Keep it simple, match field names, and let VChart handle the complexity!
-
----
-
-## 🕰️ Date Field Handling Strategy
-
-### When Dates Become Primary Visualization Elements:
-- User mentions "trend", "over time", "timeline", "monthly", "yearly"
-- Chart types: Line, Area, Time-series Bar
-- Date field becomes X-axis dimension
-
-### When Dates Become Filter Elements:
-- User mentions filtering or date ranges in context
-- Chart shows categorical data but user wants time filtering
-- Date field becomes interactive filter, not main visualization
-
-### When Dates Are Ignored:
-- No temporal intent in user request
-- Chart type doesn't support time (pie, basic bar)
-- Dataset has dates but they're not relevant to the question
-
----
-
-## 🎯 Selection Decision Matrix
-
-| User Intent Pattern | Chart Type | Date Strategy | Confidence |
-|--------------------|------------|---------------|------------|
-| "distribution", "composition", "share" | pie | ignore dates | 0.9 |
-| "breakdown by [category]" | pie | dates as filter only | 0.8 |
-| "trend", "over time" | line (future) | dates as primary | 0.95 |
-| "compare [categories]" | bar (future) | dates as filter | 0.85 |
-| No clear intent + categorical + numeric | pie | smart date detection | 0.7 |
-
----
-
-## 🚀 Future Chart Types (Not Yet Implemented)
-- **Bar Chart**: Comparisons, rankings
-- **Line Chart**: Trends, time series
-- **Scatter Plot**: Correlations, relationships  
-- **Area Chart**: Trends with magnitude
-- **Histogram**: Distributions of continuous data
-- **Heat Map**: Patterns in two dimensions
-
-## 📏 Selection Algorithm
-1. Parse user intent for chart type hints
-2. Analyze field types and cardinalities
-3. Detect temporal intent vs categorical intent
-4. Match to available chart types
-5. Plan for future interactivity (filters, drill-downs)
-6. Return best match with confidence score
-        `;
-    },
-    {
-        name: "get_available_charts",
-        description: "Get comprehensive chart type catalog, selection guidelines, and date handling strategies for current and future chart types",
-        schema: z.object({})
-    }
-);
-
-// Initialize LLM
-const llm = new ChatOpenAI({
-    model: "gpt-5-mini",
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Initialize error recovery system
-const errorRecoverySystem = new ErrorRecoverySystem(pool, llm, 3);
-
-// Database helper functions
-async function getDatasetStructure(datasetId, tableName) {
-    const client = await pool.connect();
-    try {
-        // Get dataset metadata
-        const datasetQuery = `
-            SELECT row_count, column_count, metadata
-            FROM datasets 
-            WHERE dataset_id = $1 AND table_name = $2
-        `;
-        const datasetResult = await client.query(datasetQuery, [datasetId, tableName]);
-        
-        if (datasetResult.rows.length === 0) {
-            throw new Error('Dataset not found');
-        }
-        
-        const { row_count, column_count, metadata } = datasetResult.rows[0];
-        
-        // Parse metadata safely to avoid JSON parsing errors
-        let parsedMetadata = {};
-        if (metadata) {
-            try {
-                parsedMetadata = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
-            } catch (parseError) {
-                console.warn('Failed to parse metadata:', parseError.message);
-                parsedMetadata = {};
-            }
-        }
-        
-        // Get column names
-        const columnsQuery = `
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = $1 
-            ORDER BY ordinal_position
-        `;
-        const columnsResult = await client.query(columnsQuery, [tableName]);
-        const columns = columnsResult.rows
-            .map(row => row.column_name)
-            .filter(col => !['id', 'created_at'].includes(col));
-        
-        // Get sample data (first 5 rows)
-        const sampleQuery = `SELECT ${columns.map(col => `"${col}"`).join(', ')} FROM "${tableName}" LIMIT 5`;
-        const sampleResult = await client.query(sampleQuery);
-        
-        return {
-            rowCount: row_count,
-            columnCount: column_count,
-            metadata: parsedMetadata,
-            columns,
-            sampleData: sampleResult.rows,
-            tableName
-        };
-    } finally {
-        client.release();
-    }
+  return {
+    dimension_candidates: dims.slice(0, 20),
+    measure_candidates: measures.slice(0, 20),
+    identifier_candidates: ids.slice(0, 20)
+  };
 }
 
-async function executeSqlQuery(query, tableName) {
-    const client = await pool.connect();
-    try {
-        const result = await client.query(query);
-        return result.rows;
-    } finally {
-        client.release();
-    }
-}
-
-// Enhanced workflow state management
-class WorkflowState {
-    constructor(data = {}) {
-        // Original fields
-        this.messages = data.messages || [];
-        this.userIntent = data.userIntent || '';
-        this.datasetId = data.datasetId || '';
-        this.tableName = data.tableName || '';
-        this.datasetStructure = data.datasetStructure || {};
-        this.sqlQuery = data.sqlQuery || '';
-        this.insightExplanation = data.insightExplanation || '';
-        this.chartSpec = data.chartSpec || {};
-        this.currentStep = data.currentStep || 'start';
-        this.queryResults = data.queryResults || [];
-        
-        // Enhanced fields for future-ready architecture
-        this.generationId = data.generationId || null;
-        this.dataIntentAnalysis = data.dataIntentAnalysis || null;
-        this.chartType = data.chartType || 'pie';
-        this.fieldMapping = data.fieldMapping || null;
-        this.confidenceScore = data.confidenceScore || 0.5;
-        this.chartConfiguration = data.chartConfiguration || {};
-        this.futureExtensibility = data.futureExtensibility || {};
-        this.dataQuality = data.dataQuality || { score: 0.5, issues: [] };
-        this.attemptCount = data.attemptCount || {};
-        this.error = data.error || null;
-        this.aiReasoning = data.aiReasoning || '';
-        
-        // Processing metadata
-        this.processingSteps = data.processingSteps || [];
-        this.startTime = data.startTime || Date.now();
-    }
-}
-
-// Step 1: Data & Intent Analysis Agent (Future-Ready Architecture)
-class DataIntentAnalysisAgent {
-    constructor(llm, pool) {
-        this.llm = llm;
-        this.pool = pool;
-    }
-
-    async analyzeDataAndIntent(datasetId, tableName, userIntent, datasetStructure) {
-        console.log('Step 1: Analyzing dataset and user intent for visualization');
-        
-        const dataContext = await this.gatherDataContext(datasetId, tableName, datasetStructure);
-        
-        const analysisPrompt = `You are a data visualization analyst. Analyze this dataset and user intent to understand what can be visualized and how.
-
-USER INTENT: "${userIntent}"
-
-DATASET ANALYSIS:
-- **Table**: "${tableName}"
-- **Fields**: ${JSON.stringify(dataContext.fields.map(f => ({
-    name: f.column_name,
-    type: f.data_type,
-    unique_values: f.unique_count,
-    sample_values: f.sample_values?.slice(0, 3) || [],
-    cardinality_ratio: f.cardinality_ratio
-})), null, 2)}
-
-- **Sample Data**: ${JSON.stringify(dataContext.sampleData.slice(0, 3), null, 2)}
-
-TASK: Categorize all fields for current and future visualization needs:
-
-1. **Field Classification**:
-   - Categorical: Good for chart dimensions/grouping (low cardinality)
-   - Numeric: Good for chart measures/values (aggregatable)
-   - Date/Time: Temporal fields (for trends, filtering)
-   - Text/ID: Identifiers or descriptive (usually not for viz)
-
-2. **Intent Analysis**:
-   - What type of visualization is the user asking for?
-   - Are dates relevant to their question?
-   - What fields should be primary vs secondary vs filters?
-
-3. **Future Interactivity Planning**:
-   - Which fields could serve as filters?
-   - Are there natural drill-down hierarchies?
-   - Should dates enable time-based filtering?
-
-RETURN JSON ONLY:
-{
-  "field_classification": {
-    "categorical_fields": [
-      {
-        "field_name": "column_name",
-        "cardinality": number,
-        "role": "primary_dimension|secondary_dimension|grouping_option",
-        "interactive_potential": "high|medium|low"
-      }
-    ],
-    "numeric_fields": [
-      {
-        "field_name": "column_name",
-        "role": "primary_measure|secondary_measure|derived_metric",
-        "aggregation_types": ["SUM", "COUNT", "AVG"]
-      }
-    ],
-    "date_fields": [
-      {
-        "field_name": "column_name",
-        "date_type": "date|datetime|timestamp",
-        "role": "primary_timeline|filter_dimension|metadata",
-        "relevance_to_intent": "high|medium|low"
-      }
-    ],
-    "other_fields": [
-      {
-        "field_name": "column_name",
-        "field_type": "text|identifier|metadata",
-        "visualization_utility": "none|tooltip|label"
-      }
-    ]
-  },
-  "intent_analysis": {
-    "visualization_goal": "distribution|comparison|trend|correlation|composition",
-    "temporal_aspect": "primary|filter|none",
-    "complexity_level": "simple|medium|complex",
-    "interactivity_needs": ["date_filtering", "category_filtering", "drill_down"]
-  },
-  "recommended_approach": {
-    "primary_visualization_fields": {
-      "dimensions": ["field_names"],
-      "measures": ["field_names"],
-      "dates": ["field_names"]
-    },
-    "filter_candidates": ["field_names_for_future_filtering"],
-    "data_quality_score": 0.0-1.0
-  }
-}`;
-
-        try {
-            const response = await this.llm.invoke([{ role: 'user', content: analysisPrompt }]);
-            
-            let analysisContent = response.content;
-            if (!analysisContent || typeof analysisContent !== 'string') {
-                throw new Error('LLM returned empty or invalid response');
-            }
-            
-            console.log('RAW DATA INTENT ANALYSIS:', analysisContent);
-            
-            // Parse AI analysis
-            let analysis;
-            try {
-                let content = analysisContent;
-                if (content.includes('```json')) {
-                    content = content.split('```json')[1].split('```')[0];
-                } else if (content.includes('```')) {
-                    const codeBlocks = content.split('```');
-                    if (codeBlocks.length >= 2) {
-                        content = codeBlocks[1];
-                    }
-                }
-                
-                const trimmedContent = content.trim();
-                analysis = JSON.parse(trimmedContent);
-                console.log('PARSED DATA INTENT ANALYSIS:', JSON.stringify(analysis, null, 2));
-            } catch (parseError) {
-                console.error('Failed to parse data intent analysis:', parseError.message);
-                console.error('Content that failed:', analysisContent);
-                throw new Error(`Data intent analysis parsing failed: ${parseError.message}`);
-            }
-            
-            const result = {
-                fieldClassification: analysis.field_classification,
-                intentAnalysis: analysis.intent_analysis,
-                recommendedApproach: analysis.recommended_approach,
-                dataContext: dataContext
-            };
-            
-            console.log(`Data intent analysis completed. Goal: ${result.intentAnalysis.visualization_goal}, Temporal: ${result.intentAnalysis.temporal_aspect}`);
-            
-            return result;
-            
-        } catch (error) {
-            console.error('Data and intent analysis failed:', error.message);
-            throw new Error(`Data and intent analysis failed: ${error.message}`);
-        }
-    }
-
-    async gatherDataContext(datasetId, tableName, datasetStructure) {
-        const client = await this.pool.connect();
-        
-        try {
-            // Get field characteristics
-            const fieldsQuery = `
-                SELECT 
-                    column_name,
-                    data_type,
-                    postgres_type,
-                    unique_count,
-                    cardinality_ratio,
-                    contains_nulls_pct,
-                    sample_values,
-                    min_value,
-                    max_value,
-                    COALESCE(field_role, 'unknown') as field_role,
-                    COALESCE(semantic_type, 'text') as semantic_type
-                FROM dataset_columns 
-                WHERE dataset_id = $1
-                ORDER BY column_index
-            `;
-            
-            const fieldsResult = await client.query(fieldsQuery, [datasetId]);
-            
-            // Get sample data
-            const columns = fieldsResult.rows
-                .map(row => row.column_name)
-                .filter(col => !['id', 'created_at'].includes(col));
-            
-            let sampleData = [];
-            if (columns.length > 0) {
-                const sampleQuery = `SELECT ${columns.map(col => `"${col}"`).join(', ')} FROM "${tableName}" LIMIT 5`;
-                const sampleResult = await client.query(sampleQuery);
-                sampleData = sampleResult.rows;
-            }
-            
-            return {
-                fields: fieldsResult.rows,
-                sampleData: sampleData,
-                rowCount: datasetStructure.rowCount || 0,
-                columnCount: datasetStructure.columnCount || fieldsResult.rows.length
-            };
-            
-        } finally {
-            client.release();
-        }
-    }
-}
-
-// Step 2: Chart Type & Field Mapping Agent
-class ChartTypeSelectionAgent {
-    constructor(llm) {
-        this.llm = llm;
-    }
-
-    async selectChartAndMapFields(userIntent, dataIntentAnalysis) {
-        console.log('Step 2: Selecting chart type and mapping fields');
-        
-        const selectionPrompt = `You are a chart selection specialist. Based on the data analysis and user intent, select the best chart type and map fields.
-
-USER INTENT: "${userIntent}"
-
-DATA ANALYSIS RESULTS:
-- **Visualization Goal**: ${dataIntentAnalysis.intentAnalysis.visualization_goal}
-- **Temporal Aspect**: ${dataIntentAnalysis.intentAnalysis.temporal_aspect}
-- **Complexity**: ${dataIntentAnalysis.intentAnalysis.complexity_level}
-
-**Available Fields**:
-- Categorical: ${JSON.stringify(dataIntentAnalysis.fieldClassification.categorical_fields?.map(f => f.field_name) || [])}
-- Numeric: ${JSON.stringify(dataIntentAnalysis.fieldClassification.numeric_fields?.map(f => f.field_name) || [])}
-- Dates: ${JSON.stringify(dataIntentAnalysis.fieldClassification.date_fields?.map(f => f.field_name) || [])}
-
-**Recommended Primary Fields**: ${JSON.stringify(dataIntentAnalysis.recommendedApproach.primary_visualization_fields)}
-
-TASKS:
-1. First call get_available_charts tool to see current options
-2. Match user intent + data characteristics to best chart type
-3. Map specific fields to chart roles
-4. Plan for future interactive features
-
-RETURN JSON ONLY:
-{
-  "selected_chart_type": "pie",
-  "confidence_score": 0.0-1.0,
-  "reasoning": "explanation of selection",
-  "field_mapping": {
-    "primary_dimension": "field_name",
-    "primary_measure": "field_name",
-    "secondary_fields": {},
-    "filter_fields": ["field_names_for_future_filtering"],
-    "date_fields": ["field_names_if_relevant"]
-  },
-  "chart_configuration": {
-    "variation": "basic|donut|nested",
-    "aggregation_method": "SUM|COUNT|AVG",
-    "interactive_features": ["planned_interactions"],
-    "date_handling": "primary|filter|ignore"
-  },
-  "future_extensibility": {
-    "additional_chart_types_possible": ["chart_types"],
-    "drill_down_potential": "high|medium|low",
-    "filter_expansion_options": ["field_names"]
-  }
-}`;
-
-        try {
-            const messages = [{ role: 'user', content: selectionPrompt }];
-            const response = await this.llm.invoke(messages, { tools: [getAvailableChartsTool] });
-            
-            let selectionContent;
-            
-            if (response.tool_calls && response.tool_calls.length > 0) {
-                console.log('AI accessed chart catalog, making selection');
-                
-                const followUpPrompt = `Based on the chart catalog, make your selection for:
-
-Intent: "${userIntent}"
-Visualization Goal: ${dataIntentAnalysis.intentAnalysis.visualization_goal}
-Best Fields: Categorical=${dataIntentAnalysis.recommendedApproach.primary_visualization_fields.dimensions?.[0]}, Numeric=${dataIntentAnalysis.recommendedApproach.primary_visualization_fields.measures?.[0]}
-
-Provide your chart selection in exact JSON format:`;
-
-                const followUpResponse = await this.llm.invoke([{ role: 'user', content: followUpPrompt }]);
-                selectionContent = followUpResponse.content;
-            } else {
-                selectionContent = response.content;
-            }
-            
-            console.log('RAW CHART SELECTION:', selectionContent);
-            
-            // Parse selection
-            let chartSelection;
-            try {
-                let content = selectionContent;
-                if (content.includes('```json')) {
-                    content = content.split('```json')[1].split('```')[0];
-                } else if (content.includes('```')) {
-                    const codeBlocks = content.split('```');
-                    if (codeBlocks.length >= 2) {
-                        content = codeBlocks[1];
-                    }
-                }
-                
-                const trimmedContent = content.trim();
-                chartSelection = JSON.parse(trimmedContent);
-                console.log('PARSED CHART SELECTION:', JSON.stringify(chartSelection, null, 2));
-            } catch (parseError) {
-                console.error('Failed to parse chart selection:', parseError.message);
-                throw new Error(`Chart selection parsing failed: ${parseError.message}`);
-            }
-            
-            console.log(`Selected: ${chartSelection.selected_chart_type} (confidence: ${chartSelection.confidence_score})`);
-            
-            return chartSelection;
-            
-        } catch (error) {
-            console.error('Chart selection failed:', error.message);
-            throw new Error(`Chart selection failed: ${error.message}`);
-        }
-    }
-}
-
-// Step 1: Data & Intent Analysis Node
-async function dataIntentAnalysisNode(state) {
-    console.log(`Step 1: Analyzing data and intent for dataset ${state.datasetId}`);
-    
-    const stepFunction = async (state) => {
-        // Get dataset structure for context
-        const datasetStructure = await getDatasetStructure(state.datasetId, state.tableName);
-        state.datasetStructure = datasetStructure;
-        
-        // Create and run data intent analysis agent
-        const dataIntentAgent = new DataIntentAnalysisAgent(llm, pool);
-        
-        const analysisResult = await dataIntentAgent.analyzeDataAndIntent(
-            state.datasetId,
-            state.tableName,
-            state.userIntent,
-            datasetStructure
-        );
-        
-        // Store analysis results in state
-        state.dataIntentAnalysis = analysisResult;
-        
-        state.currentStep = 'chart_selection';
-        state.processingSteps.push('data_intent_analysis_completed');
-        
-        console.log(`Data intent analysis completed. Visualization goal: ${analysisResult.intentAnalysis?.visualization_goal}`);
-        
-        return state;
-    };
-    
-    return errorRecoverySystem.executeWithRecovery(
-        'data_intent_analysis',
-        stepFunction,
-        state,
-        { service: 'data_intent_analysis', dataset: state.datasetId }
-    );
-}
-
-// Step 2: Chart Selection & Field Mapping Node
-async function chartSelectionNode(state) {
-    console.log('Step 2: Selecting chart type and mapping fields');
-    
-    const stepFunction = async (state) => {
-        if (!state.dataIntentAnalysis) {
-            throw new Error('Missing data intent analysis from previous step');
-        }
-        
-        // Create and run chart selection agent
-        const chartSelectionAgent = new ChartTypeSelectionAgent(llm);
-        
-        const selectionResult = await chartSelectionAgent.selectChartAndMapFields(
-            state.userIntent,
-            state.dataIntentAnalysis
-        );
-        
-        // Update state with selection results
-        state.chartType = selectionResult.selected_chart_type;
-        state.fieldMapping = {
-            dimension: selectionResult.field_mapping.primary_dimension,
-            measure: selectionResult.field_mapping.primary_measure,
-            additionalFields: selectionResult.field_mapping.secondary_fields || {},
-            filterFields: selectionResult.field_mapping.filter_fields || [],
-            dateFields: selectionResult.field_mapping.date_fields || []
-        };
-        state.confidenceScore = selectionResult.confidence_score;
-        state.aiReasoning = selectionResult.reasoning;
-        state.chartConfiguration = selectionResult.chart_configuration;
-        state.futureExtensibility = selectionResult.future_extensibility;
-        
-        state.currentStep = 'sql_generation';
-        state.processingSteps.push('chart_selection_completed');
-        
-        console.log(`Chart selection completed: ${state.chartType} with fields ${state.fieldMapping.dimension} -> ${state.fieldMapping.measure}`);
-        
-        return state;
-    };
-    
-    return errorRecoverySystem.executeWithRecovery(
-        'chart_selection',
-        stepFunction,
-        state,
-        { service: 'chart_selection', userIntent: state.userIntent }
-    );
-}
-
-// Step 3: SQL Generation (Enhanced for future filtering)
-async function sqlGenerationNode(state) {
-    console.log('Step 3: Generating SQL query for chart data');
-    
-    const stepFunction = async (state) => {
-        if (!state.fieldMapping || !state.fieldMapping.dimension || !state.fieldMapping.measure) {
-            throw new Error('Missing field mapping from chart selection step');
-        }
-        
-        const sqlPrompt = `
-        Generate a PostgreSQL query for chart data based on field mapping results.
-        
-        User Intent: "${state.userIntent}"
-        Table: public."${state.tableName}" (use this EXACT format - include schema and quotes)
-        Chart Type: ${state.chartType}
-        
-        Field Mapping:
-        - Primary Dimension: ${state.fieldMapping.dimension}
-        - Primary Measure: ${state.fieldMapping.measure}
-        - Filter Fields (for future use): ${JSON.stringify(state.fieldMapping.filterFields)}
-        - Date Fields (for future filtering): ${JSON.stringify(state.fieldMapping.dateFields)}
-        
-        Generate a SQL query that:
-        1. Uses the table name EXACTLY as: public."${state.tableName}" (with schema and quotes)
-        2. Groups by the dimension field (${state.fieldMapping.dimension})
-        3. Aggregates the measure field (${state.fieldMapping.measure}) using ${state.chartConfiguration.aggregation_method || 'SUM'}
-        4. Includes date fields for future filtering capability (even if not used in grouping)
-        5. Filters out NULL values 
-        6. Orders by aggregated value DESC for better chart readability
-        7. Limits to reasonable number of categories (15 max for pie charts)
-        
-        CRITICAL: Always use public."${state.tableName}" for the table name
-        
-        Return JSON:
-        {
-            "sql_query": "SELECT ...",
-            "expected_result_format": "description of expected output columns",
-            "includes_filter_fields": true/false,
-            "future_filter_potential": ["list of fields that could be filtered"]
-        }
-        `;
-        
-        const response = await llm.invoke([new HumanMessage(sqlPrompt)]);
-        
-        let sqlResult;
-        try {
-            let content = response.content;
-            if (content.includes('```json')) {
-                content = content.split('```json')[1].split('```')[0];
-            }
-            sqlResult = JSON.parse(content);
-        } catch (parseError) {
-            throw new Error(`Failed to parse SQL generation response: ${parseError.message}`);
-        }
-        
-        console.log(`Testing SQL query: ${sqlResult.sql_query}`);
-        const queryResults = await executeSqlQuery(sqlResult.sql_query, state.tableName);
-        
-        if (!queryResults || queryResults.length === 0) {
-            throw new Error('SQL query returned no results');
-        }
-        
-        if (queryResults.length > 20) {
-            console.warn(`Query returned ${queryResults.length} rows, might create cluttered ${state.chartType} chart`);
-        }
-        
-        state.sqlQuery = sqlResult.sql_query;
-        state.queryResults = queryResults;
-        state.insightExplanation = `Analysis of ${state.fieldMapping.dimension} by ${state.fieldMapping.measure} with ${queryResults.length} categories`;
-        state.currentStep = 'chart_generation';
-        state.processingSteps.push('sql_generation_completed');
-        
-        console.log(`SQL generation successful. Query returned ${queryResults.length} rows`);
-        
-        return state;
-    };
-    
-    return errorRecoverySystem.executeWithRecovery(
-        'sql_generation',
-        stepFunction,
-        state,
-        { 
-            fieldMapping: state.fieldMapping,
-            tableName: state.tableName,
-            chartType: state.chartType
-        }
-    );
-}
-
-// Step 4: Chart Specification Generation (Enhanced for interactivity)
-class ChartSpecificationAgent {
-    constructor(llm) {
-        this.llm = llm;
-    }
-
-    async generateChartSpec(data, chartType, userIntent, fieldMapping, chartConfiguration) {
-        console.log(`Generating ${chartType} chart specification`);
-        
-        // For now, focus on pie charts, but structure for extensibility
-        if (chartType === 'pie') {
-            return await this.generatePieChartSpec(data, userIntent, fieldMapping, chartConfiguration);
-        }
-        
-        throw new Error(`Chart type "${chartType}" not yet implemented`);
-    }
-
-    async generatePieChartSpec(data, userIntent, fieldMapping, chartConfiguration) {
-        console.log('Generating VChart pie chart specification');
-        
-        const dataSummary = {
-            sampleData: data.slice(0, 3),
-            totalRecords: data.length,
-            fieldNames: {
-                category: Object.keys(data[0])[0],
-                value: Object.keys(data[0])[1]
-            }
-        };
-        
-        const agentPrompt = `You are a VChart specification expert. Your task is to generate a complete, valid VChart pie chart specification based on user intent and data.
-
-CONTEXT:
-- User Intent: "${userIntent}"
-- Chart Configuration: ${JSON.stringify(chartConfiguration)}
-- Data Sample: ${JSON.stringify(dataSummary.sampleData)}
-- Total Records: ${dataSummary.totalRecords}
-- Field Names: Category="${dataSummary.fieldNames.category}", Value="${dataSummary.fieldNames.value}"
-- Field Mapping: Dimension="${fieldMapping.dimension}", Measure="${fieldMapping.measure}"
-
-CRITICAL OUTPUT FORMAT REQUIREMENTS:
-- You MUST respond with ONLY a valid JSON object
-- NO explanations, NO markdown, NO text before or after the JSON
-- NO \`\`\`json code blocks - just the raw JSON
-- Start your response with { and end with }
-- Ensure the JSON is complete and properly closed
-
-INSTRUCTIONS:
-1. First, call the get_available_charts tool to get VChart examples and guidelines
-2. Analyze the user intent to determine the best pie chart variation
-3. Generate a complete VChart specification that matches the data structure
-4. Ensure field names match the actual data (categoryField: "${dataSummary.fieldNames.category}", valueField: "${dataSummary.fieldNames.value}")
-
-IMPORTANT REQUIREMENTS:
-- Use actual field names from the data: "${dataSummary.fieldNames.category}" and "${dataSummary.fieldNames.value}"
-- Follow all guidelines from the examples tool
-- Ensure the spec is 100% JSON serializable (NO functions in tooltips!)
-- Include proper title based on user intent
-- Use VChart's automatic tooltip behavior: {"tooltip": {"mark": {"visible": true}}}
-
-User Intent Analysis:
-- If mentions "nested", "hierarchical", "breakdown": Consider nested pie chart
-- If mentions "modern", "ring", "donut": Use donut/ring style  
-- If simple request: Use basic pie chart
-- Always match the data structure provided
-
-RESPONSE FORMAT EXAMPLE:
-{"type":"pie","data":[{"id":"id0","values":[]}],"categoryField":"${dataSummary.fieldNames.category}","valueField":"${dataSummary.fieldNames.value}","title":{"visible":true,"text":"Your Title"},"tooltip":{"mark":{"visible":true}}}`;
-
-        try {
-            const response = await this.llm.invoke([{ role: 'user', content: agentPrompt }], {
-                tools: [getAvailableChartsTool]
-            });
-            
-            let specContent;
-            
-            if (response.tool_calls && response.tool_calls.length > 0) {
-                console.log('AI accessed chart guidelines, generating spec');
-                
-                const followUpPrompt = `Based on the VChart guidelines you've accessed, generate the pie chart specification for this data:
-
-Data Sample: ${JSON.stringify(dataSummary.sampleData)}
-Field Names: Category="${dataSummary.fieldNames.category}", Value="${dataSummary.fieldNames.value}"
-User Intent: "${userIntent}"
-Style: ${chartConfiguration.variation || 'basic'}
-
-CRITICAL: Respond with ONLY the JSON specification - no explanations, no markdown, no code blocks.
-Start with { and end with }
-
-Generate the VChart pie chart specification now:`;
-
-                const followUpResponse = await this.llm.invoke([{ role: 'user', content: followUpPrompt }]);
-                specContent = followUpResponse.content;
-            } else {
-                specContent = response.content;
-            }
-            
-            if (!specContent || typeof specContent !== 'string') {
-                throw new Error('LLM returned empty or invalid response');
-            }
-            
-            console.log('RAW CHART SPEC:', specContent);
-            
-            // Parse specification
-            let chartSpec;
-            try {
-                let content = specContent;
-                if (content.includes('```json')) {
-                    content = content.split('```json')[1].split('```')[0];
-                } else if (content.includes('```')) {
-                    const codeBlocks = content.split('```');
-                    if (codeBlocks.length >= 2) {
-                        content = codeBlocks[1];
-                    }
-                }
-                
-                const trimmedContent = content.trim();
-                chartSpec = JSON.parse(trimmedContent);
-            } catch (parseError) {
-                console.error('Failed to parse chart specification:', parseError.message);
-                throw new Error(`Chart specification parsing failed: ${parseError.message}`);
-            }
-            
-            // Ensure data is properly set
-            if (!chartSpec.data || !Array.isArray(chartSpec.data)) {
-                chartSpec.data = [{ id: 'id0', values: data }];
-            } else {
-                chartSpec.data[0].values = data;
-            }
-            
-            // Ensure field mapping is correct
-            chartSpec.categoryField = dataSummary.fieldNames.category;
-            chartSpec.valueField = dataSummary.fieldNames.value;
-            
-            console.log(`Chart specification generated successfully for ${data.length} data points`);
-            
-            return {
-                chartSpec,
-                confidence: 0.9,
-                reasoning: 'Generated using VChart guidelines and user intent analysis'
-            };
-            
-        } catch (error) {
-            console.error('Chart specification generation failed:', error.message);
-            throw new Error(`Chart specification generation failed: ${error.message}`);
-        }
-    }
-}
-
-async function chartGenerationNode(state) {
-    console.log('Step 4: Generating chart specification');
-    
-    const stepFunction = async (state) => {
-        if (!state.queryResults || state.queryResults.length === 0) {
-            throw new Error('No query results available for chart generation');
-        }
-        
-        // Standardize data format
-        const keys = Object.keys(state.queryResults[0]);
-        const categoryFieldName = keys.find(key => 
-            !['id', 'created_at'].includes(key.toLowerCase()) && 
-            key === state.fieldMapping.dimension
-        ) || keys[0];
-        const valueFieldName = keys.find(key => 
-            !['id', 'created_at'].includes(key.toLowerCase()) && 
-            key === state.fieldMapping.measure
-        ) || keys[1];
-        
-        const standardizedData = state.queryResults.map(row => {
-            const result = {};
-            result[categoryFieldName] = String(row[categoryFieldName] || 'Unknown');
-            result[valueFieldName] = Number(row[valueFieldName]) || 0;
-            return result;
-        });
-        
-        console.log(`Data mapping: ${categoryFieldName} -> ${valueFieldName}`);
-        
-        // Create chart specification agent
-        const chartAgent = new ChartSpecificationAgent(llm);
-        
-        const result = await chartAgent.generateChartSpec(
-            standardizedData,
-            state.chartType,
-            state.userIntent,
-            state.fieldMapping,
-            state.chartConfiguration
-        );
-        
-        state.chartSpec = result.chartSpec;
-        state.currentStep = 'complete';
-        state.processingSteps.push('chart_generation_completed');
-        
-        console.log('Chart generation completed successfully');
-        
-        return state;
-    };
-    
-    return errorRecoverySystem.executeWithRecovery(
-        'chart_generation',
-        stepFunction,
-        state,
-        {
-            dataLength: state.queryResults?.length,
-            chartType: state.chartType
-        }
-    );
-}
-
-// Helper functions
-async function initializeGeneration(state) {
-    console.log('Initializing chart generation workflow');
-    state.generationId = uuidv4();
-    return state;
-}
-
-async function finalizeGeneration(state) {
-    if (!state.generationId) return state;
-    
-    const executionTime = Date.now() - state.startTime;
-    console.log(`Generation completed: ${state.generationId}, execution time: ${executionTime}ms`);
-    console.log(`Chart type: ${state.chartType}, successful: ${state.currentStep === 'complete'}`);
-    
-    return state;
-}
-
-// Create the enhanced workflow
-function createWorkflow() {
-    const workflow = new StateGraph({
-        channels: {
-            // Core workflow fields
-            messages: { reducer: (a, b) => a.concat(b), default: () => [] },
-            userIntent: { default: () => '' },
-            datasetId: { default: () => '' },
-            tableName: { default: () => '' },
-            datasetStructure: { default: () => ({}) },
-            sqlQuery: { default: () => '' },
-            insightExplanation: { default: () => '' },
-            chartSpec: { default: () => ({}) },
-            currentStep: { default: () => 'start' },
-            queryResults: { default: () => [] },
-            
-            // Enhanced fields for future-ready architecture
-            generationId: { default: () => null },
-            dataIntentAnalysis: { default: () => null },
-            chartType: { default: () => 'pie' },
-            fieldMapping: { default: () => null },
-            confidenceScore: { default: () => 0.5 },
-            chartConfiguration: { default: () => ({}) },
-            futureExtensibility: { default: () => ({}) },
-            dataQuality: { default: () => ({ score: 0.5, issues: [] }) },
-            attemptCount: { default: () => ({}) },
-            error: { default: () => null },
-            aiReasoning: { default: () => '' },
-            processingSteps: { default: () => [] },
-            startTime: { default: () => Date.now() }
-        }
-    });
-    
-    // Add workflow nodes
-    workflow.addNode('initialize_generation', initializeGeneration);
-    workflow.addNode('data_intent_analysis', dataIntentAnalysisNode);
-    workflow.addNode('chart_selection', chartSelectionNode);
-    workflow.addNode('sql_generation', sqlGenerationNode);
-    workflow.addNode('chart_generation', chartGenerationNode);
-    workflow.addNode('finalize_generation', finalizeGeneration);
-    
-    // Add edges for sequential processing
-    workflow.addEdge('initialize_generation', 'data_intent_analysis');
-    workflow.addEdge('data_intent_analysis', 'chart_selection');
-    workflow.addEdge('chart_selection', 'sql_generation');
-    workflow.addEdge('sql_generation', 'chart_generation');
-    workflow.addEdge('chart_generation', 'finalize_generation');
-    workflow.addEdge('finalize_generation', END);
-    
-    // Set entry point
-    workflow.setEntryPoint('initialize_generation');
-    
-    return workflow.compile();
-}
+/* ----------------------------- Chart Registry Tool ----------------------------- */
 
 /**
- * @type {import('@types/aws-lambda').APIGatewayProxyHandler}
+ * Tool returns the current "chart registry" — the single source of truth for:
+ *  - type/subtype IDs
+ *  - requirements
+ *  - mapping keys expected for each subtype
+ *  - (later) SQL/templates/specs; specs are placeholdered as [CHARTSPEC]
  */
-exports.handler = async (event) => {
-    console.log('Event received:', JSON.stringify(event, null, 2));
-    
-    // Handle preflight OPTIONS request
-    if (event.httpMethod === 'OPTIONS') {
-        return {
-            statusCode: 200,
-            headers,
-            body: ''
-        };
+/* ----------------------------- Chart Catalog (MVP) ----------------------------- */
+/**
+ * Catalog is split in two parts:
+ *  - index: tiny list used by Step 1 (chart selector)
+ *  - defs: rich per-chart definitions used by Step 3 (spec generator)
+ *
+ * Step 1 calls: list_chart_catalog  -> returns CHART_CATALOG.index
+ * Step 3 calls: get_chart_definition -> returns CHART_CATALOG.defs[key]
+ */
+
+const CHART_CATALOG = {
+  index: [
+    {
+      type: "pie",
+      subtype: "basic",
+      id: "pie_basic_v1",
+      mapping: { required: ["dimension", "measure"] },
+      summary: "Pie chart of one categorical field aggregated by a numeric measure."
+    },
+    {
+      type: "pie",
+      subtype: "nested",
+      id: "pie_nested_v1",
+      mapping: { required: ["dimension1", "dimension2", "measure"] },
+      summary: "Nested pie: outer ring by first category, inner ring by second category."
+    },
+    {
+      type: "funnel",
+      subtype: "basic",
+      id: "funnel_basic_v1",
+      mapping: { required: ["step", "measure"] },
+      summary: "Funnel with steps and aggregated numeric values."
+    },
+    {
+      type: "funnel",
+      subtype: "conversion",
+      id: "funnel_conversion_v1",
+      mapping: { required: ["step", "id"] },
+      summary: "Conversion funnel with DISTINCT id per step."
     }
-    
-    try {
-        const body = JSON.parse(event.body || '{}');
-        const { user_intent, dataset_id, table_name } = body;
-        
-        if (!user_intent || !dataset_id || !table_name) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({
-                    error: "Missing required parameters: user_intent, dataset_id, table_name"
-                })
-            };
+  ],
+
+  // Rich, per-chart definitions (for Step 3). Key = `${type}.${subtype}`
+  defs: {
+    "pie.basic": {
+      id: "pie_basic_v1",
+      expectedDataShapes: [
+        // Agent should adapt to any of these shapes and produce a valid spec.
+        { rows: "[{ type: string, value: number }]" },
+        { rows: "[{ [categoryField]: string, [valueField]: number }]" }
+      ],
+      vchartGuidance: {
+        chartType: "pie",
+        defaultFields: { categoryField: "type", valueField: "value" },
+        dataInjection: "single dataset with id 'id0'",
+        commonOptions: {
+          outerRadius: 0.8,
+          legends: { visible: true, orient: "left" },
+          label: { visible: true }
+        },
+        tooltipNote: "If values are percentages, show '%' in tooltip; otherwise raw value."
+      },
+      exampleSpecs: [
+        {
+          name: "Pie • Basic",
+          js: String.raw`const spec = {
+  type: 'pie',
+  data: [{ id: 'id0', values: [{ type: 'oxygen', value: 46.60 }, { type: 'silicon', value: 27.72 }] }],
+  outerRadius: 0.8,
+  valueField: 'value',
+  categoryField: 'type',
+  title: { visible: true, text: 'Statistics of Surface Element Content' },
+  legends: { visible: true, orient: 'left' },
+  label: { visible: true },
+  tooltip: { mark: { content: [{ key: d => d['type'], value: d => d['value'] + '%' }] } }
+};`
         }
-        
-        console.log(`Starting enhanced workflow for dataset ${dataset_id} with intent: ${user_intent}`);
-        
-        // Initialize state
-        const initialState = new WorkflowState({
-            userIntent: user_intent,
-            datasetId: dataset_id,
-            tableName: table_name,
-            currentStep: 'start'
-        });
-        
-        // Create and run workflow
-        const workflow = createWorkflow();
-        const finalState = await workflow.invoke(initialState);
-        
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                // Frontend expects 'spec' field
-                spec: finalState.chartSpec,
-                time: Date.now() - finalState.startTime,
-                
-                // Original response format (backwards compatible)
-                sql_query: finalState.sqlQuery,
-                insight_explanation: finalState.insightExplanation,
-                chart_spec: finalState.chartSpec,
-                query_results: finalState.queryResults,
-                
-                // Enhanced response with future-ready information
-                generation_id: finalState.generationId,
-                chart_type: finalState.chartType,
-                field_analysis: {
-                    primary_dimension: finalState.fieldMapping?.dimension,
-                    primary_measure: finalState.fieldMapping?.measure,
-                    filter_fields: finalState.fieldMapping?.filterFields || [],
-                    date_fields: finalState.fieldMapping?.dateFields || [],
-                    confidence_score: finalState.confidenceScore
-                },
-                processing_metadata: {
-                    steps_completed: finalState.processingSteps,
-                    execution_time_ms: Date.now() - finalState.startTime,
-                    workflow_complete: finalState.currentStep === 'complete',
-                    ai_reasoning: finalState.aiReasoning,
-                    chart_configuration: finalState.chartConfiguration,
-                    future_extensibility: finalState.futureExtensibility
-                },
-                data_quality: finalState.dataQuality
-            })
-        };
-        
-    } catch (error) {
-        console.error('Error in enhanced workflow:', error);
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({
-                error: 'Enhanced workflow execution failed',
-                details: error.message
-            })
-        };
+      ]
+    },
+
+    "pie.nested": {
+      id: "pie_nested_v1",
+      expectedDataShapes: [
+        { outer: "[{ type: string, value: number }]", inner: "[{ type: string, value: number }]" },
+        { outer: "[{ [categoryField]: string, [valueField]: number }]", inner: "[{ [categoryField]: string, [valueField]: number }]" }
+      ],
+      vchartGuidance: {
+        chartType: "common",
+        series: [
+          { type: "pie", dataIndex: 0, outerRadius: 0.65, innerRadius: 0 },
+          { type: "pie", dataIndex: 1, outerRadius: 0.8, innerRadius: 0.67 }
+        ],
+        defaultFields: { categoryField: "type", valueField: "value" },
+        dataInjection: "two datasets: id 'id0' for outer, id 'id1' for inner",
+        labelNotes: "Outer ring: inside labels; inner ring: outside labels as needed."
+      },
+      exampleSpecs: [
+        {
+          name: "Pie • Nested",
+          js: String.raw`const spec = {
+  type: 'common',
+  data: [
+    { id: 'id0', values: [{ type: '0~29', value: 126.04 }, { type: '30~59', value: 128.77 }] },
+    { id: 'id1', values: [{ type: '0~9', value: 39.12 }, { type: '10~19', value: 43.01 }] }
+  ],
+  series: [
+    { type: 'pie', dataIndex: 0, outerRadius: 0.65, innerRadius: 0, valueField: 'value', categoryField: 'type',
+      label: { position: 'inside', visible: true }, pie: { style: { stroke: '#ffffff', lineWidth: 2 } } },
+    { type: 'pie', dataIndex: 1, outerRadius: 0.8, innerRadius: 0.67, valueField: 'value', categoryField: 'type',
+      label: { visible: true }, pie: { style: { stroke: '#ffffff', lineWidth: 2 } } }
+  ],
+  legends: { visible: true, orient: 'left' },
+  title: { visible: true, text: 'Population Distribution by Age' }
+};`
+        }
+      ]
+    },
+
+    "funnel.basic": {
+      id: "funnel_basic_v1",
+      expectedDataShapes: [
+        { rows: "[{ step: string, value: number }]" },
+        { rows: "[{ name: string, value: number }]" }
+      ],
+      vchartGuidance: {
+        chartType: "funnel",
+        defaultFields: { categoryField: "name|step", valueField: "value" },
+        dataInjection: "single dataset with id 'funnel'",
+        labelAndLegends: { label: { visible: true }, legends: { visible: true, orient: "bottom" } }
+      },
+      exampleSpecs: [
+        {
+          name: "Funnel • Basic",
+          js: String.raw`const spec = {
+  type: 'funnel',
+  categoryField: 'name',
+  valueField: 'value',
+  data: [{ id: 'funnel', values: [{ value: 100, name: 'Step1' }, { value: 80, name: 'Step2' }] }],
+  label: { visible: true },
+  legends: { visible: true, orient: 'bottom' }
+};`
+        }
+      ]
+    },
+
+    "funnel.conversion": {
+      id: "funnel_conversion_v1",
+      expectedDataShapes: [
+        { rows: "[{ step: string, value: number }]" }
+      ],
+      vchartGuidance: {
+        chartType: "funnel",
+        defaultFields: { categoryField: "name|step", valueField: "value" },
+        transformProps: { isTransform: true, isCone: false },
+        labels: { label: { visible: true }, transformLabel: { visible: true }, outerLabel: { position: "right", visible: true } },
+        legends: { visible: true, orient: "top" }
+      },
+      exampleSpecs: [
+        {
+          name: "Funnel • Conversion",
+          js: String.raw`const spec = {
+  type: 'funnel',
+  categoryField: 'name',
+  valueField: 'value',
+  isTransform: true,
+  isCone: false,
+  data: [{ id: 'funnel', values: [{ value: 5676, name: 'Sent' }, { value: 3872, name: 'Viewed' }] }],
+  title: { visible: true, text: 'Percentage of customers dropped' },
+  label: { visible: true },
+  transformLabel: { visible: true },
+  outerLabel: { position: 'right', visible: true },
+  legends: { visible: true, orient: 'top' }
+};`
+        }
+      ]
     }
+  }
+};
+
+
+/* ----------------------------- Catalog Tools ----------------------------- */
+
+// Small list for Step 1 selector
+const listChartCatalogTool = tool({
+  name: "list_chart_catalog",
+  description:
+    "Return the small index of supported charts/subtypes and required mappings. Use this to decide which chart to pick.",
+  schema: z.object({}),
+  func: async () => JSON.stringify(CHART_CATALOG.index)
+});
+
+// Targeted definition for Step 3 spec generation
+const getChartDefinitionTool = tool({
+  name: "get_chart_definition",
+  description:
+    "Return a detailed chart definition (examples, guidance) for a given { type, subtype }. Use this to generate a VChart spec that matches aggregated data.",
+  schema: z.object({
+    type: z.enum(["pie", "funnel"]),
+    subtype: z.enum(["basic", "nested", "conversion"])
+  }),
+  func: async ({ type, subtype }) => {
+    const key = `${type}.${subtype}`;
+    const def = CHART_CATALOG.defs[key];
+    if (!def) throw new Error(`No chart definition for ${key}`);
+    return JSON.stringify({ type, subtype, ...def });
+  }
+});
+
+
+/* ----------------------------- LLM + Graph ----------------------------- */
+
+const llm = new ChatOpenAI({
+  model: "gpt-5-mini",
+  apiKey: process.env.OPENAI_API_KEY,
+  temperature: 0 // deterministic selection
+}).bindTools([listChartCatalogTool]);
+
+// Agent node: talk to LLM
+async function agentNode(state) {
+  const res = await llm.invoke(state.messages);
+  return { messages: [res] };
+}
+
+// Decide whether to run tools or finish
+function shouldContinue(state) {
+  const last = state.messages[state.messages.length - 1];
+  if (last.tool_calls && last.tool_calls.length > 0) {
+    return "tools";
+  }
+  return END;
+}
+
+const toolsNode = new ToolNode([listChartCatalogTool]);
+
+const workflow = new StateGraph(MessagesAnnotation)
+  .addNode("agent", agentNode)
+  .addNode("tools", toolsNode)
+  .addEdge("tools", "agent")
+  .addConditionalEdges("agent", shouldContinue)
+  .addEntryPoint("agent");
+
+const app = workflow.compile();
+
+/* ----------------------------- Prompting ----------------------------- */
+
+function buildSystemPrompt() {
+  return [
+    "You are a chart-selection specialist.",
+    "Your job: given a user's intent and dataset columns, select exactly ONE chart {type, subtype} and a valid mapping.",
+    "You MUST call the tool list_chart_catalog to retrieve the latest chart registry before deciding.",
+    "Only choose among the returned registry items.",
+    "Mapping must use actual column names from the dataset.",
+    "If requirements for the user's preferred chart aren't met, pick the closest valid option.",
+    "Prefer low-cardinality dimensions for pies; ensure numeric measures when required.",
+    "For funnel.conversion, you MUST require an identifier column.",
+    "",
+    "Output format:",
+    "Return ONLY one JSON object, no markdown, no prose.",
+    "",
+    "Schema:",
+    JSON.stringify({
+      chart: { type: "<pie|funnel>", subtype: "<basic|nested|conversion>", id: "<registry id>" },
+      mapping: { "<role>": "<column name>" },
+      reason: "short string",
+      confidence: "number between 0 and 1"
+    }),
+    "",
+    "Example output:",
+    JSON.stringify({
+      chart: { type: "pie", subtype: "basic", id: "pie_basic_v1" },
+      mapping: { dimension: "category", measure: "count" },
+      reason: "User asked for distribution, dataset has categorical 'category' and numeric 'count'.",
+      confidence: 0.92
+    }, null, 2)
+  ].join("\n");
+}
+
+function buildUserPrompt({ user_intent, table_name, columns, helper }) {
+  return [
+    `User intent: ${user_intent}`,
+    `Table: ${table_name}`,
+    `Columns: ${JSON.stringify(columns, null, 2)}`,
+    `Helper candidates: ${JSON.stringify(helper, null, 2)}`,
+    "Steps:",
+    "1) Call list_chart_catalog.",
+    "2) Pick the best chart/subtype.",
+    "3) Provide mapping using column names.",
+    "4) Return ONLY JSON (no markdown, no text)."
+  ].join("\n");
+}
+
+function makeExecuteSqlToolForTable(allowedTableNameFQ) {
+  // keep the exact FQ name for the prompt & enforcement message
+  const fqExact = allowedTableNameFQ;
+  const mustContain = `from ${fqExact.toLowerCase()}`;
+
+  return tool({
+    name: "execute_sql",
+    description: [
+      "Execute a single read-only SQL query (SELECT or WITH ... SELECT) against the provided dataset table.",
+      "You MUST reference ONLY this table and MUST fully qualify it exactly as:",
+      `  ${fqExact}`,
+      "Do not join other tables. Do not modify data. Keep results small and aggregated.",
+      "Return columns named as the chart expects (e.g., 'type' and 'value' for pie; 'step' and 'value' for funnel)."
+    ].join("\n"),
+    schema: z.object({
+      sql: z.string().min(1),
+      max_rows: z.number().int().positive().default(1000)
+    }),
+    func: async ({ sql, max_rows }) => {
+      const s = sql.trim();
+
+      // Basic safety checks
+      const lowered = s.toLowerCase();
+      if (!/^\s*(with|select)\b/.test(lowered)) {
+        throw new Error("Only SELECT/WITH queries are allowed.");
+      }
+      if (/[;](?!\s*$)/.test(s)) {
+        throw new Error("Multiple statements are not allowed.");
+      }
+      if (/(insert|update|delete|merge|alter|drop|truncate|grant|revoke)\b/i.test(s)) {
+        throw new Error("Only read-only queries are allowed.");
+      }
+      if (!lowered.includes(mustContain)) {
+        throw new Error(`Query must reference ONLY the allowed table using exact syntax: ${fqExact}`);
+      }
+
+      // Enforce a LIMIT if missing (soft cap)
+      const hasLimit = /\blimit\s+\d+\s*$/i.test(lowered);
+      const finalSql = hasLimit ? s : `${s}\nLIMIT ${Math.min(max_rows, 1000)}`;
+
+      const client = await poolRO.connect();
+      try {
+        // Use non-LOCAL variant (no transaction required)
+        await client.query(`SET statement_timeout TO '5000ms'`);
+        const { rows } = await client.query(finalSql);
+        return JSON.stringify({ rows, rowCount: rows.length });
+      } finally {
+        client.release();
+      }
+    }
+  });
+}
+
+
+// Build the agent for step 2 at request-time so we can bind the table-specific tool
+function buildAggregationGraph({ table_name, selection }) {
+  const executeSqlTool = makeExecuteSqlToolForTable(table_name);
+
+  const step2LLM = new ChatOpenAI({
+    model: "gpt-5-mini",
+    apiKey: process.env.OPENAI_API_KEY,
+    temperature: 0
+  }).bindTools([executeSqlTool]);
+
+  async function agentNode(state) {
+    const res = await step2LLM.invoke(state.messages);
+    return { messages: [res] };
+    // If the model decides it needs to call the tool, LangGraph will route to ToolNode
+  }
+
+  function shouldContinue(state) {
+    const last = state.messages[state.messages.length - 1];
+    if (last.tool_calls && last.tool_calls.length > 0) return "tools";
+    return END;
+  }
+
+  const toolsNode = new ToolNode([executeSqlTool]);
+
+  const graph = new StateGraph(MessagesAnnotation)
+    .addNode("agent", agentNode)
+    .addNode("tools", toolsNode)
+    .addEdge("tools", "agent")
+    .addConditionalEdges("agent", shouldContinue)
+    .addEntryPoint("agent");
+
+  return graph.compile();
+}
+
+/* -------- Prompts for Step 2 (with output example) -------- */
+
+function buildStep2SystemPrompt() {
+  return [
+    "You are a SQL aggregation assistant.",
+    "Goal: given {chart, mapping, table} produce exactly one read-only SQL query that returns the aggregated rows required by the chart.",
+    "Then CALL the execute_sql tool with that query.",
+    "Rules:",
+    "- Use ONLY the provided fully-qualified table name.",
+    "- SELECT or WITH ... SELECT only. No writes, no joins, no subqueries to other tables.",
+    "- Alias output columns exactly as required:",
+    "  * pie.basic: columns => type, value",
+    "  * pie.nested (outer): type, value   (category total)",
+    "  * pie.nested (inner): type, value   (category • subcategory)",
+    "  * funnel.basic: columns => step, value",
+    "  * funnel.conversion: columns => step, value (distinct identifier per step)",
+    "- Prefer SUM for numeric measures, COUNT(DISTINCT id) for conversion if mapping includes 'id'.",
+    "- Keep results small; add ORDER BY and LIMIT when sensible.",
+    "",
+    "After tool execution, return ONLY one JSON object:",
+    JSON.stringify({
+      chart: { type: "<pie|funnel>", subtype: "<basic|nested|conversion>" },
+      mapping: { "<role>": "<column>" },
+      sql: "<the query you executed>",
+      result: { rows: [/* tool rows */], rowCount: 0 }
+    }, null, 2),
+    "",
+    "Example output:",
+    JSON.stringify({
+      chart: { type: "pie", subtype: "basic" },
+      mapping: { dimension: "category", measure: "count" },
+      sql: 'SELECT "category" AS type, SUM("count") AS value FROM public."user_KOJgQolKnCSIwJea4cvZoRB4LGF2_pie_chart_extended_c_1" GROUP BY 1 ORDER BY 2 DESC LIMIT 1000',
+      result: { rows: [ { type: "Images", value: 45 }, { type: "Videos", value: 30 } ], rowCount: 2 }
+    }, null, 2)
+  ].join("\n");
+}
+
+function buildStep2UserPrompt({ table_name, selection }) {
+  return [
+    `Table (use exactly as written): ${table_name}`,
+    `Chart selection: ${JSON.stringify(selection.chart)}`,
+    `Mapping: ${JSON.stringify(selection.mapping)}`,
+    "",
+    "Now:",
+    "1) Write the SQL.",
+    "2) Call execute_sql tool with { sql }.",
+    "3) Return ONLY the JSON object with chart, mapping, sql, result."
+  ].join("\n");
+}
+
+/* ----------------------------- Step 3: Spec Generation Agent ----------------------------- */
+
+// Build a small graph that:
+// 1) Calls get_chart_definition with {type, subtype}
+// 2) Uses that guidance + selection + aggregated rows to emit a VChart spec object
+function buildSpecGraph() {
+  const specLLM = new ChatOpenAI({
+    model: "gpt-5-mini",
+    apiKey: process.env.OPENAI_API_KEY,
+    temperature: 0
+  }).bindTools([getChartDefinitionTool]);
+
+  async function agentNode(state) {
+    const res = await specLLM.invoke(state.messages);
+    return { messages: [res] };
+  }
+
+  function shouldContinue(state) {
+    const last = state.messages[state.messages.length - 1];
+    if (last.tool_calls && last.tool_calls.length > 0) return "tools";
+    return END;
+  }
+
+  const toolsNode = new ToolNode([getChartDefinitionTool]);
+
+  const graph = new StateGraph(MessagesAnnotation)
+    .addNode("agent", agentNode)
+    .addNode("tools", toolsNode)
+    .addEdge("tools", "agent")
+    .addConditionalEdges("agent", shouldContinue)
+    .addEntryPoint("agent");
+
+  return graph.compile();
+}
+
+/* -------- Prompts for Step 3 (only returns { spec }) -------- */
+
+function buildStep3SystemPrompt() {
+  return [
+    "You are a VChart spec generator.",
+    "Input context will include: (a) chart selection {type, subtype, mapping}, (b) aggregated rows from SQL.",
+    "You MUST first call get_chart_definition with { type, subtype } to retrieve targeted guidance and examples.",
+    "Then produce ONE valid VChart spec JSON object that matches the aggregated rows.",
+    "",
+    "Very important output constraints:",
+    "- The output MUST be valid JSON. Do NOT include functions, code, or comments anywhere (no arrow functions in tooltip, etc.).",
+    "- Only use JSON-serializable values (strings, numbers, booleans, arrays, objects, null).",
+    "",
+    "Rules:",
+    "- Use the aggregated rows AS-IS; do not hallucinate values.",
+    "- Use field names per guidance defaults, but adapt if rows use 'step' vs 'name' or 'type' etc.",
+    "- Data injection:",
+    "  * pie.basic -> data: [{ id: 'id0', values: rows }], and set valueField/categoryField appropriately.",
+    "  * pie.nested -> if only one array of rows is available, gracefully fallback to a single-ring pie using those rows.",
+    "  * funnel.basic/conversion -> data: [{ id: 'funnel', values: rows }], categoryField ('name' or 'step'), valueField 'value'.",
+    "- Add reasonable defaults from guidance (legends/labels/title).",
+    "- Output ONLY a JSON object with key 'spec'. No markdown, no extra text.",
+    "",
+    "Example output:",
+    JSON.stringify({
+      spec: {
+        type: "pie",
+        data: [{ id: "id0", values: [ { type: "Images", value: 45 }, { type: "Videos", value: 30 } ] }],
+        outerRadius: 0.8,
+        valueField: "value",
+        categoryField: "type",
+        legends: { visible: true, orient: "left" },
+        label: { visible: true },
+        title: { visible: true, text: "Files by Category" },
+        tooltip: {
+          // Use plain strings only; do NOT use functions
+          // If you need formatting, bake it into the value strings beforehand.
+        }
+      }
+    }, null, 2)
+  ].join("\n");
+}
+
+
+function buildStep3UserPrompt({ selection, aggregation }) {
+  return [
+    `Chart selection: ${JSON.stringify(selection.chart)}`,
+    `Mapping: ${JSON.stringify(selection.mapping)}`,
+    `Aggregated rows (sample or all): ${JSON.stringify(aggregation.result.rows)}`,
+    "",
+    "Steps:",
+    "1) Call get_chart_definition with { type, subtype }.",
+    "2) Generate a VChart spec that uses the aggregated rows.",
+    "3) Return ONLY: { \"spec\": <object> }",
+    "4) DON'T return your comments, markdown, quotes, triple quotes or anything. Just the JSON }"
+  ].join("\n");
+}
+
+
+/* ----------------------------- Lambda Handler ----------------------------- */
+
+export const handler = async (event) => {
+  const headers = { "Content-Type": "application/json" };
+  try {
+    const body = typeof event.body === "string" ? JSON.parse(event.body || "{}") : (event.body || {});
+    const { user_intent, dataset_id, table_name } = body || {};
+
+    if (!user_intent || !dataset_id || !table_name) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: "Missing required fields: user_intent, dataset_id, table_name"
+        })
+      };
+    }
+
+    // 1) Read dataset schema/metadata
+    const columns = await fetchDatasetColumns(dataset_id);
+    if (!columns || columns.length === 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: "No column metadata found for dataset_id",
+          dataset_id
+        })
+      };
+    }
+
+    // 2) Build helper candidates for the LLM
+    const helper = summarizeColumns(columns);
+
+    // 3) Run the graph (agent -> tool -> agent) until it returns a final message
+    const system = new SystemMessage(buildSystemPrompt());
+    const human = new HumanMessage(
+      buildUserPrompt({ user_intent, table_name, columns, helper })
+    );
+
+    const finalState = await app.invoke({ messages: [system, human] });
+    const last = finalState.messages[finalState.messages.length - 1];
+    let selection;
+    try {
+      selection = JSON.parse(last.content);
+    } catch (e) {
+      // Fallback: try to extract JSON blob
+      const match = (last.content || "").match(/\{[\s\S]*\}$/);
+      if (match) selection = JSON.parse(match[0]);
+    }
+
+    if (!selection || !selection.chart || !selection.mapping) {
+      return {
+        statusCode: 422,
+        headers,
+        body: JSON.stringify({
+          error: "Model did not return a valid selection.",
+          raw: last?.content
+        })
+      };
+    }
+
+    // --- STEP 2: aggregate data via SQL using a tool-called by the LLM ---
+    // Build a per-request graph bound to the *exact* table name
+    const tableFQ = `public."${table_name}"`; // ensure the model uses this exact form
+    const step2App = buildAggregationGraph({ table_name: tableFQ, selection });
+
+    const step2System = new SystemMessage(buildStep2SystemPrompt());
+    const step2Human = new HumanMessage(buildStep2UserPrompt({ table_name: tableFQ, selection }));
+
+    const step2State = await step2App.invoke({ messages: [step2System, step2Human] });
+    const step2Last = step2State.messages[step2State.messages.length - 1];
+
+    let aggregation;
+    try {
+      aggregation = JSON.parse(step2Last.content);
+    } catch (e) {
+      const m = (step2Last.content || "").match(/\{[\s\S]*\}$/);
+      if (m) aggregation = JSON.parse(m[0]);
+    }
+
+    if (!aggregation || !aggregation.result || !Array.isArray(aggregation.result.rows)) {
+      return {
+        statusCode: 422,
+        headers,
+        body: JSON.stringify({
+          error: "Aggregation step did not return valid rows.",
+          raw: step2Last?.content
+        })
+      };
+    }
+
+// --- STEP 3: generate VChart spec using the chosen chart + aggregated rows ---
+    const step3App = buildSpecGraph();
+    const step3System = new SystemMessage(buildStep3SystemPrompt());
+    const step3Human = new HumanMessage(buildStep3UserPrompt({ selection, aggregation }));
+
+    const step3State = await step3App.invoke({ messages: [step3System, step3Human] });
+    const step3Last = step3State.messages[step3State.messages.length - 1];
+
+    let specOut;
+    try {
+      specOut = JSON.parse(step3Last.content);
+    } catch (e) {
+      const m = (step3Last.content || "").match(/\{[\s\S]*\}$/);
+      if (m) specOut = JSON.parse(m[0]);
+    }
+
+    if (!specOut || !specOut.spec) {
+      return {
+        statusCode: 422,
+        headers,
+        body: JSON.stringify({
+          error: "Spec generation step did not return a valid { spec } object.",
+          raw: step3Last?.content
+        })
+      };
+    }
+
+    // --- Final response: Step 1 + Step 2 + Step 3 (frontend expects 'spec') ---
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        step: "spec",
+        selection,
+        aggregation,
+        spec: specOut.spec
+      })
+    };
+
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: String(err?.message || err) })
+    };
+  }
 };
