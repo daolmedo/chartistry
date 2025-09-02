@@ -39,6 +39,7 @@ const poolRO = new Pool(dbConfig);
 
 
 async function fetchDatasetColumns(dataset_id) {
+  console.log('fetchDatasetColumns called with dataset_id:', dataset_id);
   const client = await pool.connect();
   try {
     const sql = `
@@ -48,8 +49,13 @@ async function fetchDatasetColumns(dataset_id) {
       WHERE dataset_id = $1
       ORDER BY column_index ASC
     `;
+    console.log('Executing SQL query for dataset columns');
     const { rows } = await client.query(sql, [dataset_id]);
+    console.log('Query returned', rows.length, 'columns');
     return rows;
+  } catch (error) {
+    console.error('Error fetching dataset columns:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -303,7 +309,12 @@ const listChartCatalogTool = new DynamicStructuredTool({
   description:
     "Return the small index of supported charts/subtypes and required mappings. Use this to decide which chart to pick.",
   schema: z.object({}),
-  func: async () => JSON.stringify(CHART_CATALOG.index)
+  func: async () => {
+    console.log('Tool: list_chart_catalog called');
+    const result = JSON.stringify(CHART_CATALOG.index);
+    console.log('Tool: list_chart_catalog returning catalog with', CHART_CATALOG.index.length, 'charts');
+    return result;
+  }
 });
 
 // Targeted definition for Step 3 spec generation
@@ -316,9 +327,14 @@ const getChartDefinitionTool = new DynamicStructuredTool({
     subtype: z.enum(["basic", "nested", "conversion"])
   }),
   func: async ({ type, subtype }) => {
+    console.log('Tool: get_chart_definition called with:', { type, subtype });
     const key = `${type}.${subtype}`;
     const def = CHART_CATALOG.defs[key];
-    if (!def) throw new Error(`No chart definition for ${key}`);
+    if (!def) {
+      console.error(`No chart definition found for ${key}`);
+      throw new Error(`No chart definition for ${key}`);
+    }
+    console.log('Tool: get_chart_definition returning definition for', key);
     return JSON.stringify({ type, subtype, ...def });
   }
 });
@@ -425,33 +441,43 @@ function makeExecuteSqlToolForTable(allowedTableNameFQ) {
       max_rows: z.number().int().positive().default(1000)
     }),
     func: async ({ sql, max_rows = 1000 }) => {
+      console.log('Tool: execute_sql called with SQL:', sql);
       const s = sql.trim();
 
       // Basic safety checks
       const lowered = s.toLowerCase();
       if (!/^\s*(with|select)\b/.test(lowered)) {
+        console.error('SQL validation failed: not a SELECT/WITH query');
         throw new Error("Only SELECT/WITH queries are allowed.");
       }
       if (/[;](?!\s*$)/.test(s)) {
+        console.error('SQL validation failed: multiple statements');
         throw new Error("Multiple statements are not allowed.");
       }
       if (/(insert|update|delete|merge|alter|drop|truncate|grant|revoke)\b/i.test(s)) {
+        console.error('SQL validation failed: non-read-only query');
         throw new Error("Only read-only queries are allowed.");
       }
       if (!lowered.includes(mustContain)) {
+        console.error('SQL validation failed: wrong table reference');
         throw new Error(`Query must reference ONLY the allowed table using exact syntax: ${fqExact}`);
       }
 
       // Enforce a LIMIT if missing (soft cap)
       const hasLimit = /\blimit\s+\d+\s*$/i.test(lowered);
       const finalSql = hasLimit ? s : `${s}\nLIMIT ${Math.min(max_rows, 1000)}`;
+      console.log('Executing SQL query:', finalSql);
 
       const client = await poolRO.connect();
       try {
         // Use non-LOCAL variant (no transaction required)
         await client.query(`SET statement_timeout TO '5000ms'`);
         const { rows } = await client.query(finalSql);
+        console.log('SQL query returned', rows.length, 'rows');
         return JSON.stringify({ rows, rowCount: rows.length });
+      } catch (error) {
+        console.error('SQL execution error:', error);
+        throw error;
       } finally {
         client.release();
       }
@@ -641,12 +667,19 @@ function buildStep3UserPrompt({ selection, aggregation }) {
 /* ----------------------------- Lambda Handler ----------------------------- */
 
 export const handler = async (event) => {
+  console.log('=== Lambda Handler Started ===');
+  console.log('Event:', JSON.stringify(event));
+  
   const headers = { "Content-Type": "application/json" };
   try {
     const body = typeof event.body === "string" ? JSON.parse(event.body || "{}") : (event.body || {});
+    console.log('Parsed body:', JSON.stringify(body));
+    
     const { user_intent, dataset_id, table_name } = body || {};
+    console.log('Extracted params:', { user_intent, dataset_id, table_name });
 
     if (!user_intent || !dataset_id || !table_name) {
+      console.log('Missing required fields');
       return {
         statusCode: 400,
         headers,
@@ -657,8 +690,12 @@ export const handler = async (event) => {
     }
 
     // 1) Read dataset schema/metadata
+    console.log('Step 1: Fetching dataset columns for dataset_id:', dataset_id);
     const columns = await fetchDatasetColumns(dataset_id);
+    console.log('Fetched columns count:', columns?.length);
+    
     if (!columns || columns.length === 0) {
+      console.log('No columns found for dataset_id:', dataset_id);
       return {
         statusCode: 400,
         headers,
@@ -670,26 +707,39 @@ export const handler = async (event) => {
     }
 
     // 2) Build helper candidates for the LLM
+    console.log('Step 2: Building helper candidates');
     const helper = summarizeColumns(columns);
+    console.log('Helper candidates:', JSON.stringify(helper));
 
     // 3) Run the graph (agent -> tool -> agent) until it returns a final message
+    console.log('Step 3: Creating system and human messages for chart selection');
     const system = new SystemMessage(buildSystemPrompt());
     const human = new HumanMessage(
       buildUserPrompt({ user_intent, table_name, columns, helper })
     );
 
+    console.log('Invoking chart selection graph...');
     const finalState = await app.invoke({ messages: [system, human] });
+    console.log('Chart selection graph completed');
     const last = finalState.messages[finalState.messages.length - 1];
+    console.log('Last message content:', last?.content);
+    
     let selection;
     try {
       selection = JSON.parse(last.content);
+      console.log('Parsed selection:', JSON.stringify(selection));
     } catch (e) {
+      console.log('Failed to parse JSON directly, trying fallback:', e.message);
       // Fallback: try to extract JSON blob
       const match = (last.content || "").match(/\{[\s\S]*\}$/);
-      if (match) selection = JSON.parse(match[0]);
+      if (match) {
+        selection = JSON.parse(match[0]);
+        console.log('Fallback parsing successful:', JSON.stringify(selection));
+      }
     }
 
     if (!selection || !selection.chart || !selection.mapping) {
+      console.log('Invalid selection - missing required fields');
       return {
         statusCode: 422,
         headers,
@@ -701,25 +751,36 @@ export const handler = async (event) => {
     }
 
     // --- STEP 2: aggregate data via SQL using a tool-called by the LLM ---
+    console.log('\n=== Step 2: Data Aggregation ===');
     // Build a per-request graph bound to the *exact* table name
     const tableFQ = `public."${table_name}"`; // ensure the model uses this exact form
+    console.log('Building aggregation graph for table:', tableFQ);
     const step2App = buildAggregationGraph({ table_name: tableFQ, selection });
 
     const step2System = new SystemMessage(buildStep2SystemPrompt());
     const step2Human = new HumanMessage(buildStep2UserPrompt({ table_name: tableFQ, selection }));
 
+    console.log('Invoking aggregation graph...');
     const step2State = await step2App.invoke({ messages: [step2System, step2Human] });
+    console.log('Aggregation graph completed');
     const step2Last = step2State.messages[step2State.messages.length - 1];
+    console.log('Step 2 last message content:', step2Last?.content);
 
     let aggregation;
     try {
       aggregation = JSON.parse(step2Last.content);
+      console.log('Parsed aggregation:', JSON.stringify(aggregation));
     } catch (e) {
+      console.log('Failed to parse aggregation JSON directly, trying fallback:', e.message);
       const m = (step2Last.content || "").match(/\{[\s\S]*\}$/);
-      if (m) aggregation = JSON.parse(m[0]);
+      if (m) {
+        aggregation = JSON.parse(m[0]);
+        console.log('Fallback aggregation parsing successful');
+      }
     }
 
     if (!aggregation || !aggregation.result || !Array.isArray(aggregation.result.rows)) {
+      console.log('Invalid aggregation - missing result.rows');
       return {
         statusCode: 422,
         headers,
@@ -729,24 +790,35 @@ export const handler = async (event) => {
         })
       };
     }
+    console.log('Aggregation rows count:', aggregation.result.rows.length);
 
 // --- STEP 3: generate VChart spec using the chosen chart + aggregated rows ---
+    console.log('\n=== Step 3: VChart Spec Generation ===');
     const step3App = buildSpecGraph();
     const step3System = new SystemMessage(buildStep3SystemPrompt());
     const step3Human = new HumanMessage(buildStep3UserPrompt({ selection, aggregation }));
 
+    console.log('Invoking spec generation graph...');
     const step3State = await step3App.invoke({ messages: [step3System, step3Human] });
+    console.log('Spec generation graph completed');
     const step3Last = step3State.messages[step3State.messages.length - 1];
+    console.log('Step 3 last message content:', step3Last?.content);
 
     let specOut;
     try {
       specOut = JSON.parse(step3Last.content);
+      console.log('Parsed spec output successfully');
     } catch (e) {
+      console.log('Failed to parse spec JSON directly, trying fallback:', e.message);
       const m = (step3Last.content || "").match(/\{[\s\S]*\}$/);
-      if (m) specOut = JSON.parse(m[0]);
+      if (m) {
+        specOut = JSON.parse(m[0]);
+        console.log('Fallback spec parsing successful');
+      }
     }
 
     if (!specOut || !specOut.spec) {
+      console.log('Invalid spec output - missing spec field');
       return {
         statusCode: 422,
         headers,
@@ -758,7 +830,8 @@ export const handler = async (event) => {
     }
 
     // --- Final response: Step 1 + Step 2 + Step 3 (frontend expects 'spec') ---
-    return {
+    console.log('\n=== Success! Returning final response ===');
+    const response = {
       statusCode: 200,
       headers,
       body: JSON.stringify({
@@ -768,8 +841,13 @@ export const handler = async (event) => {
         spec: specOut.spec
       })
     };
+    console.log('Response status:', response.statusCode);
+    return response;
 
   } catch (err) {
+    console.error('=== Lambda Error ===');
+    console.error('Error message:', err?.message || err);
+    console.error('Error stack:', err?.stack);
     return {
       statusCode: 500,
       headers,
