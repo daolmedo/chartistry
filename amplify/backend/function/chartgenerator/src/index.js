@@ -273,6 +273,17 @@ async function getDatasetStructure(datasetId, tableName) {
         
         const { row_count, column_count, metadata } = datasetResult.rows[0];
         
+        // Parse metadata safely to avoid JSON parsing errors
+        let parsedMetadata = {};
+        if (metadata) {
+            try {
+                parsedMetadata = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+            } catch (parseError) {
+                console.warn('Failed to parse metadata:', parseError.message);
+                parsedMetadata = {};
+            }
+        }
+        
         // Get column names
         const columnsQuery = `
             SELECT column_name 
@@ -292,7 +303,7 @@ async function getDatasetStructure(datasetId, tableName) {
         return {
             rowCount: row_count,
             columnCount: column_count,
-            metadata: metadata ? JSON.parse(metadata) : {},
+            metadata: parsedMetadata,
             columns,
             sampleData: sampleResult.rows,
             tableName
