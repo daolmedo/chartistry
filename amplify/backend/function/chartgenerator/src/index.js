@@ -158,8 +158,8 @@ const CHART_CATALOG = {
       type: "funnel",
       subtype: "conversion",
       id: "funnel_conversion_v1",
-      mapping: { required: ["step", "id"] },
-      summary: "Conversion funnel with DISTINCT id per step."
+      mapping: { required: ["step", "measure"] },
+      summary: "Richer funnel with steps and aggregated numeric values that automatically shows percentages between steps."
     }
   ],
 
