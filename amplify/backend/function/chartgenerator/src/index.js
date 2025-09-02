@@ -9,7 +9,6 @@ const { v4: uuidv4 } = require('uuid');
 // Import our VMind-inspired components
 const { FieldDetectionService } = require('./field-detection');
 const { ErrorRecoverySystem } = require('./error-recovery');
-// Removed old chart knowledge dependencies - now using AI agent with tools
 
 // Database configuration
 const dbConfig = {
@@ -20,7 +19,6 @@ const dbConfig = {
     password: "ppddA4all.P",
     connectionTimeoutMillis: 5_000,
     idleTimeoutMillis: 30_000,
-    // 🔑 enable TLS – this makes pg send the SSLRequest packet
     ssl: {
         require: true,
         rejectUnauthorized: false
@@ -39,9 +37,8 @@ const headers = {
 
 // Tool for getting available chart types and their specifications
 const getAvailableChartsTool = tool(
-    async ({ chartType }) => {
-        if (chartType === 'pie' || !chartType) {
-            return `
+    async () => {
+        return `
 # VChart Pie Chart Specifications and Guidelines
 
 ## 🎯 CRITICAL GUARDRAILS FOR PIE CHARTS
@@ -113,8 +110,160 @@ const getAvailableChartsTool = tool(
 }
 \`\`\`
 
-### 2. RING/DONUT CHART
-**When to use**: Modern aesthetic, emphasize total vs parts
+### 2. NESTED PIE CHART (Two Levels)
+**When to use**: Hierarchical data with parent-child relationships
+**Best for**: Category breakdowns, regional analysis, detailed segments
+**IMPORTANT**: Requires TWO separate data arrays!
+
+\`\`\`json
+{
+  type: 'common',
+  data: [
+    {
+      id: 'id0',
+      values: [
+        { type: '0~29', value: '126.04' },
+        { type: '30~59', value: '128.77' },
+        { type: '60 and over', value: '77.09' }
+      ]
+    },
+    {
+      id: 'id1',
+      values: [
+        { type: '0~9', value: '39.12' },
+        { type: '10~19', value: '43.01' },
+        { type: '20~29', value: '43.91' },
+        { type: '30~39', value: '45.4' },
+        { type: '40~49', value: '40.89' },
+        { type: '50~59', value: '42.48' },
+        { type: '60~69', value: '39.63' },
+        { type: '70~79', value: '25.17' },
+        { type: '80 and over', value: '12.29' }
+      ]
+    }
+  ],
+  series: [
+    {
+      type: 'pie',
+      dataIndex: 0,
+      outerRadius: 0.65,
+      innerRadius: 0,
+      valueField: 'value',
+      categoryField: 'type',
+      label: {
+        position: 'inside',
+        visible: true,
+        style: {
+          fill: 'white'
+        }
+      },
+      pie: {
+        style: {
+          stroke: '#ffffff',
+          lineWidth: 2
+        }
+      }
+    },
+    {
+      type: 'pie',
+      dataIndex: 1,
+      outerRadius: 0.8,
+      innerRadius: 0.67,
+      valueField: 'value',
+      categoryField: 'type',
+      label: {
+        visible: true
+      },
+      pie: {
+        style: {
+          stroke: '#ffffff',
+          lineWidth: 2
+        }
+      }
+    }
+  ],
+  color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
+  title: {
+    visible: true,
+    text: 'Population Distribution by Age in the United States, 2021 (in millions)',
+    textStyle: {
+      fontFamily: 'Times New Roman'
+    }
+  },
+  legends: {
+    visible: true,
+    orient: 'left'
+  }
+}
+\`\`\`
+
+### 3. RADIUS MAPPABLE PIE CHART
+**When to use**: When you want to emphasize the relationship between parts
+**Best for**: Pie charts can map data with internal and external radii by configuring custom scales.
+
+\`\`\`json
+{
+  type: 'pie',
+  data: [
+    {
+      id: 'id0',
+      values: [
+        { type: '0~9', value: '39.12' },
+        { type: '10~19', value: '43.01' },
+        { type: '20~29', value: '43.91' },
+        { type: '30~39', value: '45.4' },
+        { type: '40~49', value: '40.89' },
+        { type: '50~59', value: '42.48' },
+        { type: '60~69', value: '39.63' },
+        { type: '70~79', value: '25.17' },
+        { type: '80 and over', value: '12.29' }
+      ]
+    }
+  ],
+  valueField: 'value',
+  categoryField: 'type',
+  outerRadius: {
+    field: 'value',
+    scale: 'outer-radius'
+  },
+  innerRadius: {
+    field: 'value',
+    scale: 'inner-radius'
+  },
+  scales: [
+    {
+      id: 'outer-radius',
+      type: 'linear',
+      domain: [10, 50],
+      range: [120, 220]
+    },
+    {
+      id: 'inner-radius',
+      type: 'linear',
+      domain: [10, 50],
+      range: [110, 10]
+    }
+  ],
+  label: {
+    visible: true
+  },
+  color: ['#98abc5', '#8a89a6', '#7b6888', '#6b486b', '#a05d56', '#d0743c', '#ff8c00'],
+  title: {
+    visible: true,
+    text: 'Population Distribution by Age in the United States, 2021 (in millions)',
+    textStyle: {
+      fontFamily: 'Times New Roman'
+    }
+  },
+  legends: {
+    visible: true,
+    orient: 'right'
+  }
+}
+\`\`\`
+
+### 4. RING CHART
+**When to use**: When there are a lot of categories
 **Best for**: Marketing materials, executive dashboards
 
 \`\`\`json
@@ -178,68 +327,127 @@ const getAvailableChartsTool = tool(
 
 ---
 
-## 🔧 DATA MAPPING REQUIREMENTS
+## 🔧 FIELD MAPPING INSTRUCTIONS
 
-### For Pie Charts:
-- **categoryField**: Field containing category labels (text/string)
-- **valueField**: Field containing numeric values (positive numbers preferred)
-- **Data structure**: [{ id: 'id0', values: actualDataArray }]
+### Data Structure Requirements:
+- **categoryField**: Must match the field name containing category labels
+- **valueField**: Must match the field name containing numeric values
+- **Data format**: Always use [{ id: 'id0', values: actualDataArray }]
 
-### Field Selection Criteria:
-- **Dimension (Category)**: 
-  - Low cardinality (2-15 unique values)
-  - Text or categorical data
-  - Meaningful category names
-  - Good for pie slices
+### Example Field Mapping:
+If your data looks like:
+\`\`\`json
+[{ "category": "Images", "total_count": 45 }]
+\`\`\`
 
-- **Measure (Value)**:
-  - Numeric data suitable for aggregation
-  - Positive values preferred
-  - Can be summed meaningfully
-  - Represents quantities/amounts
-
-### Suitability Assessment:
-- ✅ 2-8 categories: Excellent
-- ✅ 9-15 categories: Good (consider grouping)
-- ❌ 16+ categories: Not suitable (too cluttered)
-- ✅ Positive values: Perfect
-- ⚠️ Mixed positive/negative: Possible with absolute values
-- ❌ All negative: Not suitable
+Then use:
+\`\`\`json
+{
+  "categoryField": "category",
+  "valueField": "total_count"
+}
+\`\`\`
 
 ---
 
-## 📏 CHART SELECTION LOGIC
+## 📏 CHART SELECTION GUIDELINES
 
-### Choose PIE CHART when:
-- Showing parts of a whole
-- Categorical data with 2-15 categories
-- User wants to see proportional relationships
-- Data represents distribution or composition
+### Choose BASIC PIE when:
+- 2-8 categories
+- Simple distribution analysis
+- All values are positive
+- Clear category names
 
-### PIE CHART VARIATIONS:
-- **Basic Pie**: Simple distributions, clear categories
-- **Donut/Ring**: Modern look, space for center content
-- **Interactive**: Hover effects, selection states
+### Choose NESTED PIE when:
+- Hierarchical data available
+- Parent-child relationships exist
+- User specifically requests "nested" or "hierarchical"
+- Need to show breakdown within categories
 
-### NOT suitable for PIE when:
-- Too many categories (>15)
-- Negative values dominant
-- Time series data (use line chart)
-- Comparison across multiple series (use bar chart)
+### Choose DONUT when:
+- Modern aesthetic needed
+- Want to emphasize total vs parts
+- Need space in center for additional info
+- 3-6 categories work best
+
+### Choose STYLED PIE when:
+- Professional presentation
+- Brand colors needed
+- Interactive features desired
+- Executive dashboard context
+
+---
+
+## ⚠️ TROUBLESHOOTING COMMON ISSUES
+
+### Issue: Tooltip shows "{field_name}" instead of values
+**Solution**: Use '"tooltip": { "mark": { "visible": true } }' - let VChart handle automatically
+
+### Issue: Chart doesn't render
+**Solution**: Check that categoryField and valueField match your actual data field names
+
+### Issue: Data not showing
+**Solution**: Ensure data is in format [{ id: 'id0', values: [...] }] and values are positive numbers
+
+### Issue: Too many categories
+**Solution**: Limit to top 8-10 categories, group others as "Others"
 
 Remember: Keep it simple, match field names, and let VChart handle the complexity!
+
+---
+
+## 🕰️ Date Field Handling Strategy
+
+### When Dates Become Primary Visualization Elements:
+- User mentions "trend", "over time", "timeline", "monthly", "yearly"
+- Chart types: Line, Area, Time-series Bar
+- Date field becomes X-axis dimension
+
+### When Dates Become Filter Elements:
+- User mentions filtering or date ranges in context
+- Chart shows categorical data but user wants time filtering
+- Date field becomes interactive filter, not main visualization
+
+### When Dates Are Ignored:
+- No temporal intent in user request
+- Chart type doesn't support time (pie, basic bar)
+- Dataset has dates but they're not relevant to the question
+
+---
+
+## 🎯 Selection Decision Matrix
+
+| User Intent Pattern | Chart Type | Date Strategy | Confidence |
+|--------------------|------------|---------------|------------|
+| "distribution", "composition", "share" | pie | ignore dates | 0.9 |
+| "breakdown by [category]" | pie | dates as filter only | 0.8 |
+| "trend", "over time" | line (future) | dates as primary | 0.95 |
+| "compare [categories]" | bar (future) | dates as filter | 0.85 |
+| No clear intent + categorical + numeric | pie | smart date detection | 0.7 |
+
+---
+
+## 🚀 Future Chart Types (Not Yet Implemented)
+- **Bar Chart**: Comparisons, rankings
+- **Line Chart**: Trends, time series
+- **Scatter Plot**: Correlations, relationships  
+- **Area Chart**: Trends with magnitude
+- **Histogram**: Distributions of continuous data
+- **Heat Map**: Patterns in two dimensions
+
+## 📏 Selection Algorithm
+1. Parse user intent for chart type hints
+2. Analyze field types and cardinalities
+3. Detect temporal intent vs categorical intent
+4. Match to available chart types
+5. Plan for future interactivity (filters, drill-downs)
+6. Return best match with confidence score
         `;
-        }
-        
-        // Future expansion for other chart types
-        return `Chart type "${chartType}" not yet available. Currently supported: pie`;
     },
     {
         name: "get_available_charts",
-        description: "Get available chart types, their specifications, data mapping requirements, and suitability guidelines",
-        schema: z.object({
-            chartType: z.string().optional().describe("Specific chart type to get info for (e.g., 'pie'). If not provided, returns all available charts.")
-        })
+        description: "Get comprehensive chart type catalog, selection guidelines, and date handling strategies for current and future chart types",
+        schema: z.object({})
     }
 );
 
@@ -247,13 +455,10 @@ Remember: Keep it simple, match field names, and let VChart handle the complexit
 const llm = new ChatOpenAI({
     model: "gpt-5-mini",
     apiKey: process.env.OPENAI_API_KEY,
-    // Note: temperature parameter not supported with gpt-5 model
 });
 
-// Initialize VMind-inspired services
-const fieldDetectionService = new FieldDetectionService(pool, llm);
+// Initialize error recovery system
 const errorRecoverySystem = new ErrorRecoverySystem(pool, llm, 3);
-// AI Chart Generation now handled by ChartSpecificationAgent with tools
 
 // Database helper functions
 async function getDatasetStructure(datasetId, tableName) {
@@ -323,7 +528,7 @@ async function executeSqlQuery(query, tableName) {
     }
 }
 
-// Enhanced workflow state management with VMind-inspired structure
+// Enhanced workflow state management
 class WorkflowState {
     constructor(data = {}) {
         // Original fields
@@ -338,15 +543,18 @@ class WorkflowState {
         this.currentStep = data.currentStep || 'start';
         this.queryResults = data.queryResults || [];
         
-        // VMind-inspired enhancements
+        // Enhanced fields for future-ready architecture
         this.generationId = data.generationId || null;
-        this.fieldAnalysis = data.fieldAnalysis || null;
-        this.fieldMapping = data.fieldMapping || null;
+        this.dataIntentAnalysis = data.dataIntentAnalysis || null;
         this.chartType = data.chartType || 'pie';
+        this.fieldMapping = data.fieldMapping || null;
         this.confidenceScore = data.confidenceScore || 0.5;
+        this.chartConfiguration = data.chartConfiguration || {};
+        this.futureExtensibility = data.futureExtensibility || {};
         this.dataQuality = data.dataQuality || { score: 0.5, issues: [] };
         this.attemptCount = data.attemptCount || {};
         this.error = data.error || null;
+        this.aiReasoning = data.aiReasoning || '';
         
         // Processing metadata
         this.processingSteps = data.processingSteps || [];
@@ -354,140 +562,115 @@ class WorkflowState {
     }
 }
 
-// AI Agent for Data Mapping and Chart Selection
-class DataMappingAgent {
+// Step 1: Data & Intent Analysis Agent (Future-Ready Architecture)
+class DataIntentAnalysisAgent {
     constructor(llm, pool) {
         this.llm = llm;
         this.pool = pool;
     }
 
-    async analyzeDataAndSelectChart(datasetId, tableName, userIntent, datasetStructure) {
-        console.log('AI Agent analyzing data for mapping and chart selection');
+    async analyzeDataAndIntent(datasetId, tableName, userIntent, datasetStructure) {
+        console.log('Step 1: Analyzing dataset and user intent for visualization');
         
-        // Get comprehensive dataset information
         const dataContext = await this.gatherDataContext(datasetId, tableName, datasetStructure);
         
-        const analysisPrompt = `You are an expert data visualization consultant. Based on the user's intent and the dataset, you need to:
+        const analysisPrompt = `You are a data visualization analyst. Analyze this dataset and user intent to understand what can be visualized and how.
 
-1. **Determine the best chart type** for the user's visualization needs
-2. **Map the data fields** to the chosen chart type
-3. **Provide reasoning** for your decisions
+USER INTENT: "${userIntent}"
 
-CONTEXT:
-- **User Intent**: "${userIntent}"
-- **Dataset**: "${tableName}"
-- **Available Fields**: ${JSON.stringify(dataContext.fields.map(f => ({
+DATASET ANALYSIS:
+- **Table**: "${tableName}"
+- **Fields**: ${JSON.stringify(dataContext.fields.map(f => ({
     name: f.column_name,
     type: f.data_type,
     unique_values: f.unique_count,
     sample_values: f.sample_values?.slice(0, 3) || [],
-    cardinality_ratio: f.cardinality_ratio,
-    null_percentage: f.null_percentage || 0
+    cardinality_ratio: f.cardinality_ratio
 })), null, 2)}
 
-- **Sample Data** (first 3 rows):
-${JSON.stringify(dataContext.sampleData.slice(0, 3), null, 2)}
+- **Sample Data**: ${JSON.stringify(dataContext.sampleData.slice(0, 3), null, 2)}
 
-- **Data Summary**:
-  - Total rows: ${dataContext.rowCount}
-  - Total columns: ${dataContext.columnCount}
-  - Data quality indicators: ${JSON.stringify(dataContext.qualityIndicators)}
+TASK: Categorize all fields for current and future visualization needs:
 
-TASKS:
-1. First, call the get_available_charts tool to understand available chart options
-2. Analyze the user intent to determine what they want to visualize
-3. Evaluate which fields are suitable for visualization
-4. Select the best chart type based on:
-   - Data characteristics (categorical vs numerical, cardinality, etc.)
-   - User intent (distribution, comparison, trend, composition, etc.)
-   - Data quality and completeness
-5. Map the selected fields to chart dimensions (category/dimension fields and value/measure fields)
+1. **Field Classification**:
+   - Categorical: Good for chart dimensions/grouping (low cardinality)
+   - Numeric: Good for chart measures/values (aggregatable)
+   - Date/Time: Temporal fields (for trends, filtering)
+   - Text/ID: Identifiers or descriptive (usually not for viz)
 
-IMPORTANT DECISION CRITERIA:
-- **For composition/parts-of-whole**: Consider pie charts if 2-15 categories
-- **For comparison**: Consider bar charts if implemented
-- **For trends over time**: Consider line charts if implemented  
-- **For distributions**: Consider histograms if implemented
+2. **Intent Analysis**:
+   - What type of visualization is the user asking for?
+   - Are dates relevant to their question?
+   - What fields should be primary vs secondary vs filters?
 
-USER INTENT ANALYSIS:
-- If user mentions "distribution", "composition", "breakdown", "share", "proportion": Favor pie charts
-- If user mentions "compare", "versus", "difference": Favor bar charts
-- If user mentions "trend", "over time", "timeline": Favor line charts
-- If no specific intent: Choose based on data characteristics
+3. **Future Interactivity Planning**:
+   - Which fields could serve as filters?
+   - Are there natural drill-down hierarchies?
+   - Should dates enable time-based filtering?
 
-RETURN FORMAT:
+RETURN JSON ONLY:
 {
-  "selected_chart_type": "pie|bar|line|...",
-  "confidence_score": 0.0-1.0,
-  "reasoning": "detailed explanation of why this chart type and mapping",
-  "field_mapping": {
-    "dimension": "field_name_for_categories",
-    "measure": "field_name_for_values",
-    "additional_fields": {}
+  "field_classification": {
+    "categorical_fields": [
+      {
+        "field_name": "column_name",
+        "cardinality": number,
+        "role": "primary_dimension|secondary_dimension|grouping_option",
+        "interactive_potential": "high|medium|low"
+      }
+    ],
+    "numeric_fields": [
+      {
+        "field_name": "column_name",
+        "role": "primary_measure|secondary_measure|derived_metric",
+        "aggregation_types": ["SUM", "COUNT", "AVG"]
+      }
+    ],
+    "date_fields": [
+      {
+        "field_name": "column_name",
+        "date_type": "date|datetime|timestamp",
+        "role": "primary_timeline|filter_dimension|metadata",
+        "relevance_to_intent": "high|medium|low"
+      }
+    ],
+    "other_fields": [
+      {
+        "field_name": "column_name",
+        "field_type": "text|identifier|metadata",
+        "visualization_utility": "none|tooltip|label"
+      }
+    ]
   },
-  "data_suitability": {
-    "suitable": true/false,
-    "issues": ["list any data quality or suitability concerns"],
-    "recommendations": ["suggestions for data preparation"]
+  "intent_analysis": {
+    "visualization_goal": "distribution|comparison|trend|correlation|composition",
+    "temporal_aspect": "primary|filter|none",
+    "complexity_level": "simple|medium|complex",
+    "interactivity_needs": ["date_filtering", "category_filtering", "drill_down"]
   },
-  "chart_configuration_hints": {
-    "suggested_aggregation": "SUM|COUNT|AVG|etc",
-    "expected_categories": number,
-    "value_range_info": "description",
-    "special_considerations": ["any special handling needed"]
+  "recommended_approach": {
+    "primary_visualization_fields": {
+      "dimensions": ["field_names"],
+      "measures": ["field_names"],
+      "dates": ["field_names"]
+    },
+    "filter_candidates": ["field_names_for_future_filtering"],
+    "data_quality_score": 0.0-1.0
   }
 }`;
 
         try {
-            // Create messages with tool calling capability
-            const messages = [{
-                role: 'user',
-                content: analysisPrompt
-            }];
+            const response = await this.llm.invoke([{ role: 'user', content: analysisPrompt }]);
             
-            // Let the LLM call the tool and generate analysis
-            const response = await this.llm.invoke(messages, {
-                tools: [getAvailableChartsTool]
-            });
-            
-            let analysisContent;
-            
-            // Check if AI made tool calls
-            if (response.tool_calls && response.tool_calls.length > 0) {
-                console.log('AI called chart info tool, making follow-up request for analysis');
-                
-                const followUpPrompt = `Based on the chart information you've accessed, provide your data mapping and chart selection analysis:
-
-User Intent: "${userIntent}"
-Dataset Fields: ${JSON.stringify(dataContext.fields.map(f => f.column_name))}
-Sample Data: ${JSON.stringify(dataContext.sampleData.slice(0, 2))}
-
-Provide your analysis in the exact JSON format specified earlier. Focus on:
-1. Which chart type best matches the user intent and data characteristics
-2. How to map the fields to the chosen chart type
-3. Any data quality considerations
-
-Your JSON response:`;
-
-                const followUpMessages = [{
-                    role: 'user',
-                    content: followUpPrompt
-                }];
-                
-                const followUpResponse = await this.llm.invoke(followUpMessages);
-                analysisContent = followUpResponse.content;
-            } else {
-                analysisContent = response.content;
-            }
-            
+            let analysisContent = response.content;
             if (!analysisContent || typeof analysisContent !== 'string') {
                 throw new Error('LLM returned empty or invalid response');
             }
             
-            console.log('RAW AI ANALYSIS RESPONSE:', analysisContent);
+            console.log('RAW DATA INTENT ANALYSIS:', analysisContent);
             
             // Parse AI analysis
-            let aiAnalysis;
+            let analysis;
             try {
                 let content = analysisContent;
                 if (content.includes('```json')) {
@@ -500,46 +683,28 @@ Your JSON response:`;
                 }
                 
                 const trimmedContent = content.trim();
-                aiAnalysis = JSON.parse(trimmedContent);
-                console.log('PARSED AI ANALYSIS:', JSON.stringify(aiAnalysis, null, 2));
+                analysis = JSON.parse(trimmedContent);
+                console.log('PARSED DATA INTENT ANALYSIS:', JSON.stringify(analysis, null, 2));
             } catch (parseError) {
-                console.error('Failed to parse AI analysis:', parseError.message);
+                console.error('Failed to parse data intent analysis:', parseError.message);
                 console.error('Content that failed:', analysisContent);
-                throw new Error(`AI analysis parsing failed: ${parseError.message}`);
+                throw new Error(`Data intent analysis parsing failed: ${parseError.message}`);
             }
             
-            // Validate the analysis has required fields
-            if (!aiAnalysis.selected_chart_type || !aiAnalysis.field_mapping) {
-                throw new Error('AI analysis missing required fields: selected_chart_type or field_mapping');
-            }
-            
-            // Enhance with data context
             const result = {
-                chartType: aiAnalysis.selected_chart_type,
-                confidence: aiAnalysis.confidence_score || 0.8,
-                reasoning: aiAnalysis.reasoning,
-                fieldMapping: {
-                    dimension: aiAnalysis.field_mapping.dimension,
-                    measure: aiAnalysis.field_mapping.measure,
-                    additionalFields: aiAnalysis.field_mapping.additional_fields || {}
-                },
-                dataSuitability: aiAnalysis.data_suitability || {
-                    suitable: true,
-                    issues: [],
-                    recommendations: []
-                },
-                chartConfiguration: aiAnalysis.chart_configuration_hints || {},
+                fieldClassification: analysis.field_classification,
+                intentAnalysis: analysis.intent_analysis,
+                recommendedApproach: analysis.recommended_approach,
                 dataContext: dataContext
             };
             
-            console.log(`AI Agent selected chart type: ${result.chartType} with confidence: ${result.confidence}`);
-            console.log(`Field mapping - Dimension: ${result.fieldMapping.dimension}, Measure: ${result.fieldMapping.measure}`);
+            console.log(`Data intent analysis completed. Goal: ${result.intentAnalysis.visualization_goal}, Temporal: ${result.intentAnalysis.temporal_aspect}`);
             
             return result;
             
         } catch (error) {
-            console.error('AI Agent analysis failed:', error.message);
-            throw new Error(`Data mapping and chart selection failed: ${error.message}`);
+            console.error('Data and intent analysis failed:', error.message);
+            throw new Error(`Data and intent analysis failed: ${error.message}`);
         }
     }
 
@@ -580,20 +745,11 @@ Your JSON response:`;
                 sampleData = sampleResult.rows;
             }
             
-            // Basic data quality indicators
-            const qualityIndicators = {
-                hasNulls: fieldsResult.rows.some(f => f.contains_nulls_pct > 0),
-                highCardinalityFields: fieldsResult.rows.filter(f => f.cardinality_ratio > 0.8).length,
-                numericFields: fieldsResult.rows.filter(f => f.semantic_type === 'numerical').length,
-                textFields: fieldsResult.rows.filter(f => f.semantic_type === 'text').length
-            };
-            
             return {
                 fields: fieldsResult.rows,
                 sampleData: sampleData,
                 rowCount: datasetStructure.rowCount || 0,
-                columnCount: datasetStructure.columnCount || fieldsResult.rows.length,
-                qualityIndicators: qualityIndicators
+                columnCount: datasetStructure.columnCount || fieldsResult.rows.length
             };
             
         } finally {
@@ -602,109 +758,243 @@ Your JSON response:`;
     }
 }
 
-// Updated Step 1: LLM-driven Data Mapping and Chart Selection
-async function dataMappingAndChartSelectionNode(state) {
-    console.log(`Starting AI-driven data mapping and chart selection for dataset ${state.datasetId}`);
+// Step 2: Chart Type & Field Mapping Agent
+class ChartTypeSelectionAgent {
+    constructor(llm) {
+        this.llm = llm;
+    }
+
+    async selectChartAndMapFields(userIntent, dataIntentAnalysis) {
+        console.log('Step 2: Selecting chart type and mapping fields');
+        
+        const selectionPrompt = `You are a chart selection specialist. Based on the data analysis and user intent, select the best chart type and map fields.
+
+USER INTENT: "${userIntent}"
+
+DATA ANALYSIS RESULTS:
+- **Visualization Goal**: ${dataIntentAnalysis.intentAnalysis.visualization_goal}
+- **Temporal Aspect**: ${dataIntentAnalysis.intentAnalysis.temporal_aspect}
+- **Complexity**: ${dataIntentAnalysis.intentAnalysis.complexity_level}
+
+**Available Fields**:
+- Categorical: ${JSON.stringify(dataIntentAnalysis.fieldClassification.categorical_fields?.map(f => f.field_name) || [])}
+- Numeric: ${JSON.stringify(dataIntentAnalysis.fieldClassification.numeric_fields?.map(f => f.field_name) || [])}
+- Dates: ${JSON.stringify(dataIntentAnalysis.fieldClassification.date_fields?.map(f => f.field_name) || [])}
+
+**Recommended Primary Fields**: ${JSON.stringify(dataIntentAnalysis.recommendedApproach.primary_visualization_fields)}
+
+TASKS:
+1. First call get_available_charts tool to see current options
+2. Match user intent + data characteristics to best chart type
+3. Map specific fields to chart roles
+4. Plan for future interactive features
+
+RETURN JSON ONLY:
+{
+  "selected_chart_type": "pie",
+  "confidence_score": 0.0-1.0,
+  "reasoning": "explanation of selection",
+  "field_mapping": {
+    "primary_dimension": "field_name",
+    "primary_measure": "field_name",
+    "secondary_fields": {},
+    "filter_fields": ["field_names_for_future_filtering"],
+    "date_fields": ["field_names_if_relevant"]
+  },
+  "chart_configuration": {
+    "variation": "basic|donut|nested",
+    "aggregation_method": "SUM|COUNT|AVG",
+    "interactive_features": ["planned_interactions"],
+    "date_handling": "primary|filter|ignore"
+  },
+  "future_extensibility": {
+    "additional_chart_types_possible": ["chart_types"],
+    "drill_down_potential": "high|medium|low",
+    "filter_expansion_options": ["field_names"]
+  }
+}`;
+
+        try {
+            const messages = [{ role: 'user', content: selectionPrompt }];
+            const response = await this.llm.invoke(messages, { tools: [getAvailableChartsTool] });
+            
+            let selectionContent;
+            
+            if (response.tool_calls && response.tool_calls.length > 0) {
+                console.log('AI accessed chart catalog, making selection');
+                
+                const followUpPrompt = `Based on the chart catalog, make your selection for:
+
+Intent: "${userIntent}"
+Visualization Goal: ${dataIntentAnalysis.intentAnalysis.visualization_goal}
+Best Fields: Categorical=${dataIntentAnalysis.recommendedApproach.primary_visualization_fields.dimensions?.[0]}, Numeric=${dataIntentAnalysis.recommendedApproach.primary_visualization_fields.measures?.[0]}
+
+Provide your chart selection in exact JSON format:`;
+
+                const followUpResponse = await this.llm.invoke([{ role: 'user', content: followUpPrompt }]);
+                selectionContent = followUpResponse.content;
+            } else {
+                selectionContent = response.content;
+            }
+            
+            console.log('RAW CHART SELECTION:', selectionContent);
+            
+            // Parse selection
+            let chartSelection;
+            try {
+                let content = selectionContent;
+                if (content.includes('```json')) {
+                    content = content.split('```json')[1].split('```')[0];
+                } else if (content.includes('```')) {
+                    const codeBlocks = content.split('```');
+                    if (codeBlocks.length >= 2) {
+                        content = codeBlocks[1];
+                    }
+                }
+                
+                const trimmedContent = content.trim();
+                chartSelection = JSON.parse(trimmedContent);
+                console.log('PARSED CHART SELECTION:', JSON.stringify(chartSelection, null, 2));
+            } catch (parseError) {
+                console.error('Failed to parse chart selection:', parseError.message);
+                throw new Error(`Chart selection parsing failed: ${parseError.message}`);
+            }
+            
+            console.log(`Selected: ${chartSelection.selected_chart_type} (confidence: ${chartSelection.confidence_score})`);
+            
+            return chartSelection;
+            
+        } catch (error) {
+            console.error('Chart selection failed:', error.message);
+            throw new Error(`Chart selection failed: ${error.message}`);
+        }
+    }
+}
+
+// Step 1: Data & Intent Analysis Node
+async function dataIntentAnalysisNode(state) {
+    console.log(`Step 1: Analyzing data and intent for dataset ${state.datasetId}`);
     
     const stepFunction = async (state) => {
         // Get dataset structure for context
         const datasetStructure = await getDatasetStructure(state.datasetId, state.tableName);
         state.datasetStructure = datasetStructure;
         
-        // Create AI agent for data mapping and chart selection
-        const dataMappingAgent = new DataMappingAgent(llm, pool);
+        // Create and run data intent analysis agent
+        const dataIntentAgent = new DataIntentAnalysisAgent(llm, pool);
         
-        // Let AI analyze data and select chart type
-        const analysisResult = await dataMappingAgent.analyzeDataAndSelectChart(
+        const analysisResult = await dataIntentAgent.analyzeDataAndIntent(
             state.datasetId,
-            state.tableName, 
+            state.tableName,
             state.userIntent,
             datasetStructure
         );
         
-        // Update state with AI analysis results
-        state.chartType = analysisResult.chartType;
-        state.fieldMapping = analysisResult.fieldMapping;
-        state.confidenceScore = analysisResult.confidence;
-        state.aiReasoning = analysisResult.reasoning;
-        state.dataSuitability = analysisResult.dataSuitability;
-        state.chartConfiguration = analysisResult.chartConfiguration;
-        state.dataQuality = {
-            score: analysisResult.dataSuitability.suitable ? 0.8 : 0.5,
-            issues: analysisResult.dataSuitability.issues || []
-        };
+        // Store analysis results in state
+        state.dataIntentAnalysis = analysisResult;
         
-        // Log analysis results
-        console.log(`AI selected chart type: ${state.chartType}`);
-        console.log(`Field mapping - Dimension: ${state.fieldMapping.dimension}, Measure: ${state.fieldMapping.measure}`);
-        console.log(`Confidence score: ${state.confidenceScore}`);
-        console.log(`Data suitable: ${state.dataSuitability.suitable}`);
-        if (!state.dataSuitability.suitable) {
-            console.warn('AI identified data suitability issues:', state.dataSuitability.issues);
-        }
+        state.currentStep = 'chart_selection';
+        state.processingSteps.push('data_intent_analysis_completed');
         
-        state.currentStep = 'sql_generation';
-        state.processingSteps.push('ai_data_mapping_completed');
+        console.log(`Data intent analysis completed. Visualization goal: ${analysisResult.intentAnalysis?.visualization_goal}`);
         
         return state;
     };
     
     return errorRecoverySystem.executeWithRecovery(
-        'ai_data_mapping', 
-        stepFunction, 
+        'data_intent_analysis',
+        stepFunction,
         state,
-        { 
-            service: 'ai_data_mapping_agent', 
-            dataset: state.datasetId,
-            userIntent: state.userIntent
-        }
+        { service: 'data_intent_analysis', dataset: state.datasetId }
     );
 }
 
-// VMind-inspired Step 2: SQL Generation with Enhanced Error Handling
+// Step 2: Chart Selection & Field Mapping Node
+async function chartSelectionNode(state) {
+    console.log('Step 2: Selecting chart type and mapping fields');
+    
+    const stepFunction = async (state) => {
+        if (!state.dataIntentAnalysis) {
+            throw new Error('Missing data intent analysis from previous step');
+        }
+        
+        // Create and run chart selection agent
+        const chartSelectionAgent = new ChartTypeSelectionAgent(llm);
+        
+        const selectionResult = await chartSelectionAgent.selectChartAndMapFields(
+            state.userIntent,
+            state.dataIntentAnalysis
+        );
+        
+        // Update state with selection results
+        state.chartType = selectionResult.selected_chart_type;
+        state.fieldMapping = {
+            dimension: selectionResult.field_mapping.primary_dimension,
+            measure: selectionResult.field_mapping.primary_measure,
+            additionalFields: selectionResult.field_mapping.secondary_fields || {},
+            filterFields: selectionResult.field_mapping.filter_fields || [],
+            dateFields: selectionResult.field_mapping.date_fields || []
+        };
+        state.confidenceScore = selectionResult.confidence_score;
+        state.aiReasoning = selectionResult.reasoning;
+        state.chartConfiguration = selectionResult.chart_configuration;
+        state.futureExtensibility = selectionResult.future_extensibility;
+        
+        state.currentStep = 'sql_generation';
+        state.processingSteps.push('chart_selection_completed');
+        
+        console.log(`Chart selection completed: ${state.chartType} with fields ${state.fieldMapping.dimension} -> ${state.fieldMapping.measure}`);
+        
+        return state;
+    };
+    
+    return errorRecoverySystem.executeWithRecovery(
+        'chart_selection',
+        stepFunction,
+        state,
+        { service: 'chart_selection', userIntent: state.userIntent }
+    );
+}
+
+// Step 3: SQL Generation (Enhanced for future filtering)
 async function sqlGenerationNode(state) {
-    console.log('Starting SQL generation');
+    console.log('Step 3: Generating SQL query for chart data');
     
     const stepFunction = async (state) => {
         if (!state.fieldMapping || !state.fieldMapping.dimension || !state.fieldMapping.measure) {
-            throw new Error('Missing field mapping from field detection step');
+            throw new Error('Missing field mapping from chart selection step');
         }
         
         const sqlPrompt = `
-        Generate a PostgreSQL query for pie chart data based on field analysis.
+        Generate a PostgreSQL query for chart data based on field mapping results.
         
         User Intent: "${state.userIntent}"
         Table: public."${state.tableName}" (use this EXACT format - include schema and quotes)
+        Chart Type: ${state.chartType}
         
-        Field Analysis:
-        - Recommended Dimension (categories): ${state.fieldMapping.dimension}
-        - Recommended Measure (values): ${state.fieldMapping.measure}
-        - Data Quality Score: ${state.dataQuality.score}
-        - Field Analysis Confidence: ${state.confidenceScore}
-        
-        Available Fields: ${JSON.stringify(state.fieldAnalysis.fields.map(f => ({
-            name: f.column_name,
-            role: f.field_role,
-            type: f.semantic_type,
-            unique_count: f.unique_count
-        })), null, 2)}
+        Field Mapping:
+        - Primary Dimension: ${state.fieldMapping.dimension}
+        - Primary Measure: ${state.fieldMapping.measure}
+        - Filter Fields (for future use): ${JSON.stringify(state.fieldMapping.filterFields)}
+        - Date Fields (for future filtering): ${JSON.stringify(state.fieldMapping.dateFields)}
         
         Generate a SQL query that:
         1. Uses the table name EXACTLY as: public."${state.tableName}" (with schema and quotes)
         2. Groups by the dimension field (${state.fieldMapping.dimension})
-        3. Aggregates the measure field (${state.fieldMapping.measure}) using SUM
-        4. Filters out NULL values 
-        5. Orders by aggregated value DESC for better pie chart readability
-        6. Limits to reasonable number of categories (15 max)
-        7. Handles any data quality issues: ${state.dataQuality.issues.join(', ')}
+        3. Aggregates the measure field (${state.fieldMapping.measure}) using ${state.chartConfiguration.aggregation_method || 'SUM'}
+        4. Includes date fields for future filtering capability (even if not used in grouping)
+        5. Filters out NULL values 
+        6. Orders by aggregated value DESC for better chart readability
+        7. Limits to reasonable number of categories (15 max for pie charts)
         
-        CRITICAL: Always use public."${state.tableName}" for the table name - never use quotes around the entire name like ""table""
+        CRITICAL: Always use public."${state.tableName}" for the table name
         
         Return JSON:
         {
             "sql_query": "SELECT ...",
             "expected_result_format": "description of expected output columns",
-            "data_validation_checks": ["list of validations to apply"]
+            "includes_filter_fields": true/false,
+            "future_filter_potential": ["list of fields that could be filtered"]
         }
         `;
         
@@ -729,7 +1019,7 @@ async function sqlGenerationNode(state) {
         }
         
         if (queryResults.length > 20) {
-            console.warn(`Query returned ${queryResults.length} rows, might create cluttered pie chart`);
+            console.warn(`Query returned ${queryResults.length} rows, might create cluttered ${state.chartType} chart`);
         }
         
         state.sqlQuery = sqlResult.sql_query;
@@ -749,40 +1039,50 @@ async function sqlGenerationNode(state) {
         state,
         { 
             fieldMapping: state.fieldMapping,
-            tableName: state.tableName
+            tableName: state.tableName,
+            chartType: state.chartType
         }
     );
 }
 
-// AI Agent for Chart Specification Generation
+// Step 4: Chart Specification Generation (Enhanced for interactivity)
 class ChartSpecificationAgent {
     constructor(llm) {
         this.llm = llm;
     }
 
-    async generatePieChartSpec(data, userIntent, fieldMapping, dataCharacteristics) {
-        console.log('AI Agent generating pie chart specification');
+    async generateChartSpec(data, chartType, userIntent, fieldMapping, chartConfiguration) {
+        console.log(`Generating ${chartType} chart specification`);
         
-        // Prepare data summary for the agent
+        // For now, focus on pie charts, but structure for extensibility
+        if (chartType === 'pie') {
+            return await this.generatePieChartSpec(data, userIntent, fieldMapping, chartConfiguration);
+        }
+        
+        throw new Error(`Chart type "${chartType}" not yet implemented`);
+    }
+
+    async generatePieChartSpec(data, userIntent, fieldMapping, chartConfiguration) {
+        console.log('Generating VChart pie chart specification');
+        
         const dataSummary = {
             sampleData: data.slice(0, 3),
             totalRecords: data.length,
             fieldNames: {
                 category: Object.keys(data[0])[0],
                 value: Object.keys(data[0])[1]
-            },
-            dataCharacteristics
+            }
         };
         
         const agentPrompt = `You are a VChart specification expert. Your task is to generate a complete, valid VChart pie chart specification based on user intent and data.
 
 CONTEXT:
 - User Intent: "${userIntent}"
+- Chart Configuration: ${JSON.stringify(chartConfiguration)}
 - Data Sample: ${JSON.stringify(dataSummary.sampleData)}
 - Total Records: ${dataSummary.totalRecords}
 - Field Names: Category="${dataSummary.fieldNames.category}", Value="${dataSummary.fieldNames.value}"
 - Field Mapping: Dimension="${fieldMapping.dimension}", Measure="${fieldMapping.measure}"
-- Data Quality: ${dataCharacteristics.dataQuality?.score || 'N/A'}
 
 CRITICAL OUTPUT FORMAT REQUIREMENTS:
 - You MUST respond with ONLY a valid JSON object
@@ -792,7 +1092,7 @@ CRITICAL OUTPUT FORMAT REQUIREMENTS:
 - Ensure the JSON is complete and properly closed
 
 INSTRUCTIONS:
-1. First, call the get_pie_chart_examples tool to get VChart examples and guidelines
+1. First, call the get_available_charts tool to get VChart examples and guidelines
 2. Analyze the user intent to determine the best pie chart variation
 3. Generate a complete VChart specification that matches the data structure
 4. Ensure field names match the actual data (categoryField: "${dataSummary.fieldNames.category}", valueField: "${dataSummary.fieldNames.value}")
@@ -814,135 +1114,57 @@ RESPONSE FORMAT EXAMPLE:
 {"type":"pie","data":[{"id":"id0","values":[]}],"categoryField":"${dataSummary.fieldNames.category}","valueField":"${dataSummary.fieldNames.value}","title":{"visible":true,"text":"Your Title"},"tooltip":{"mark":{"visible":true}}}`;
 
         try {
-            // Create messages with tool calling capability
-            const messages = [
-                {
-                    role: 'user',
-                    content: agentPrompt
-                }
-            ];
-            
-            // Let the LLM call the tool and generate the spec
-            const response = await this.llm.invoke(messages, {
+            const response = await this.llm.invoke([{ role: 'user', content: agentPrompt }], {
                 tools: [getAvailableChartsTool]
             });
             
             let specContent;
             
-            // Check if the AI made tool calls (this is expected behavior)
             if (response.tool_calls && response.tool_calls.length > 0) {
-                console.log('AI called tools, making follow-up request for chart specification');
+                console.log('AI accessed chart guidelines, generating spec');
                 
-                // Make a follow-up call without tools to get the actual chart spec
-                const followUpPrompt = `Based on the VChart examples you've accessed, generate the pie chart specification for this data:
+                const followUpPrompt = `Based on the VChart guidelines you've accessed, generate the pie chart specification for this data:
 
 Data Sample: ${JSON.stringify(dataSummary.sampleData)}
 Field Names: Category="${dataSummary.fieldNames.category}", Value="${dataSummary.fieldNames.value}"
 User Intent: "${userIntent}"
+Style: ${chartConfiguration.variation || 'basic'}
 
 CRITICAL: Respond with ONLY the JSON specification - no explanations, no markdown, no code blocks.
 Start with { and end with }
 
 Generate the VChart pie chart specification now:`;
 
-                const followUpMessages = [
-                    {
-                        role: 'user',
-                        content: followUpPrompt
-                    }
-                ];
-                
-                const followUpResponse = await this.llm.invoke(followUpMessages);
+                const followUpResponse = await this.llm.invoke([{ role: 'user', content: followUpPrompt }]);
                 specContent = followUpResponse.content;
-                console.log('FULL FOLLOW-UP RESPONSE:', JSON.stringify(followUpResponse, null, 2));
-                console.log('FULL FOLLOW-UP CONTENT:', specContent);
             } else {
                 specContent = response.content;
             }
             
-            // Validate response content exists
             if (!specContent || typeof specContent !== 'string') {
-                console.error('Empty or invalid LLM response:', response);
                 throw new Error('LLM returned empty or invalid response');
             }
             
-            console.log('FULL SPEC CONTENT BEFORE PARSING:', specContent);
+            console.log('RAW CHART SPEC:', specContent);
             
-            // Clean up response if it has markdown
-            if (specContent.includes('```json')) {
-                specContent = specContent.split('```json')[1].split('```')[0];
-            } else if (specContent.includes('```')) {
-                specContent = specContent.split('```')[1].split('```')[0];
-            }
-            
-            const trimmedContent = specContent.trim();
-            if (!trimmedContent) {
-                throw new Error('LLM response is empty after cleaning');
-            }
-            
-            // Parse and validate the specification with retry mechanism
+            // Parse specification
             let chartSpec;
-            let parseAttempts = 0;
-            const maxParseAttempts = 3;
-            
-            while (parseAttempts < maxParseAttempts) {
-                try {
-                    chartSpec = JSON.parse(trimmedContent);
-                    console.log(`JSON parsing successful on attempt ${parseAttempts + 1}`);
-                    break;
-                } catch (parseError) {
-                    parseAttempts++;
-                    console.error(`JSON parsing failed on attempt ${parseAttempts}:`, parseError.message);
-                    console.error('Content that failed to parse:', trimmedContent);
-                    
-                    if (parseAttempts < maxParseAttempts) {
-                        console.log(`Retrying AI request (attempt ${parseAttempts + 1}/${maxParseAttempts})`);
-                        
-                        // Create a more specific retry prompt
-                        const retryPrompt = `The previous response was not valid JSON. Here's what went wrong:
-ERROR: ${parseError.message}
-PREVIOUS RESPONSE: ${trimmedContent}
-
-Please provide ONLY a valid JSON object for a VChart pie chart specification. 
-Remember:
-- Start with { and end with }
-- No explanations, no markdown, no code blocks
-- Use field names: categoryField: "${dataSummary.fieldNames.category}", valueField: "${dataSummary.fieldNames.value}"
-- Valid JSON only!
-
-Generate the corrected VChart specification:`;
-
-                        const retryMessages = [
-                            {
-                                role: 'user',
-                                content: retryPrompt
-                            }
-                        ];
-                        
-                        const retryResponse = await this.llm.invoke(retryMessages);
-                        specContent = retryResponse.content;
-                        console.log(`FULL RETRY ${parseAttempts} RESPONSE:`, JSON.stringify(retryResponse, null, 2));
-                        console.log(`FULL RETRY ${parseAttempts} CONTENT:`, specContent);
-                        
-                        if (!specContent || typeof specContent !== 'string') {
-                            throw new Error(`Retry attempt ${parseAttempts} returned empty response`);
-                        }
-                        
-                        // Clean up response again
-                        if (specContent.includes('```json')) {
-                            specContent = specContent.split('```json')[1].split('```')[0];
-                        } else if (specContent.includes('```')) {
-                            specContent = specContent.split('```')[1].split('```')[0];
-                        }
-                        
-                        trimmedContent = specContent.trim();
-                        if (!trimmedContent) {
-                            throw new Error(`Retry attempt ${parseAttempts} returned empty content after cleaning`);
-                        }
-                    } else {
-                        throw new Error(`Failed to get valid JSON after ${maxParseAttempts} attempts. Last error: ${parseError.message}`);
+            try {
+                let content = specContent;
+                if (content.includes('```json')) {
+                    content = content.split('```json')[1].split('```')[0];
+                } else if (content.includes('```')) {
+                    const codeBlocks = content.split('```');
+                    if (codeBlocks.length >= 2) {
+                        content = codeBlocks[1];
                     }
                 }
+                
+                const trimmedContent = content.trim();
+                chartSpec = JSON.parse(trimmedContent);
+            } catch (parseError) {
+                console.error('Failed to parse chart specification:', parseError.message);
+                throw new Error(`Chart specification parsing failed: ${parseError.message}`);
             }
             
             // Ensure data is properly set
@@ -953,59 +1175,42 @@ Generate the corrected VChart specification:`;
             }
             
             // Ensure field mapping is correct
-            if (chartSpec.categoryField !== dataSummary.fieldNames.category) {
-                chartSpec.categoryField = dataSummary.fieldNames.category;
-            }
-            if (chartSpec.valueField !== dataSummary.fieldNames.value) {
-                chartSpec.valueField = dataSummary.fieldNames.value;
-            }
+            chartSpec.categoryField = dataSummary.fieldNames.category;
+            chartSpec.valueField = dataSummary.fieldNames.value;
             
-            // For nested charts, also update series field mappings
-            if (chartSpec.series && Array.isArray(chartSpec.series)) {
-                chartSpec.series.forEach(series => {
-                    if (series.type === 'pie') {
-                        series.categoryField = dataSummary.fieldNames.category;
-                        series.valueField = dataSummary.fieldNames.value;
-                    }
-                });
-            }
-            
-            console.log('AI Agent successfully generated pie chart specification');
-            console.log(`Chart type: ${chartSpec.type}, Data points: ${data.length}`);
+            console.log(`Chart specification generated successfully for ${data.length} data points`);
             
             return {
                 chartSpec,
                 confidence: 0.9,
-                reasoning: 'AI agent generated specification using VChart examples and user intent analysis'
+                reasoning: 'Generated using VChart guidelines and user intent analysis'
             };
             
         } catch (error) {
-            console.error('AI Agent failed to generate specification:', error.message);
+            console.error('Chart specification generation failed:', error.message);
             throw new Error(`Chart specification generation failed: ${error.message}`);
         }
     }
 }
 
-// VMind-inspired Step 3: AI Agent-Driven Chart Specification Generation
 async function chartGenerationNode(state) {
-    console.log('Starting AI Agent-driven chart specification generation');
+    console.log('Step 4: Generating chart specification');
     
     const stepFunction = async (state) => {
         if (!state.queryResults || state.queryResults.length === 0) {
             throw new Error('No query results available for chart generation');
         }
         
-        // Standardize data format - keep original field names
+        // Standardize data format
         const keys = Object.keys(state.queryResults[0]);
-        const categoryFieldName = keys.find(key => !['id', 'created_at'].includes(key.toLowerCase()) && 
-                                           (key.toLowerCase().includes('category') || 
-                                            key.toLowerCase().includes('type') ||
-                                            key === state.fieldMapping.dimension)) || keys[0];
-        const valueFieldName = keys.find(key => !['id', 'created_at'].includes(key.toLowerCase()) && 
-                                        (key.toLowerCase().includes('value') || 
-                                         key.toLowerCase().includes('count') ||
-                                         key.toLowerCase().includes('amount') ||
-                                         key === state.fieldMapping.measure)) || keys[1];
+        const categoryFieldName = keys.find(key => 
+            !['id', 'created_at'].includes(key.toLowerCase()) && 
+            key === state.fieldMapping.dimension
+        ) || keys[0];
+        const valueFieldName = keys.find(key => 
+            !['id', 'created_at'].includes(key.toLowerCase()) && 
+            key === state.fieldMapping.measure
+        ) || keys[1];
         
         const standardizedData = state.queryResults.map(row => {
             const result = {};
@@ -1015,69 +1220,48 @@ async function chartGenerationNode(state) {
         });
         
         console.log(`Data mapping: ${categoryFieldName} -> ${valueFieldName}`);
-        console.log('Sample data:', standardizedData.slice(0, 2));
         
-        // Create the AI Agent and generate chart specification
+        // Create chart specification agent
         const chartAgent = new ChartSpecificationAgent(llm);
         
-        const result = await chartAgent.generatePieChartSpec(
+        const result = await chartAgent.generateChartSpec(
             standardizedData,
+            state.chartType,
             state.userIntent,
-            {
-                ...state.fieldMapping,
-                categoryFieldName,
-                valueFieldName
-            },
-            {
-                categoryCount: standardizedData.length,
-                hasTimeData: false,
-                complexity: standardizedData.length <= 5 ? 'simple' : 
-                           standardizedData.length <= 10 ? 'medium' : 'complex',
-                dataQuality: state.dataQuality
-            }
+            state.fieldMapping,
+            state.chartConfiguration
         );
         
         state.chartSpec = result.chartSpec;
-        state.chartType = 'pie';
         state.currentStep = 'complete';
-        state.processingSteps.push('ai_agent_chart_generation_completed');
+        state.processingSteps.push('chart_generation_completed');
         
-        // Store AI agent metadata
-        state.confidenceScore = result.confidence;
-        state.aiReasoning = result.reasoning;
-        
-        console.log(`AI Agent chart generation completed. Confidence: ${state.confidenceScore}`);
-        console.log(`AI reasoning: ${state.aiReasoning}`);
+        console.log('Chart generation completed successfully');
         
         return state;
     };
     
     return errorRecoverySystem.executeWithRecovery(
-        'ai_agent_chart_generation',
+        'chart_generation',
         stepFunction,
         state,
         {
             dataLength: state.queryResults?.length,
-            fieldMapping: state.fieldMapping,
-            userIntent: state.userIntent
+            chartType: state.chartType
         }
     );
 }
 
-// VMind-inspired helper: Initialize generation record
+// Helper functions
 async function initializeGeneration(state) {
-    // Skip generation tracking for now since we don't have proper user authentication
-    // TODO: Implement proper user ID extraction from request
-    console.log('Skipping generation tracking - no user authentication implemented');
-    state.generationId = uuidv4(); // Generate proper UUID format
+    console.log('Initializing chart generation workflow');
+    state.generationId = uuidv4();
     return state;
 }
 
-// VMind-inspired helper: Finalize generation record
 async function finalizeGeneration(state) {
     if (!state.generationId) return state;
     
-    // Skip database tracking for now
     const executionTime = Date.now() - state.startTime;
     console.log(`Generation completed: ${state.generationId}, execution time: ${executionTime}ms`);
     console.log(`Chart type: ${state.chartType}, successful: ${state.currentStep === 'complete'}`);
@@ -1085,11 +1269,11 @@ async function finalizeGeneration(state) {
     return state;
 }
 
-// Create the enhanced VMind-inspired workflow
+// Create the enhanced workflow
 function createWorkflow() {
     const workflow = new StateGraph({
         channels: {
-            // Original channels
+            // Core workflow fields
             messages: { reducer: (a, b) => a.concat(b), default: () => [] },
             userIntent: { default: () => '' },
             datasetId: { default: () => '' },
@@ -1101,30 +1285,35 @@ function createWorkflow() {
             currentStep: { default: () => 'start' },
             queryResults: { default: () => [] },
             
-            // VMind-inspired enhancements
+            // Enhanced fields for future-ready architecture
             generationId: { default: () => null },
-            fieldAnalysis: { default: () => null },
-            fieldMapping: { default: () => null },
+            dataIntentAnalysis: { default: () => null },
             chartType: { default: () => 'pie' },
+            fieldMapping: { default: () => null },
             confidenceScore: { default: () => 0.5 },
+            chartConfiguration: { default: () => ({}) },
+            futureExtensibility: { default: () => ({}) },
             dataQuality: { default: () => ({ score: 0.5, issues: [] }) },
             attemptCount: { default: () => ({}) },
             error: { default: () => null },
+            aiReasoning: { default: () => '' },
             processingSteps: { default: () => [] },
             startTime: { default: () => Date.now() }
         }
     });
     
-    // Add enhanced AI-driven nodes
+    // Add workflow nodes
     workflow.addNode('initialize_generation', initializeGeneration);
-    workflow.addNode('data_mapping_and_chart_selection', dataMappingAndChartSelectionNode);
-    workflow.addNode('sql_generation', sqlGenerationNode); 
+    workflow.addNode('data_intent_analysis', dataIntentAnalysisNode);
+    workflow.addNode('chart_selection', chartSelectionNode);
+    workflow.addNode('sql_generation', sqlGenerationNode);
     workflow.addNode('chart_generation', chartGenerationNode);
     workflow.addNode('finalize_generation', finalizeGeneration);
     
     // Add edges for sequential processing
-    workflow.addEdge('initialize_generation', 'data_mapping_and_chart_selection');
-    workflow.addEdge('data_mapping_and_chart_selection', 'sql_generation');
+    workflow.addEdge('initialize_generation', 'data_intent_analysis');
+    workflow.addEdge('data_intent_analysis', 'chart_selection');
+    workflow.addEdge('chart_selection', 'sql_generation');
     workflow.addEdge('sql_generation', 'chart_generation');
     workflow.addEdge('chart_generation', 'finalize_generation');
     workflow.addEdge('finalize_generation', END);
@@ -1164,7 +1353,7 @@ exports.handler = async (event) => {
             };
         }
         
-        console.log(`Starting workflow for dataset ${dataset_id} with intent: ${user_intent}`);
+        console.log(`Starting enhanced workflow for dataset ${dataset_id} with intent: ${user_intent}`);
         
         // Initialize state
         const initialState = new WorkflowState({
@@ -1192,35 +1381,35 @@ exports.handler = async (event) => {
                 chart_spec: finalState.chartSpec,
                 query_results: finalState.queryResults,
                 
-                // VMind-inspired enhancements
+                // Enhanced response with future-ready information
                 generation_id: finalState.generationId,
                 chart_type: finalState.chartType,
                 field_analysis: {
-                    recommended_dimension: finalState.fieldMapping?.dimension,
-                    recommended_measure: finalState.fieldMapping?.measure,
-                    confidence_score: finalState.confidenceScore,
-                    data_quality_score: finalState.dataQuality?.score
+                    primary_dimension: finalState.fieldMapping?.dimension,
+                    primary_measure: finalState.fieldMapping?.measure,
+                    filter_fields: finalState.fieldMapping?.filterFields || [],
+                    date_fields: finalState.fieldMapping?.dateFields || [],
+                    confidence_score: finalState.confidenceScore
                 },
                 processing_metadata: {
                     steps_completed: finalState.processingSteps,
                     execution_time_ms: Date.now() - finalState.startTime,
-                    attempt_counts: finalState.attemptCount,
-                    generation_strategy: 'ai_agent_with_tools',
                     workflow_complete: finalState.currentStep === 'complete',
                     ai_reasoning: finalState.aiReasoning,
-                    agent_approach: 'tool_assisted_generation'
+                    chart_configuration: finalState.chartConfiguration,
+                    future_extensibility: finalState.futureExtensibility
                 },
                 data_quality: finalState.dataQuality
             })
         };
         
     } catch (error) {
-        console.error('Error in workflow:', error);
+        console.error('Error in enhanced workflow:', error);
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
-                error: 'Workflow execution failed',
+                error: 'Enhanced workflow execution failed',
                 details: error.message
             })
         };
