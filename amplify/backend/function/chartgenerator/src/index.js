@@ -354,7 +354,7 @@ const workflow = new StateGraph(MessagesAnnotation)
   .addNode("tools", toolsNode)
   .addEdge("tools", "agent")
   .addConditionalEdges("agent", shouldContinue)
-  .addEntryPoint("agent");
+  .setEntryPoint("agent");
 
 const app = workflow.compile();
 
@@ -424,7 +424,7 @@ function makeExecuteSqlToolForTable(allowedTableNameFQ) {
       sql: z.string().min(1),
       max_rows: z.number().int().positive().default(1000)
     }),
-    func: async ({ sql, max_rows }) => {
+    func: async ({ sql, max_rows = 1000 }) => {
       const s = sql.trim();
 
       // Basic safety checks
@@ -489,7 +489,7 @@ function buildAggregationGraph({ table_name, selection }) {
     .addNode("tools", toolsNode)
     .addEdge("tools", "agent")
     .addConditionalEdges("agent", shouldContinue)
-    .addEntryPoint("agent");
+    .setEntryPoint("agent");
 
   return graph.compile();
 }
@@ -574,7 +574,7 @@ function buildSpecGraph() {
     .addNode("tools", toolsNode)
     .addEdge("tools", "agent")
     .addConditionalEdges("agent", shouldContinue)
-    .addEntryPoint("agent");
+    .setEntryPoint("agent");
 
   return graph.compile();
 }
