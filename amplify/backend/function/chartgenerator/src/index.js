@@ -4,7 +4,7 @@
 import { Pool } from "pg";
 import { z } from "zod";
 import { ChatOpenAI } from "@langchain/openai";
-import { tool } from "@langchain/core/tools";
+import { DynamicStructuredTool } from "@langchain/core/tools";
 import {
   StateGraph,
   MessagesAnnotation,
@@ -298,7 +298,7 @@ const CHART_CATALOG = {
 /* ----------------------------- Catalog Tools ----------------------------- */
 
 // Small list for Step 1 selector
-const listChartCatalogTool = tool({
+const listChartCatalogTool = new DynamicStructuredTool({
   name: "list_chart_catalog",
   description:
     "Return the small index of supported charts/subtypes and required mappings. Use this to decide which chart to pick.",
@@ -307,7 +307,7 @@ const listChartCatalogTool = tool({
 });
 
 // Targeted definition for Step 3 spec generation
-const getChartDefinitionTool = tool({
+const getChartDefinitionTool = new DynamicStructuredTool({
   name: "get_chart_definition",
   description:
     "Return a detailed chart definition (examples, guidance) for a given { type, subtype }. Use this to generate a VChart spec that matches aggregated data.",
@@ -411,7 +411,7 @@ function makeExecuteSqlToolForTable(allowedTableNameFQ) {
   const fqExact = allowedTableNameFQ;
   const mustContain = `from ${fqExact.toLowerCase()}`;
 
-  return tool({
+  return new DynamicStructuredTool({
     name: "execute_sql",
     description: [
       "Execute a single read-only SQL query (SELECT or WITH ... SELECT) against the provided dataset table.",
