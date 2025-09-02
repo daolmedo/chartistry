@@ -24,7 +24,7 @@ const dbConfig = {
   port: 5432,
   database: "chartz",
   user: "postgres",
-  password: "ppddA4all.",
+  password: "ppddA4all.P",
   connectionTimeoutMillis: 5_000,
   idleTimeoutMillis: 30_000,
   // 🔑 enable TLS – this makes pg send the SSLRequest packet
