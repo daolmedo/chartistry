@@ -345,7 +345,6 @@ const getChartDefinitionTool = new DynamicStructuredTool({
 const llm = new ChatOpenAI({
   model: "gpt-5-mini",
   apiKey: process.env.OPENAI_API_KEY,
-  temperature: 0 // deterministic selection
 }).bindTools([listChartCatalogTool]);
 
 // Agent node: talk to LLM
@@ -493,7 +492,6 @@ function buildAggregationGraph({ table_name, selection }) {
   const step2LLM = new ChatOpenAI({
     model: "gpt-5-mini",
     apiKey: process.env.OPENAI_API_KEY,
-    temperature: 0
   }).bindTools([executeSqlTool]);
 
   async function agentNode(state) {
@@ -579,7 +577,6 @@ function buildSpecGraph() {
   const specLLM = new ChatOpenAI({
     model: "gpt-5-mini",
     apiKey: process.env.OPENAI_API_KEY,
-    temperature: 0
   }).bindTools([getChartDefinitionTool]);
 
   async function agentNode(state) {
