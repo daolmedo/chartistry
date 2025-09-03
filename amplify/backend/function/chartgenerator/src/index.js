@@ -669,7 +669,7 @@ function createStreamChunk(type, content) {
   return `data: ${JSON.stringify({ type, content, timestamp: new Date().toISOString() })}\n\n`;
 }
 
-export const handler = async (event) => {
+export const handler = async (event, context) => {
   console.log('=== Lambda Handler Started ===');
   console.log('Event:', JSON.stringify(event));
   
@@ -677,45 +677,17 @@ export const handler = async (event) => {
   const isStreaming = event.queryStringParameters?.stream === 'true';
   
   if (isStreaming) {
-    // Collect stream chunks for server-sent events
-    const streamChunks = [];
-    
-    const addThought = (content, type = 'progress') => {
-      streamChunks.push(createStreamChunk(type, content));
-    };
-    
-    try {
-      const result = await processChartGeneration(event, addThought);
-      
-      // Add final result
-      streamChunks.push(createStreamChunk('complete', result));
-      
-      return {
-        statusCode: 200,
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type"
-        },
-        body: streamChunks.join('')
-      };
-    } catch (error) {
-      streamChunks.push(createStreamChunk('error', `Error: ${error.message}`));
-      return {
-        statusCode: 500,
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Access-Control-Allow-Origin": "*"
-        },
-        body: streamChunks.join('')
-      };
-    }
+    // For streaming mode, collect all chunks and return them as Server-Sent Events
+    return await handleStreamingRequest(event, context);
   }
   
   // Non-streaming version (original logic)
-  const headers = { "Content-Type": "application/json" };
+  const headers = { 
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type"
+  };
+  
   try {
     const result = await processChartGeneration(event);
     return {
@@ -733,6 +705,57 @@ export const handler = async (event) => {
     };
   }
 };
+
+// Handle streaming requests by collecting all chunks
+async function handleStreamingRequest(event, context) {
+  console.log('Starting streaming response...');
+  
+  const headers = {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive", 
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type"
+  };
+
+  const chunks = [];
+  
+  // Create a callback that collects chunks
+  const addStreamChunk = (content, type = 'progress') => {
+    const chunk = createStreamChunk(type, content);
+    chunks.push(chunk);
+    console.log(`Added ${type} chunk: ${content.substring(0, 50)}...`);
+  };
+
+  try {
+    addStreamChunk('🚀 Starting AI Agent...');
+    
+    const result = await processChartGeneration(event, addStreamChunk);
+    
+    // Send final result
+    addStreamChunk(result, 'complete');
+    
+    console.log(`Collected ${chunks.length} streaming chunks`);
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: chunks.join(''),
+      isBase64Encoded: false
+    };
+  } catch (error) {
+    console.error('Streaming error:', error);
+    addStreamChunk(`Error: ${error.message}`, 'error');
+    
+    return {
+      statusCode: 200, // Still return 200 for SSE with error content
+      headers,
+      body: chunks.join(''),
+      isBase64Encoded: false
+    };
+  }
+}
+
 
 // Main processing function that can work with or without streaming
 async function processChartGeneration(event, streamThought = null) {
