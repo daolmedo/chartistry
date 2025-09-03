@@ -1,20 +1,20 @@
 // index.js - AWS Lambda handler with streaming support 
 // npm i @langchain/openai @langchain/langgraph @langchain/core zod pg
 
-import { Pool } from "pg";
-import { z } from "zod";
-import { ChatOpenAI } from "@langchain/openai";
-import { DynamicStructuredTool } from "@langchain/core/tools";
-import {
+const { Pool } = require("pg");
+const { z } = require("zod");
+const { ChatOpenAI } = require("@langchain/openai");
+const { DynamicStructuredTool } = require("@langchain/core/tools");
+const {
   StateGraph,
   MessagesAnnotation,
   END
-} from "@langchain/langgraph";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
-import {
+} = require("@langchain/langgraph");
+const { ToolNode } = require("@langchain/langgraph/prebuilt");
+const {
   HumanMessage,
   SystemMessage
-} from "@langchain/core/messages";
+} = require("@langchain/core/messages");
 
 /* ----------------------------- DB Utilities ----------------------------- */
 
@@ -669,92 +669,53 @@ function createStreamChunk(type, content) {
   return `data: ${JSON.stringify({ type, content, timestamp: new Date().toISOString() })}\n\n`;
 }
 
-export const handler = async (event, context) => {
-  console.log('=== Lambda Handler Started ===');
-  console.log('Event:', JSON.stringify(event));
-  
-  // Check if streaming is requested
-  const isStreaming = event.queryStringParameters?.stream === 'true';
-  
-  if (isStreaming) {
-    // For streaming mode, collect all chunks and return them as Server-Sent Events
-    return await handleStreamingRequest(event, context);
-  }
-  
-  // Non-streaming version (original logic)
-  const headers = { 
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type"
-  };
-  
-  try {
-    const result = await processChartGeneration(event);
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(result)
-    };
-  } catch (error) {
-    console.error('=== Lambda Error ===');
-    console.error('Error message:', error?.message || error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: String(error?.message || error) })
-    };
-  }
-};
+exports.handler = awslambda.streamifyResponse(
+  async (event, responseStream, context) => {
+    console.log('=== Lambda Handler Started (Streaming) ===');
+    console.log('Event:', JSON.stringify(event));
+    
+    // Check if streaming is requested
+    const isStreaming = event.queryStringParameters?.stream === 'true';
+    
+    if (isStreaming) {
+      // Real streaming mode using responseStream
+      const addStreamChunk = (content, type = 'progress') => {
+        const chunk = createStreamChunk(type, content);
+        responseStream.write(chunk);
+        console.log(`Streamed ${type} chunk: ${content.substring(0, 50)}...`);
+      };
 
-// Handle streaming requests by collecting all chunks
-async function handleStreamingRequest(event, context) {
-  console.log('Starting streaming response...');
-  
-  const headers = {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "Connection": "keep-alive", 
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type"
-  };
-
-  const chunks = [];
-  
-  // Create a callback that collects chunks
-  const addStreamChunk = (content, type = 'progress') => {
-    const chunk = createStreamChunk(type, content);
-    chunks.push(chunk);
-    console.log(`Added ${type} chunk: ${content.substring(0, 50)}...`);
-  };
-
-  try {
-    addStreamChunk('🚀 Starting AI Agent...');
-    
-    const result = await processChartGeneration(event, addStreamChunk);
-    
-    // Send final result
-    addStreamChunk(result, 'complete');
-    
-    console.log(`Collected ${chunks.length} streaming chunks`);
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: chunks.join(''),
-      isBase64Encoded: false
-    };
-  } catch (error) {
-    console.error('Streaming error:', error);
-    addStreamChunk(`Error: ${error.message}`, 'error');
-    
-    return {
-      statusCode: 200, // Still return 200 for SSE with error content
-      headers,
-      body: chunks.join(''),
-      isBase64Encoded: false
-    };
+      try {
+        addStreamChunk('🚀 Starting AI Agent...');
+        
+        const result = await processChartGeneration(event, addStreamChunk);
+        
+        // Send final result
+        addStreamChunk(result, 'complete');
+        
+        console.log('Streaming completed successfully');
+        responseStream.end();
+      } catch (error) {
+        console.error('Streaming error:', error);
+        const errorChunk = createStreamChunk('error', `Error: ${error.message}`);
+        responseStream.write(errorChunk);
+        responseStream.end();
+      }
+    } else {
+      // Non-streaming version (original logic) - return JSON directly
+      try {
+        const result = await processChartGeneration(event);
+        responseStream.write(JSON.stringify(result));
+        responseStream.end();
+      } catch (error) {
+        console.error('=== Lambda Error ===');
+        console.error('Error message:', error?.message || error);
+        responseStream.write(JSON.stringify({ error: String(error?.message || error) }));
+        responseStream.end();
+      }
+    }
   }
-}
+);
 
 
 // Main processing function that can work with or without streaming
