@@ -39,6 +39,26 @@ export default function ChartPreview({
   const [showInsightForm, setShowInsightForm] = useState(false);
   const [workflowThoughts, setWorkflowThoughts] = useState<string[]>([]);
   const [insightResult, setInsightResult] = useState<any>(null);
+  const [isStatusFading, setIsStatusFading] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState<string>('');
+
+  // Effect to handle smooth status transitions
+  useEffect(() => {
+    const latestThought = streamingThoughts[0];
+    if (latestThought && latestThought !== currentStatus) {
+      if (currentStatus) {
+        // Fade out current status
+        setIsStatusFading(true);
+        setTimeout(() => {
+          setCurrentStatus(latestThought);
+          setIsStatusFading(false);
+        }, 150); // Half of transition duration
+      } else {
+        // First status, no fade needed
+        setCurrentStatus(latestThought);
+      }
+    }
+  }, [streamingThoughts, currentStatus]);
 
   const generateInsights = async (userIntent: string) => {
     if (!selectedDataset) {
@@ -295,44 +315,79 @@ export default function ChartPreview({
           </div>
         </div>
         
-        {/* Streaming Thoughts Panel */}
+        {/* ChatGPT-style Streaming Status */}
         {(streamingThoughts.length > 0 || isGenerating || workflowThoughts.length > 0 || isGeneratingInsights) && (
-          <div className="border-t border-gray-200 bg-gray-50 p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-2">
-              {streamingThoughts.length > 0 || isGenerating ? '🤖 AI Agent Progress' : '🧠 AI Workflow Progress'}
-            </h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {/* Streaming thoughts (chart generation) */}
-              {streamingThoughts.map((thought, index) => (
-                <div key={`stream-${index}`} className="text-sm text-blue-700 flex items-start space-x-2">
-                  <span className="text-blue-500 text-xs mt-1">•</span>
-                  <span>{thought}</span>
-                </div>
-              ))}
-              
-              {/* Loading state for streaming - only show if no streaming thoughts yet */}
-              {isGenerating && enableStreaming && streamingThoughts.length === 0 && (
-                <div className="text-sm text-blue-600 animate-pulse flex items-center space-x-2">
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <div className="border-t border-gray-100 bg-white px-6 py-4">
+            <div className="flex items-center space-x-3">
+              {/* AI Avatar */}
+              <div className="flex-shrink-0">
+                <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd"/>
                   </svg>
-                  <span>Connecting to AI agent...</span>
                 </div>
-              )}
+              </div>
               
-              {/* Legacy insights workflow thoughts */}
-              {isGeneratingInsights && workflowThoughts.length === 0 && (
-                <div className="text-sm text-blue-600 animate-pulse">🔍 Starting analysis...</div>
-              )}
-              {workflowThoughts.map((thought, index) => (
-                <div key={`legacy-${index}`} className="text-sm text-gray-700">
-                  {thought}
-                </div>
-              ))}
-              {isGeneratingInsights && (
-                <div className="text-sm text-blue-600 animate-pulse">⏳ Processing...</div>
-              )}
+              {/* Status Content */}
+              <div className="flex-1 min-w-0">
+                {/* Chart generation streaming thoughts */}
+                {streamingThoughts.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <span 
+                      className={`text-sm font-medium text-gray-900 transition-all duration-300 ease-in-out ${
+                        isStatusFading ? 'opacity-0 transform translate-y-1' : 'opacity-100 transform translate-y-0'
+                      }`}
+                    >
+                      {currentStatus}
+                    </span>
+                    {/* ChatGPT-style typing dots */}
+                    <div className={`flex space-x-1 transition-opacity duration-300 ${
+                      isStatusFading ? 'opacity-30' : 'opacity-100'
+                    }`}>
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Initial connecting state */}
+                {isGenerating && enableStreaming && streamingThoughts.length === 0 && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-900">Connecting to AI agent</span>
+                    <div className="flex space-x-1">
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Legacy insights workflow */}
+                {isGeneratingInsights && workflowThoughts.length === 0 && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-900">Starting analysis</span>
+                    <div className="flex space-x-1">
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                      <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                    </div>
+                  </div>
+                )}
+                
+                {workflowThoughts.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-900">{workflowThoughts[workflowThoughts.length - 1]}</span>
+                    {isGeneratingInsights && (
+                      <div className="flex space-x-1">
+                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

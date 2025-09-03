@@ -168,9 +168,7 @@ const CHART_CATALOG = {
     "pie.basic": {
       id: "pie_basic_v1",
       requirement: "pie.basic: columns => type, value",
-      sql: {
-        output: { categoryAlias: "type", valueAlias: "value" }
-      },
+      sql_guidance: "Produce a single dataset with categorical breakdown. Group by the dimension field as `type`, aggregate the measure as `value`. Use SUM for numeric measures, COUNT for frequency analysis, or COUNT(DISTINCT id) for unique identifiers. COALESCE null categories to 'Unknown'. Limit to top 10-12 categories and consider creating an 'Other' bucket for remaining small categories. Order by `value` DESC to show largest segments first.",
       expectedDataShapes: [
         // Agent should adapt to any of these shapes and produce a valid spec.
         { rows: "[{ type: string, value: number }]" },
@@ -207,20 +205,22 @@ const CHART_CATALOG = {
 
     "pie.nested": {
       id: "pie_nested_v1",
-      requirement: "pie.nested (outer): type, value   (category total)\n  * pie.nested (inner): type, value   (category • subcategory)",
+      requirement:
+        "pie.nested: inner ring (dimension1 totals) => { type, value }; outer ring (dimension2 within dimension1) => { parent, type, value }",
+      sql_guidance: "Produce two datasets with consistent totals. Inner (id0): group by dimension1 as `type`, aggregate measure as `value`. Outer (id1): group by dimension1,dimension2; alias dimension1 as `parent`, dimension2 as `type`, aggregate as `value`. Filter outer to the same parent set as inner (e.g., top 8–12). Ensure per-parent child sums equal the inner `value`. Use COUNT(DISTINCT id) for identifier measures; otherwise SUM(measure). COALESCE nulls to 'Unknown'/'Other'. Keep categories per parent ≤ 8 and allow an 'Other' bucket. Alias columns exactly as specified and order by `value` desc.",
       expectedDataShapes: [
-        { outer: "[{ type: string, value: number }]", inner: "[{ type: string, value: number }]" },
-        { outer: "[{ [categoryField]: string, [valueField]: number }]", inner: "[{ [categoryField]: string, [valueField]: number }]" }
+        { inner: "[{ type: string, value: number }]",
+          outer: "[{ parent: string, type: string, value: number }]" }
       ],
       vchartGuidance: {
         chartType: "common",
+        dataInjection: "two datasets: id 'id0' (inner/parents), id 'id1' (outer/children)",
         series: [
-          { type: "pie", dataIndex: 0, outerRadius: 0.65, innerRadius: 0 },
-          { type: "pie", dataIndex: 1, outerRadius: 0.8, innerRadius: 0.67 }
+          { type: "pie", dataIndex: 0, outerRadius: 0.65, innerRadius: 0, valueField: "value", categoryField: "type" },
+          { type: "pie", dataIndex: 1, outerRadius: 0.8, innerRadius: 0.67, valueField: "value", categoryField: "type" }
         ],
-        defaultFields: { categoryField: "type", valueField: "value" },
-        dataInjection: "two datasets: id 'id0' for outer, id 'id1' for inner",
-        labelNotes: "Outer ring: inside labels; inner ring: outside labels as needed."
+        labelNotes: "Inner ring: inside labels; outer ring: outside labels as needed.",
+        colorNotes: "If possible, use a shared palette keyed by `parent` so child slices inherit related hues."
       },
       exampleSpecs: [
         {
@@ -247,6 +247,7 @@ const CHART_CATALOG = {
     "funnel.basic": {
       id: "funnel_basic_v1",
       requirement: "funnel.basic: columns => step, value",
+      sql_guidance: "Create a funnel progression dataset showing step-by-step flow. Group by the step/stage field as `step` (or alias as `name`), aggregate the measure as `value`. Steps should represent sequential stages in a process (e.g., 'Awareness', 'Interest', 'Purchase'). Use SUM for volume metrics, COUNT(DISTINCT id) for user counts. Values should generally decrease from top to bottom of funnel. Order by a sequence field or explicitly by funnel position. Keep to 4-8 meaningful steps.",
       expectedDataShapes: [
         { rows: "[{ step: string, value: number }]" },
         { rows: "[{ name: string, value: number }]" }
@@ -275,6 +276,7 @@ const CHART_CATALOG = {
     "funnel.conversion": {
       id: "funnel_conversion_v1",
       requirement: "funnel.conversion: columns => step, value",
+      sql_guidance: "Build conversion step data with absolute counts at each stage. Focus on user journey progression where each step represents a conversion point. The visualization will automatically calculate conversion rates between steps, so provide raw counts rather than percentages.",
       expectedDataShapes: [
         { rows: "[{ step: string, value: number }]" }
       ],
@@ -559,17 +561,31 @@ function buildStep2SystemPrompt(chartRequirement) {
   ].join("\n");
 }
 
-function buildStep2UserPrompt({ table_name, selection }) {
-  return [
+function buildStep2UserPrompt({ table_name, selection, sqlGuidance = null }) {
+  const promptParts = [
     `Table (use exactly as written): ${table_name}`,
     `Chart selection: ${JSON.stringify(selection.chart)}`,
-    `Mapping: ${JSON.stringify(selection.mapping)}`,
+    `Mapping: ${JSON.stringify(selection.mapping)}`
+  ];
+
+  // Add SQL Conceptual Guidance if available
+  if (sqlGuidance) {
+    promptParts.push(
+      "",
+      "SQL Conceptual Guidance:",
+      sqlGuidance
+    );
+  }
+
+  promptParts.push(
     "",
     "Now:",
     "1) Write the SQL.",
     "2) Call execute_sql tool with { sql }.",
     "3) Return ONLY the JSON object with chart, mapping, sql, result."
-  ].join("\n");
+  );
+
+  return promptParts.join("\n");
 }
 
 /* ----------------------------- Step 3: Spec Generation Agent ----------------------------- */
@@ -787,13 +803,14 @@ async function processChartGeneration(event, streamThought = null) {
   console.log('Building aggregation graph for table:', tableFQ);
   const step2App = buildAggregationGraph({ table_name: tableFQ, selection });
 
-  // Get chart requirement from catalog
+  // Get chart requirement and SQL guidance from catalog
   const chartKey = `${selection.chart.type}.${selection.chart.subtype}`;
   const chartDef = CHART_CATALOG.defs[chartKey];
   const chartRequirement = chartDef?.requirement || `${selection.chart.type}.${selection.chart.subtype}: columns => [specify based on chart definition]`;
+  const sqlGuidance = chartDef?.sql_guidance || null;
   
   const step2System = new SystemMessage(buildStep2SystemPrompt(chartRequirement));
-  const step2Human = new HumanMessage(buildStep2UserPrompt({ table_name: tableFQ, selection }));
+  const step2Human = new HumanMessage(buildStep2UserPrompt({ table_name: tableFQ, selection, sqlGuidance }));
 
   console.log('Invoking aggregation graph...');
   const step2State = await step2App.invoke({ messages: [step2System, step2Human] });

@@ -103,7 +103,7 @@ export default function ChartApp() {
                 const data = JSON.parse(line.slice(6));
                 
                 if (data.type === 'progress') {
-                  setStreamingThoughts(prev => [...prev, data.content]);
+                  setStreamingThoughts([data.content]); // Replace with latest status instead of appending
                 } else if (data.type === 'complete') {
                   const endTime = Date.now();
                   setChartSpec(data.content.spec); // data.content is the result object, so .spec gets the VChart spec
