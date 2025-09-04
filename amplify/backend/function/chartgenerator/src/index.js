@@ -329,7 +329,6 @@ const CHART_CATALOG = {
         defaultFields: { xField: "x", yField: "value", seriesField: "series" },
         dataInjection: "single dataset as { values: [...] }",
         commonOptions: {
-          axes: { visible: true },
           legends: { visible: true, orient: "top" },
           tooltip: { visible: true },
           // Break lines across nulls rather than drawing to them
