@@ -12,6 +12,7 @@ interface DataInputProps {
   onGenerate: () => void;
   isLoading: boolean;
   onDatasetSelect?: (dataset: Dataset) => void;
+  selectedDataset?: Dataset | null;
 }
 
 export default function DataInput({
@@ -21,7 +22,8 @@ export default function DataInput({
   setPrompt,
   onGenerate,
   isLoading,
-  onDatasetSelect
+  onDatasetSelect,
+  selectedDataset
 }: DataInputProps) {
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -166,7 +168,7 @@ export default function DataInput({
     event.target.value = '';
   }, [uploadToS3]);
 
-  const canGenerate = csv.trim() && prompt.trim() && !isLoading;
+  const canGenerate = (csv.trim() || selectedDataset) && prompt.trim() && !isLoading;
 
   return (
     <div className="w-80 bg-gradient-to-br from-gray-50 to-white border-r border-gray-200 p-6 overflow-y-auto">

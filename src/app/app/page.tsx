@@ -191,6 +191,7 @@ export default function ChartApp() {
             onGenerate={handleGenerate}
             isLoading={isLoading}
             onDatasetSelect={handleDatasetSelect}
+            selectedDataset={selectedDataset}
           />
           <ChartPreview
             spec={chartSpec}
