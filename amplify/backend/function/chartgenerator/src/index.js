@@ -327,7 +327,7 @@ const CHART_CATALOG = {
       vchartGuidance: {
         chartType: "line",
         defaultFields: { xField: "x", yField: "value", seriesField: "series" },
-        dataInjection: "single dataset with id 'id0'",
+        dataInjection: "single dataset as { values: [...] }",
         commonOptions: {
           axes: { visible: true },
           legends: { visible: true, orient: "top" },
@@ -341,11 +341,11 @@ const CHART_CATALOG = {
           name: "Line • Basic (single series)",
           js: String.raw`const spec = {
             type: 'line',
-            data: [{ id: 'id0', values: [
+            data: { values: [
               { x: '2:00', value: 8 }, { x: '4:00', value: 9 }, { x: '6:00', value: 11 },
               { x: '8:00', value: 14 }, { x: '10:00', value: 16 }, { x: '12:00', value: 17 },
               { x: '14:00', value: 17 }, { x: '16:00', value: 16 }, { x: '18:00', value: 15 }
-            ]}],
+            ]},
             xField: 'x',
             yField: 'value',
             legends: { visible: false }
@@ -355,12 +355,12 @@ const CHART_CATALOG = {
           name: "Line • Basic (smooth)",
           js: String.raw`const spec = {
             type: 'line',
-            data: [{ id: 'id0', values: [
+            data: { values: [
               { x: '2:00', value: 38 }, { x: '4:00', value: 56 }, { x: '6:00', value: 10 },
               { x: '8:00', value: 70 }, { x: '10:00', value: 36 }, { x: '12:00', value: 94 },
               { x: '14:00', value: 24 }, { x: '16:00', value: 44 }, { x: '18:00', value: 36 },
               { x: '20:00', value: 68 }, { x: '22:00', value: 22 }
-            ]}],
+            ]},
             xField: 'x',
             yField: 'value',
             line: { style: { curveType: 'monotone' } }
@@ -370,7 +370,7 @@ const CHART_CATALOG = {
           name: "Line • Multi-series with null handling",
           js: String.raw`const spec = {
             type: 'line',
-            data: [{ id: 'id0', values: [
+            data: { values: [
               { series: 'Gold Medals', x: '1952', value: 40 },
               { series: 'Gold Medals', x: '1956', value: 32 },
               { series: 'Gold Medals', x: '1960', value: 34 },
@@ -382,7 +382,7 @@ const CHART_CATALOG = {
               { series: 'Bronze Medals', x: '1952', value: 17 },
               { series: 'Bronze Medals', x: '1980', value: null },
               { series: 'Bronze Medals', x: '1984', value: 30 }
-            ]}],
+            ]},
             xField: 'x',
             yField: 'value',
             seriesField: 'series',
