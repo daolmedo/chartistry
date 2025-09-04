@@ -7,8 +7,9 @@ import io
 import pandas as pd
 import psycopg2
 import requests
-from datetime import datetime
+from datetime import datetime, date
 from botocore.exceptions import ClientError
+import decimal
 
 # Initialize S3 client
 s3_client = boto3.client('s3')
@@ -25,6 +26,14 @@ DB_CONFIG = {
     'user': "postgres",
     'password': "ppddA4all.P"  # Set via environment variable
 }
+
+def json_serializer(obj):
+    """JSON serializer for datetime and decimal objects"""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    elif isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 def test_internet_connectivity():
     url = "http://www.google.com"
@@ -474,7 +483,7 @@ def handler(event, context):
                     return {
                         'statusCode': 200,
                         'headers': cors_headers,
-                        'body': json.dumps(response_data)
+                        'body': json.dumps(response_data, default=json_serializer)
                     }
                 
                 except Exception as e:
@@ -520,7 +529,7 @@ def handler(event, context):
                 'headers': cors_headers,
                 'body': json.dumps({
                     'datasets': datasets_dict
-                }, default=str)
+                }, default=json_serializer)
             }
         
         return {
