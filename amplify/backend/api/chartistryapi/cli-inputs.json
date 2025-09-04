@@ -28,6 +28,13 @@
       "permissions": {
         "setting": "open"
       }
+    },
+    "/tools": {
+      "name": "/tools",
+      "lambdaFunction": "chartztools",
+      "permissions": {
+        "setting": "open"
+      }
     }
   }
 }

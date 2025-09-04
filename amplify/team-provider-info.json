@@ -15,11 +15,11 @@
       "function": {
         "chartgenerator": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
-          "s3Key": "amplify-builds/chartgenerator-456f79634258394b7337-build.zip"
+          "s3Key": "amplify-builds/chartgenerator-70464475504d53344f36-build.zip"
         },
         "datasets": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
-          "s3Key": "amplify-builds/datasets-72395a4174782f6a664c-build.zip"
+          "s3Key": "amplify-builds/datasets-587474304a734f506e69-build.zip"
         },
         "customerschartz": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
@@ -28,6 +28,10 @@
         "stripecheckoutchartz": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
           "s3Key": "amplify-builds/stripecheckoutchartz-78495374794d4146544c-build.zip"
+        },
+        "chartztools": {
+          "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
+          "s3Key": "amplify-builds/chartztools-3833306d6c624475586a-build.zip"
         }
       },
       "api": {

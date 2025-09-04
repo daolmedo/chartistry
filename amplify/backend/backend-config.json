@@ -33,6 +33,14 @@
           ],
           "category": "function",
           "resourceName": "stripecheckoutchartz"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "chartztools"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -42,6 +50,12 @@
   "function": {
     "chartgenerator": {
       "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "chartztools": {
+      "build": true,
+      "dependsOn": [],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
@@ -75,6 +89,22 @@
         {
           "category": "function",
           "resourceName": "chartgenerator"
+        }
+      ]
+    },
+    "AMPLIFY_function_chartztools_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "chartztools"
+        }
+      ]
+    },
+    "AMPLIFY_function_chartztools_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "chartztools"
         }
       ]
     },

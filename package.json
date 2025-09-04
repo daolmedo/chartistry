@@ -27,10 +27,14 @@
     "firebase": "^12.1.0",
     "firebase-admin": "^13.4.0",
     "framer-motion": "^12.23.11",
+    "gray-matter": "^4.0.3",
+    "lucide-react": "^0.542.0",
     "next": "14.2.30",
     "react": "^18",
     "react-chartjs-2": "^5.3.0",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "remark": "^15.0.1",
+    "remark-html": "^16.0.1"
   },
   "devDependencies": {
     "@types/node": "^20",

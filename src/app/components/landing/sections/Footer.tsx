@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white py-12">
@@ -27,6 +29,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-gray-400">
+              <li><Link href="/blog" className="hover:text-white transition-colors">Blog</Link></li>
               <li><a href="mailto:d.olmedo@chartz.ai" className="hover:text-white transition-colors">Contact</a></li>
             </ul>
           </div>

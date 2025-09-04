@@ -1,0 +1,127 @@
+{
+  "chartDescriptions": {
+    "pie": "a circular statistical graphic that divides data into proportional slices to show percentage or proportional data",
+    "bar": "a chart that presents categorical data with rectangular bars whose heights or lengths are proportional to the values they represent",
+    "line": "a type of chart that displays information as a series of data points connected by straight line segments",
+    "scatter": "a type of plot that uses dots to represent values for two different numeric variables",
+    "area": "a line chart where the area between the line and axis is filled with color or shading",
+    "column": "a chart that uses vertical bars to compare values across categories",
+    "donut": "a variation of pie charts with a hollow center, making them easier to read and more modern-looking",
+    "heatmap": "a graphical representation of data where values are represented as colors in a matrix format",
+    "funnel": "a chart that shows how data moves through a process, typically displaying decreasing values",
+    "gauge": "a chart that displays a single value within a range, similar to a speedometer"
+  },
+  
+  "chartUseCases": {
+    "pie": "showing proportional data, market share analysis, survey results, budget breakdowns, and categorical distributions",
+    "bar": "comparing values across categories, ranking data, showing survey results, and displaying performance metrics",
+    "line": "tracking changes over time, showing trends, displaying time series data, and monitoring performance",
+    "scatter": "exploring relationships between variables, identifying correlations, outlier detection, and regression analysis",
+    "area": "showing cumulative values over time, comparing multiple datasets, and emphasizing magnitude of change",
+    "column": "comparing discrete categories, showing rankings, displaying survey data, and presenting grouped data",
+    "donut": "displaying proportional data with better readability, modern dashboards, and when you need space for additional information in the center",
+    "heatmap": "showing data density, correlation matrices, geographic data, time-based patterns, and large dataset visualization",
+    "funnel": "conversion tracking, sales pipelines, user journey analysis, and process optimization",
+    "gauge": "KPI dashboards, performance monitoring, goal tracking, and single-value displays"
+  },
+  
+  "chartWhenToUse": {
+    "pie": "- Display parts of a whole (percentages)\n- Show data with 3-7 categories for best readability\n- Highlight the largest or smallest segments\n- Present survey results or market share data\n- When exact values are less important than proportions",
+    "bar": "- Compare values across different categories\n- Display rankings or ordered data\n- Show positive and negative values\n- Present survey results with multiple options\n- When category names are long (horizontal bars work better)",
+    "line": "- Track changes over time periods\n- Show trends and patterns in data\n- Display continuous data\n- Compare multiple time series\n- Forecast future values based on historical trends",
+    "scatter": "- Explore relationships between two numeric variables\n- Identify correlations and patterns\n- Detect outliers in your data\n- Perform regression analysis\n- Show distribution of data points",
+    "area": "- Show cumulative totals over time\n- Compare multiple datasets with emphasis on magnitude\n- Display stacked data categories\n- Highlight the 'area under the curve'\n- Show how individual categories contribute to the total",
+    "column": "- Compare discrete categories vertically\n- Display grouped or clustered data\n- Show data that fits better in vertical format\n- Present time series data with distinct periods\n- When you have space constraints horizontally",
+    "donut": "- All the same use cases as pie charts\n- When you want a more modern, clean look\n- Need space in the center for additional information\n- Working with larger datasets (up to 12 categories)\n- Creating dashboard-style visualizations",
+    "heatmap": "- Visualize large amounts of data in a compact format\n- Show patterns in time-based data (like website traffic by hour/day)\n- Display correlation between multiple variables\n- Geographic data visualization\n- When color coding adds meaning to your data",
+    "funnel": "- Track conversion rates through a process\n- Analyze sales pipelines and stages\n- Monitor user journey through website/app\n- Identify bottlenecks in processes\n- Show progressive reduction in data",
+    "gauge": "- Display single KPIs or metrics\n- Show performance against targets\n- Create dashboard indicators\n- Monitor real-time values\n- When you need an intuitive, speedometer-like display"
+  },
+  
+  "chartExamples": {
+    "pie": {
+      "basic": "sales by product category",
+      "detailed": "market share percentages and category labels",
+      "advanced": "budget allocation with custom colors",
+      "example1": {
+        "title": "Sales Distribution by Product",
+        "description": "Perfect for showing how different product categories contribute to total sales",
+        "prompt": "Create a pie chart showing our sales distribution across product categories"
+      },
+      "example2": {
+        "title": "Survey Results Breakdown",
+        "description": "Ideal for displaying survey responses and their relative proportions",
+        "prompt": "Make a pie chart of customer satisfaction survey results"
+      },
+      "example3": {
+        "title": "Budget Allocation",
+        "description": "Great for visualizing how budgets are allocated across departments",
+        "prompt": "Show me a pie chart of our marketing budget breakdown by channel"
+      },
+      "dataFormat": {
+        "column1": "Product A",
+        "value1": "45",
+        "column2": "Product B", 
+        "value2": "30",
+        "column3": "Product C",
+        "value3": "25"
+      }
+    },
+    "bar": {
+      "basic": "revenue by quarter",
+      "detailed": "sales performance with target lines",
+      "advanced": "multi-series comparison with custom styling",
+      "example1": {
+        "title": "Quarterly Sales Comparison",
+        "description": "Perfect for comparing sales performance across different time periods",
+        "prompt": "Create a bar chart comparing our quarterly sales performance"
+      },
+      "example2": {
+        "title": "Regional Performance",
+        "description": "Ideal for showing performance differences across regions or territories", 
+        "prompt": "Make a bar chart showing sales by region with target indicators"
+      },
+      "example3": {
+        "title": "Product Ranking",
+        "description": "Great for displaying ranked data like top-selling products",
+        "prompt": "Show me a bar chart of our top 10 selling products this month"
+      },
+      "dataFormat": {
+        "column1": "Q1 2024",
+        "value1": "125000",
+        "column2": "Q2 2024",
+        "value2": "140000", 
+        "column3": "Q3 2024",
+        "value3": "158000"
+      }
+    },
+    "line": {
+      "basic": "website traffic over the last 6 months",
+      "detailed": "multiple metrics with trend lines",
+      "advanced": "forecasted data with confidence intervals",
+      "example1": {
+        "title": "Website Traffic Trends",
+        "description": "Perfect for tracking how website traffic changes over time",
+        "prompt": "Create a line chart showing our website traffic trends over the past year"
+      },
+      "example2": {
+        "title": "Stock Price Movement",
+        "description": "Ideal for displaying continuous data changes like stock prices",
+        "prompt": "Make a line chart of our stock price movement over the last quarter"
+      },
+      "example3": {
+        "title": "Sales Growth Tracking",
+        "description": "Great for monitoring business growth metrics over time",
+        "prompt": "Show me a line chart of monthly recurring revenue growth"
+      },
+      "dataFormat": {
+        "column1": "January",
+        "value1": "15000",
+        "column2": "February", 
+        "value2": "18000",
+        "column3": "March",
+        "value3": "22000"
+      }
+    }
+  }
+}
