@@ -811,7 +811,7 @@ exports.handler = awslambda.streamifyResponse(
         responseStream.write(chunk);
         // Strip emojis from console logs while keeping them in the stream
         const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
-        const cleanContent = contentStr.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+        const cleanContent = contentStr.replace(/[\u{1F000}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F1E0}-\u{1F1FF}]/gu, '').trim();
         console.log(`Streamed ${type} chunk: ${cleanContent.substring(0, 50)}...`);
       };
 
