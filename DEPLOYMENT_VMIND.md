@@ -1,7 +1,7 @@
 # VMind-Inspired Chart Generator Deployment Guide
 
 ## Overview
-Your chartgenerator lambda has been enhanced with VMind-inspired architecture using pure JavaScript (Node.js), OpenAI GPT-4o, and advanced PostgreSQL field detection. 
+Your chartgenerator lambda has been enhanced with VMind-inspired architecture using pure JavaScript (Node.js), OpenAI GPT-4o, and advanced PostgreSQL field detection.
 
 ## What's Changed
 
