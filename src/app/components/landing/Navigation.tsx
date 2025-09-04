@@ -12,12 +12,12 @@ export default function Navigation() {
             <span className="text-2xl font-bold text-gray-900">chartz.ai</span>
           </div>
           <div className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-gray-600 hover:text-gray-900">Features</a>
-            <a href="#how-it-works" className="text-gray-600 hover:text-gray-900">How it Works</a>
-            <a href="#pricing" className="text-gray-600 hover:text-gray-900">Pricing</a>
-            <Link href="/login" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-              Get Started Free
-            </Link>
+            {/**<a href="#features" className="text-gray-600 hover:text-gray-900">Features</a>*/}
+            {/**<a href="#how-it-works" className="text-gray-600 hover:text-gray-900">How it Works</a>*/}
+            {/**<a href="#pricing" className="text-gray-600 hover:text-gray-900">Pricing</a>*/}
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSeEwhkaizkqAtdbbyV39yke7BV0kFOT1uaqpCodb61oDt-hpA/viewform?pli=1" target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+              Join Waiting List
+            </a>
           </div>
         </div>
       </div>

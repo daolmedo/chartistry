@@ -9,11 +9,13 @@ import { demoChartSpec } from './chartSpecs';
 function AnimatedSection({ 
   children, 
   className = "", 
-  id 
+  id,
+  ...props
 }: { 
   children: React.ReactNode; 
   className?: string; 
   id?: string; 
+  [key: string]: any;
 }) {
   const { elementRef, hasIntersected } = useIntersectionObserver();
   
@@ -26,6 +28,7 @@ function AnimatedSection({
           ? 'opacity-100 translate-y-0' 
           : 'opacity-0 translate-y-8'
       } ${className}`}
+      {...props}
     >
       {children}
     </section>
@@ -81,7 +84,7 @@ export default function AnimatedDemo() {
   }, [hasIntersected, fullText]);
 
   return (
-    <AnimatedSection className="py-12 sm:py-16 lg:py-20 bg-white">
+    <AnimatedSection className="py-12 sm:py-16 lg:py-20 bg-white" data-section="demo">
       <div ref={observerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">See It In Action</h2>

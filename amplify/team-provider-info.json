@@ -23,7 +23,7 @@
         },
         "customerschartz": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",
-          "s3Key": "amplify-builds/customerschartz-7965636f59536c5a5331-build.zip"
+          "s3Key": "amplify-builds/customerschartz-4c754666445172627155-build.zip"
         },
         "stripecheckoutchartz": {
           "deploymentBucketName": "amplify-chartistry-dev-0b584-deployment",

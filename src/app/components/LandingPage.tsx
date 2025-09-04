@@ -3,13 +3,15 @@
 import Navigation from './landing/Navigation';
 import HeroSection from './landing/sections/HeroSection';
 import AnimatedDemo from './landing/AnimatedDemo';
-import FeaturesSection from './landing/sections/FeaturesSection';
-import HowItWorksSection from './landing/sections/HowItWorksSection';
+import DashboardSection from './landing/sections/DashboardSection';
+// import FeaturesSection from './landing/sections/FeaturesSection';
+// import HowItWorksSection from './landing/sections/HowItWorksSection';
 import ComplexChartsSection from './landing/sections/ComplexChartsSection';
-import UseCasesSection from './landing/sections/UseCasesSection';
-import TestimonialsSection from './landing/sections/TestimonialsSection';
-import PricingSection from './landing/sections/PricingSection';
-import CTASection from './landing/sections/CTASection';
+// import UseCasesSection from './landing/sections/UseCasesSection';
+// import TestimonialsSection from './landing/sections/TestimonialsSection';
+// import PricingSection from './landing/sections/PricingSection';
+import WaitingListSection from './landing/sections/WaitingListSection';
+// import CTASection from './landing/sections/CTASection';
 import Footer from './landing/sections/Footer';
 
 export default function LandingPage() {
@@ -18,13 +20,15 @@ export default function LandingPage() {
       <Navigation />
       <HeroSection />
       <AnimatedDemo />
-      <FeaturesSection />
-      <HowItWorksSection />
+      <DashboardSection />
+      {/* <FeaturesSection /> */}
+      {/* <HowItWorksSection /> */}
       <ComplexChartsSection />
-      <UseCasesSection />
-      <TestimonialsSection />
-      <PricingSection />
-      <CTASection />
+      {/* <UseCasesSection /> */}
+      {/* <TestimonialsSection /> */}
+      {/* <PricingSection /> */}
+      <WaitingListSection />
+      {/* <CTASection /> */}
       <Footer />
     </div>
   );
