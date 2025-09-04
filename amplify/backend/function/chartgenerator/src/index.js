@@ -396,6 +396,31 @@ const CHART_CATALOG = {
 };
 
 
+/* ----------------------------- Dynamic Schema Generation ----------------------------- */
+
+// Extract all unique types and subtypes from catalog
+function getAvailableTypes() {
+  const types = [...new Set(CHART_CATALOG.index.map(item => item.type))];
+  console.log('Available chart types from catalog:', types);
+  return types;
+}
+
+function getAvailableSubtypes() {
+  const subtypes = [...new Set(CHART_CATALOG.index.map(item => item.subtype))];
+  console.log('Available chart subtypes from catalog:', subtypes);
+  return subtypes;
+}
+
+function generateTypesExample() {
+  const types = getAvailableTypes();
+  return types.length > 0 ? `<${types.join('|')}>` : '<type>';
+}
+
+function generateSubtypesExample() {
+  const subtypes = getAvailableSubtypes();
+  return subtypes.length > 0 ? `<${subtypes.join('|')}>` : '<subtype>';
+}
+
 /* ----------------------------- Catalog Tools ----------------------------- */
 
 // Small list for Step 1 selector
@@ -418,8 +443,8 @@ const getChartDefinitionTool = new DynamicStructuredTool({
   description:
     "Return a detailed chart definition (examples, guidance) for a given { type, subtype }. Use this to generate a VChart spec that matches aggregated data.",
   schema: z.object({
-    type: z.enum(["pie", "funnel", "line"]),
-    subtype: z.enum(["basic", "nested", "conversion"])
+    type: z.enum(getAvailableTypes()),
+    subtype: z.enum(getAvailableSubtypes())
   }),
   func: async ({ type, subtype }) => {
     console.log('Tool: get_chart_definition called with:', { type, subtype });
@@ -485,7 +510,7 @@ function buildSystemPrompt() {
     "",
     "Schema:",
     JSON.stringify({
-      chart: { type: "<pie|funnel|line>", subtype: "<basic|nested|conversion>", id: "<registry id>" },
+      chart: { type: generateTypesExample(), subtype: generateSubtypesExample(), id: "<registry id>" },
       mapping: { "<role>": "<column name>" },
       reason: "short string",
       confidence: "number between 0 and 1"
@@ -631,7 +656,7 @@ function buildStep2SystemPrompt(chartRequirement) {
     "",
     "After tool execution, return ONLY one JSON object:",
     JSON.stringify({
-      chart: { type: "<pie|funnel|line>", subtype: "<basic|nested|conversion>" },
+      chart: { type: generateTypesExample(), subtype: generateSubtypesExample() },
       mapping: { "<role>": "<column>" },
       sql: "<the query you executed>",
       result: { rows: [/* tool rows */], rowCount: 0 }
