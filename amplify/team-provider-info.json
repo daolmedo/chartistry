@@ -34,5 +34,41 @@
         "chartistryapi": {}
       }
     }
+  },
+  "main": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-chartistry-main-44a3e-authRole",
+      "UnauthRoleArn": "arn:aws:iam::252326958099:role/amplify-chartistry-main-44a3e-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::252326958099:role/amplify-chartistry-main-44a3e-authRole",
+      "Region": "eu-west-2",
+      "DeploymentBucketName": "amplify-chartistry-main-44a3e-deployment",
+      "UnauthRoleName": "amplify-chartistry-main-44a3e-unauthRole",
+      "StackName": "amplify-chartistry-main-44a3e",
+      "StackId": "arn:aws:cloudformation:eu-west-2:252326958099:stack/amplify-chartistry-main-44a3e/2cfd0370-89aa-11f0-9a17-023067e88d4b",
+      "AmplifyAppId": "d1cy9eh5rdxk4x"
+    },
+    "categories": {
+      "function": {
+        "chartgenerator": {
+          "deploymentBucketName": "amplify-chartistry-main-44a3e-deployment",
+          "s3Key": "amplify-builds/chartgenerator-70464475504d53344f36-build.zip"
+        },
+        "customerschartz": {
+          "deploymentBucketName": "amplify-chartistry-main-44a3e-deployment",
+          "s3Key": "amplify-builds/customerschartz-4c754666445172627155-build.zip"
+        },
+        "datasets": {
+          "deploymentBucketName": "amplify-chartistry-main-44a3e-deployment",
+          "s3Key": "amplify-builds/datasets-587474304a734f506e69-build.zip"
+        },
+        "stripecheckoutchartz": {
+          "deploymentBucketName": "amplify-chartistry-main-44a3e-deployment",
+          "s3Key": "amplify-builds/stripecheckoutchartz-78495374794d4146544c-build.zip"
+        }
+      },
+      "api": {
+        "chartistryapi": {}
+      }
+    }
   }
 }
