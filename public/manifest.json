@@ -1,0 +1,25 @@
+{
+  "name": "chartz.ai - AI-Powered Data Visualization",
+  "short_name": "chartz.ai",
+  "description": "Turn data into stunning dashboards and charts in seconds",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "orientation": "portrait-primary"
+}

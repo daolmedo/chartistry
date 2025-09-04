@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import VChart from '@visactor/vchart';
-import { Dataset } from '../lib/api';
+import { Dataset } from '../../lib/api';
 
 interface VChartSpec {
   type: string;

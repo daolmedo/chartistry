@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserDatasets, type Dataset } from '../lib/api';
+import { getUserDatasets, type Dataset } from '../../lib/api';
 
 interface DataInputProps {
   csv: string;

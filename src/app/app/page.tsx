@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import DataInput from '../components/DataInput';
-import ChartPreview from '../components/ChartPreview';
-import DatasetViewer from '../components/DatasetViewer';
+import DataInput from '../components/app/DataInput';
+import ChartPreview from '../components/app/ChartPreview';
+import DatasetViewer from '../components/app/DatasetViewer';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dataset } from '../lib/api';

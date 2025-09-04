@@ -1,0 +1,23 @@
+# Amplify redirects for better SEO and user experience
+
+# Redirect HTTP to HTTPS (if not handled by Amplify automatically)
+# This will be handled by Amplify's HTTPS redirect feature
+
+# Trailing slash redirects for consistency
+/* /index.html 200
+
+# Handle 404s with the Next.js 404 page
+/404 /404.html 200
+
+# Prevent access to sensitive files
+/api/* https://your-api-gateway-url.amazonaws.com/prod/:splat 200
+/.env* / 404
+/amplify/* / 404
+
+# Cache static assets (handled by Amplify but good to be explicit)
+/static/* /static/:splat 200
+/_next/static/* /_next/static/:splat 200
+
+# SEO-friendly redirects (add as needed)
+# /old-page /new-page 301
+# /blog/* /new-blog/:splat 301

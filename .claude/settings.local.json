@@ -4,7 +4,8 @@
       "Bash(npm install:*)",
       "Bash(npx tailwindcss:*)",
       "Bash(npm run dev:*)",
-      "WebFetch(domain:visactor.com)"
+      "WebFetch(domain:visactor.com)",
+      "Read(/C:\\Users\\Daniel\\Source\\Repos\\MVP\\chartistry\\src\\app\\components/**)"
     ],
     "deny": []
   }

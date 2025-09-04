@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Dataset } from '../lib/api';
+import { Dataset } from '../../lib/api';
 
 interface DatasetViewerProps {
   dataset: Dataset | null;
