@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dataset } from '../lib/api';
 
 interface DatasetViewerProps {
@@ -18,6 +18,13 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
   const [data, setData] = useState<DatasetData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [height, setHeight] = useState(300); // Default height in pixels
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [startHeight, setStartHeight] = useState(0);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!dataset || dataset.ingestion_status !== 'completed') {
@@ -49,14 +56,67 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
       });
   }, [dataset]);
 
+  // Resizing handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setIsResizing(true);
+    setStartY(e.clientY);
+    setStartHeight(height);
+    e.preventDefault();
+  }, [height]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const deltaY = startY - e.clientY; // Inverted because we're measuring from bottom
+    const newHeight = Math.max(200, Math.min(600, startHeight + deltaY)); // Min 200px, Max 600px
+    setHeight(newHeight);
+  }, [isResizing, startY, startHeight]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Add global mouse event listeners when resizing
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ns-resize';
+      document.body.style.userSelect = 'none';
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   if (!dataset) {
     return null;
   }
 
+  const displayHeight = isMinimized ? 60 : height; // 60px for header only when minimized
+
   return (
-    <div className="fixed bottom-0 left-80 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+    <div 
+      ref={containerRef}
+      className="fixed bottom-0 left-80 right-0 bg-white border-t border-gray-200 shadow-lg z-40 transition-all duration-200"
+      style={{ height: `${displayHeight}px` }}
+    >
+      {/* Resize Handle - only show when not minimized */}
+      {!isMinimized && (
+        <div 
+          className="absolute top-0 left-0 right-0 h-1 cursor-ns-resize bg-transparent hover:bg-blue-500 transition-colors group"
+          onMouseDown={handleMouseDown}
+        >
+          <div className="h-full bg-gray-300 group-hover:bg-blue-500 transition-colors"></div>
+        </div>
+      )}
+      
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50 mt-1">
         <div className="flex items-center space-x-3">
           <h3 className="text-lg font-semibold text-gray-900">
             {dataset.original_filename}
@@ -77,19 +137,39 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
             </span>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-          aria-label="Close dataset viewer"
-        >
-          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+            aria-label={isMinimized ? "Expand dataset viewer" : "Minimize dataset viewer"}
+          >
+            {isMinimized ? (
+              // Expand icon (up arrow)
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            ) : (
+              // Minimize icon (down arrow)
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+            aria-label="Close dataset viewer"
+          >
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="h-48Ok overflow-auto">
+      {/* Content - only show when not minimized */}
+      {!isMinimized && (
+        <div className="flex-1 overflow-auto" style={{ height: `${height - 60}px` }}>
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="flex items-center space-x-3 text-gray-600">
@@ -177,10 +257,11 @@ export default function DatasetViewer({ dataset, onClose }: DatasetViewerProps) 
             )}
           </div>
         )}
-      </div>
+        </div>
+      )}
       
-      {/* Footer with info */}
-      {data && data.rows && data.rows.length > 0 && (
+      {/* Footer with info - only show when not minimized and has data */}
+      {!isMinimized && data && data.rows && data.rows.length > 0 && (
         <div className="px-6 py-2 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
           Showing {data.rows.length} of {dataset.row_count} rows
         </div>

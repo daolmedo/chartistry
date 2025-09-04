@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { demoDataList, demoDataKeys } from '../constants/mockData';
 import { getUserDatasets, type Dataset } from '../lib/api';
 
 interface DataInputProps {
@@ -24,7 +23,6 @@ export default function DataInput({
   isLoading,
   onDatasetSelect
 }: DataInputProps) {
-  const [selectedDemo, setSelectedDemo] = useState<string>('');
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string>('');
@@ -45,27 +43,6 @@ export default function DataInput({
     }
   }, [currentUser?.uid, showDatasets]);
 
-  const handleDemoChange = useCallback((demoKey: string) => {
-    if (demoKey && demoDataList[demoKey as keyof typeof demoDataList]) {
-      const demo = demoDataList[demoKey as keyof typeof demoDataList];
-      setCsv(demo.csv);
-      setPrompt(demo.input);
-      setSelectedDemo(demoKey);
-    }
-  }, [setCsv, setPrompt]);
-
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'text/csv') {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        setCsv(content);
-        setSelectedDemo('');
-      };
-      reader.readAsText(file);
-    }
-  }, [setCsv]);
 
   const uploadToS3 = useCallback(async (file: File) => {
     if (!currentUser?.uid) {
@@ -153,14 +130,6 @@ export default function DataInput({
               setUploadStatus('success'); // Still show success for upload
             }
             
-            // Also read the file content for immediate use
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const content = e.target?.result as string;
-              setCsv(content);
-              setSelectedDemo('');
-            };
-            reader.readAsText(file);
             resolve(xhr.response);
           } else {
             reject(new Error(`Upload failed with status: ${xhr.status}`));
@@ -182,7 +151,7 @@ export default function DataInput({
       setUploadStatus('error');
       setUploadError(error instanceof Error ? error.message : 'Upload failed');
     }
-  }, [currentUser, setCsv]);
+  }, [currentUser, showDatasets]);
 
   const handleS3FileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -207,44 +176,11 @@ export default function DataInput({
           <p className="text-sm text-gray-600">Upload your data and describe the chart you want</p>
         </div>
 
-
-        {/* Demo Data Selector */}
+        {/* Upload Dataset */}
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">
-            Demo Data
+            Upload New Dataset
           </label>
-          <select
-            value={selectedDemo}
-            onChange={(e) => handleDemoChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm"
-          >
-            <option value="">Select demo data...</option>
-            {demoDataKeys.map((key) => (
-              <option key={key} value={key}>
-                {key.charAt(0).toUpperCase() + key.slice(1)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* File Upload Options */}
-        <div className="space-y-4">
-          <label className="block text-sm font-medium text-gray-700">
-            Upload CSV File
-          </label>
-          
-          {/* Local File Upload (for immediate use) */}
-          <div className="space-y-2">
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 file:shadow-sm"
-            />
-            <p className="text-xs text-gray-500">For immediate use (not saved)</p>
-          </div>
-
-          {/* S3 Upload (for saving to cloud) */}
           <div className="space-y-2">
             <div className="relative">
               <input
@@ -265,13 +201,13 @@ export default function DataInput({
             </div>
             
             <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500">Save to your datasets</p>
+              <p className="text-xs text-gray-500">CSV files only</p>
               {uploadStatus === 'success' && (
                 <div className="flex items-center space-x-1 text-xs text-green-600">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  <span>Saved!</span>
+                  <span>Uploaded!</span>
                 </div>
               )}
             </div>
@@ -356,19 +292,6 @@ export default function DataInput({
           )}
         </div>
 
-        {/* CSV Data Input */}
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-700">
-            CSV Data
-          </label>
-          <textarea
-            value={csv}
-            onChange={(e) => setCsv(e.target.value)}
-            placeholder="Enter CSV data here..."
-            rows={10}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono shadow-sm"
-          />
-        </div>
 
         {/* Prompt Input */}
         <div className="space-y-3">

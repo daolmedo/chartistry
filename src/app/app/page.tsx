@@ -29,6 +29,7 @@ export default function ChartApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
+  const [showDatasetPreview, setShowDatasetPreview] = useState(false);
   const [streamingThoughts, setStreamingThoughts] = useState<string[]>([]);
   const [enableStreaming, setEnableStreaming] = useState(true);
   
@@ -36,10 +37,12 @@ export default function ChartApp() {
   
   const handleDatasetSelect = (dataset: Dataset) => {
     setSelectedDataset(dataset);
+    setShowDatasetPreview(true);
   };
   
-  const handleDatasetClose = () => {
-    setSelectedDataset(null);
+  const handleDatasetPreviewClose = () => {
+    setShowDatasetPreview(false);
+    // Keep selectedDataset intact - just hide the preview
   };
   
   const handleGenerate = async () => {
@@ -200,10 +203,10 @@ export default function ChartApp() {
             onToggleStreaming={() => setEnableStreaming(!enableStreaming)}
           />
           
-          {/* Dataset Viewer - Bottom Bar */}
+          {/* Dataset Viewer - Resizable Bottom Panel */}
           <DatasetViewer
-            dataset={selectedDataset}
-            onClose={handleDatasetClose}
+            dataset={showDatasetPreview ? selectedDataset : null}
+            onClose={handleDatasetPreviewClose}
           />
         </div>
       </div>

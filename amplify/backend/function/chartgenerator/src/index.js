@@ -160,6 +160,13 @@ const CHART_CATALOG = {
       id: "funnel_conversion_v1",
       mapping: { required: ["step", "measure"] },
       summary: "Richer funnel with steps and aggregated numeric values that automatically shows percentages between steps."
+    },
+    {
+      type: "line",
+      subtype: "basic",
+      id: "line_basic_v1",
+      mapping: { required: ["x", "y"], optional: ["series"] },
+      summary: "Basic line chart: plot y over x; supports optional multi-series via a series field."
     }
   ],
 
@@ -305,6 +312,85 @@ const CHART_CATALOG = {
           };`
         }
       ]
+    },
+
+    "line.basic": {
+      id: "line_basic_v1",
+      requirement: "line.basic: columns => x, value [, series]",
+      sql_guidance:
+        "Return an ordered time/category series. Alias the horizontal axis as `x` and the numeric measure as `value`. If a grouping field is provided (e.g., product/region), alias it as `series`. Use SUM/AVG appropriately; for events over time, SUM per bucket is common. Ensure a sensible ORDER BY (time ascending, or categorical order) and LIMIT for safety. Handle null measures by returning NULL (the chart will break the line between valid points).",
+      expectedDataShapes: [
+        { rows: "[{ x: string|number|date, value: number }]" },
+        { rows: "[{ x: string|number|date, value: number, series: string }]" },
+        { rows: "[{ [xField]: any, [yField]: number }]" }
+      ],
+      vchartGuidance: {
+        chartType: "line",
+        defaultFields: { xField: "x", yField: "value", seriesField: "series" },
+        dataInjection: "single dataset with id 'id0'",
+        commonOptions: {
+          axes: { visible: true },
+          legends: { visible: true, orient: "top" },
+          tooltip: { visible: true },
+          // Break lines across nulls rather than drawing to them
+          invalidType: "link"
+        }
+      },
+      exampleSpecs: [
+        {
+          name: "Line • Basic (single series)",
+          js: String.raw`const spec = {
+            type: 'line',
+            data: [{ id: 'id0', values: [
+              { x: '2:00', value: 8 }, { x: '4:00', value: 9 }, { x: '6:00', value: 11 },
+              { x: '8:00', value: 14 }, { x: '10:00', value: 16 }, { x: '12:00', value: 17 },
+              { x: '14:00', value: 17 }, { x: '16:00', value: 16 }, { x: '18:00', value: 15 }
+            ]}],
+            xField: 'x',
+            yField: 'value',
+            legends: { visible: false }
+          };`
+        },
+        {
+          name: "Line • Basic (smooth)",
+          js: String.raw`const spec = {
+            type: 'line',
+            data: [{ id: 'id0', values: [
+              { x: '2:00', value: 38 }, { x: '4:00', value: 56 }, { x: '6:00', value: 10 },
+              { x: '8:00', value: 70 }, { x: '10:00', value: 36 }, { x: '12:00', value: 94 },
+              { x: '14:00', value: 24 }, { x: '16:00', value: 44 }, { x: '18:00', value: 36 },
+              { x: '20:00', value: 68 }, { x: '22:00', value: 22 }
+            ]}],
+            xField: 'x',
+            yField: 'value',
+            line: { style: { curveType: 'monotone' } }
+          };`
+        },
+        {
+          name: "Line • Multi-series with null handling",
+          js: String.raw`const spec = {
+            type: 'line',
+            data: [{ id: 'id0', values: [
+              { series: 'Gold Medals', x: '1952', value: 40 },
+              { series: 'Gold Medals', x: '1956', value: 32 },
+              { series: 'Gold Medals', x: '1960', value: 34 },
+              { series: 'Gold Medals', x: '1980', value: null },
+              { series: 'Gold Medals', x: '1984', value: 83 },
+              { series: 'Silver Medals', x: '1952', value: 19 },
+              { series: 'Silver Medals', x: '1980', value: null },
+              { series: 'Silver Medals', x: '1984', value: 60 },
+              { series: 'Bronze Medals', x: '1952', value: 17 },
+              { series: 'Bronze Medals', x: '1980', value: null },
+              { series: 'Bronze Medals', x: '1984', value: 30 }
+            ]}],
+            xField: 'x',
+            yField: 'value',
+            seriesField: 'series',
+            invalidType: 'link',
+            legends: { visible: true, orient: 'top' }
+          };`
+        }
+      ]
     }
   }
 };
@@ -332,7 +418,7 @@ const getChartDefinitionTool = new DynamicStructuredTool({
   description:
     "Return a detailed chart definition (examples, guidance) for a given { type, subtype }. Use this to generate a VChart spec that matches aggregated data.",
   schema: z.object({
-    type: z.enum(["pie", "funnel"]),
+    type: z.enum(["pie", "funnel", "line"]),
     subtype: z.enum(["basic", "nested", "conversion"])
   }),
   func: async ({ type, subtype }) => {
@@ -399,7 +485,7 @@ function buildSystemPrompt() {
     "",
     "Schema:",
     JSON.stringify({
-      chart: { type: "<pie|funnel>", subtype: "<basic|nested|conversion>", id: "<registry id>" },
+      chart: { type: "<pie|funnel|line>", subtype: "<basic|nested|conversion>", id: "<registry id>" },
       mapping: { "<role>": "<column name>" },
       reason: "short string",
       confidence: "number between 0 and 1"
@@ -545,7 +631,7 @@ function buildStep2SystemPrompt(chartRequirement) {
     "",
     "After tool execution, return ONLY one JSON object:",
     JSON.stringify({
-      chart: { type: "<pie|funnel>", subtype: "<basic|nested|conversion>" },
+      chart: { type: "<pie|funnel|line>", subtype: "<basic|nested|conversion>" },
       mapping: { "<role>": "<column>" },
       sql: "<the query you executed>",
       result: { rows: [/* tool rows */], rowCount: 0 }

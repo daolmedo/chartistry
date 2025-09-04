@@ -135,6 +135,2103 @@ function AnimatedSection({ children, className = "", id }: { children: React.Rea
   );
 }
 
+// Animated Demo Component  
+function AnimatedDemo() {
+  const [step, setStep] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const [showSpinner, setShowSpinner] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const demoRef = useRef<HTMLDivElement>(null);
+  const { elementRef: observerRef, hasIntersected } = useIntersectionObserver();
+  
+  const fullText = "Build a timeline of this dataset.";
+  
+  const latestData = [
+    {
+      country: 1875,
+      Austria: null,
+      Canada: null,
+      France: 0.1,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': null
+    },
+    {
+      country: 1880,
+      Austria: null,
+      Canada: null,
+      France: 0.1,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': null
+    },
+    {
+      country: 1885,
+      Austria: null,
+      Canada: null,
+      France: 0.1,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': null
+    },
+    {
+      country: 1890,
+      Austria: null,
+      Canada: null,
+      France: 0.1,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': null
+    },
+    {
+      country: 1895,
+      Austria: null,
+      Canada: null,
+      France: 0.1,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': null
+    },
+    {
+      country: 1900,
+      Austria: null,
+      Canada: null,
+      France: 0.2,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': 0.1
+    },
+    {
+      country: 1901,
+      Austria: null,
+      Canada: null,
+      France: 0.2,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': 0.1
+    },
+    {
+      country: 1902,
+      Austria: null,
+      Canada: null,
+      France: 0.2,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': 0.1
+    },
+    {
+      country: 1903,
+      Austria: null,
+      Canada: null,
+      France: 0.2,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': 0.1
+    },
+    {
+      country: 1904,
+      Austria: null,
+      Canada: null,
+      France: 0.2,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': 0.2
+    },
+    {
+      country: 1905,
+      Austria: null,
+      Canada: null,
+      France: 0.2,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.1,
+      'United States': 0.2
+    },
+    {
+      country: 1906,
+      Austria: null,
+      Canada: null,
+      France: 0.2,
+      Germany: 0.2,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.1,
+      'United States': 0.2
+    },
+    {
+      country: 1907,
+      Austria: null,
+      Canada: null,
+      France: 0.3,
+      Germany: 0.3,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.2,
+      'United States': 0.2
+    },
+    {
+      country: 1908,
+      Austria: null,
+      Canada: null,
+      France: 0.3,
+      Germany: 0.4,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.3,
+      'United States': 0.2
+    },
+    {
+      country: 1909,
+      Austria: null,
+      Canada: null,
+      France: 0.3,
+      Germany: 0.4,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.3,
+      'United States': 0.3
+    },
+    {
+      country: 1910,
+      Austria: null,
+      Canada: null,
+      France: 0.3,
+      Germany: 0.5,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.4,
+      'United States': 0.4
+    },
+    {
+      country: 1911,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: 0.6,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.6,
+      'United States': 0.4
+    },
+    {
+      country: 1912,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: 0.7,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.7,
+      'United States': 0.5
+    },
+    {
+      country: 1913,
+      Austria: null,
+      Canada: null,
+      France: 0.4,
+      Germany: 0.7,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.8,
+      'United States': 0.6
+    },
+    {
+      country: 1914,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 1.9,
+      'United States': 0.6
+    },
+    {
+      country: 1915,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 2.2,
+      'United States': 0.7
+    },
+    {
+      country: 1916,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 2.1,
+      'United States': 1
+    },
+    {
+      country: 1917,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 2.2,
+      'United States': 1.4
+    },
+    {
+      country: 1918,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 2.3,
+      'United States': 1.7
+    },
+    {
+      country: 1919,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: null,
+      Japan: null,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 3.1,
+      'United States': 1.8
+    },
+    {
+      country: 1920,
+      Austria: null,
+      Canada: 1,
+      France: null,
+      Germany: null,
+      Japan: 1.6,
+      Netherlands: null,
+      'New Zealand': 1.6,
+      Spain: 1,
+      Sweden: 1,
+      Switzerland: null,
+      'United Kingdom': 3,
+      'United States': 1.7
+    },
+    {
+      country: 1921,
+      Austria: null,
+      Canada: 1.1,
+      France: null,
+      Germany: null,
+      Japan: 1.7,
+      Netherlands: null,
+      'New Zealand': 1.2,
+      Spain: 1,
+      Sweden: 0.9,
+      Switzerland: null,
+      'United Kingdom': 2.8,
+      'United States': 1.9
+    },
+    {
+      country: 1922,
+      Austria: null,
+      Canada: 0.9,
+      France: null,
+      Germany: null,
+      Japan: 1.8,
+      Netherlands: null,
+      'New Zealand': 1.3,
+      Spain: 1.1,
+      Sweden: 0.7,
+      Switzerland: null,
+      'United Kingdom': 2.7,
+      'United States': 1.9
+    },
+    {
+      country: 1923,
+      Austria: 2.5,
+      Canada: 1,
+      France: 0.7,
+      Germany: null,
+      Japan: 2,
+      Netherlands: 1.1,
+      'New Zealand': 1.5,
+      Spain: 1.2,
+      Sweden: 0.7,
+      Switzerland: null,
+      'United Kingdom': 2.7,
+      'United States': 2.3
+    },
+    {
+      country: 1924,
+      Austria: 2.9,
+      Canada: 1.1,
+      France: 0.9,
+      Germany: null,
+      Japan: 2.1,
+      Netherlands: 1.4,
+      'New Zealand': 1.6,
+      Spain: 1.1,
+      Sweden: 0.7,
+      Switzerland: null,
+      'United Kingdom': 2.8,
+      'United States': 2.5
+    },
+    {
+      country: 1925,
+      Austria: 2.9,
+      Canada: 1.2,
+      France: null,
+      Germany: 1.7,
+      Japan: 2,
+      Netherlands: 1.1,
+      'New Zealand': 1.8,
+      Spain: 1,
+      Sweden: 0.7,
+      Switzerland: null,
+      'United Kingdom': 3,
+      'United States': 2.7
+    },
+    {
+      country: 1926,
+      Austria: 3.1,
+      Canada: 1.4,
+      France: null,
+      Germany: 1.6,
+      Japan: 2,
+      Netherlands: 1.3,
+      'New Zealand': 1.8,
+      Spain: 0.9,
+      Sweden: 0.7,
+      Switzerland: null,
+      'United Kingdom': 3,
+      'United States': 3
+    },
+    {
+      country: 1927,
+      Austria: 3.3,
+      Canada: 1.6,
+      France: null,
+      Germany: 1.8,
+      Japan: 2.1,
+      Netherlands: 1.4,
+      'New Zealand': 1.8,
+      Spain: 1,
+      Sweden: 0.8,
+      Switzerland: null,
+      'United Kingdom': 3.2,
+      'United States': 3.8
+    },
+    {
+      country: 1928,
+      Austria: 3.4,
+      Canada: 1.8,
+      France: null,
+      Germany: 1.8,
+      Japan: 2.2,
+      Netherlands: 1.4,
+      'New Zealand': 1.8,
+      Spain: 1.2,
+      Sweden: 0.9,
+      Switzerland: null,
+      'United Kingdom': 3.5,
+      'United States': 4
+    },
+    {
+      country: 1929,
+      Austria: 3.5,
+      Canada: 2.1,
+      France: null,
+      Germany: 1.8,
+      Japan: 2.2,
+      Netherlands: 1.6,
+      'New Zealand': 1.9,
+      Spain: 1.3,
+      Sweden: 1,
+      Switzerland: null,
+      'United Kingdom': 3.7,
+      'United States': 4.3
+    },
+    {
+      country: 1930,
+      Austria: 3.5,
+      Canada: 2,
+      France: null,
+      Germany: 1.6,
+      Japan: 2,
+      Netherlands: 1.8,
+      'New Zealand': 1.6,
+      Spain: 1.4,
+      Sweden: 1.1,
+      Switzerland: null,
+      'United Kingdom': 3.9,
+      'United States': 4.3
+    },
+    {
+      country: 1931,
+      Austria: 3.3,
+      Canada: 1.7,
+      France: null,
+      Germany: 1.5,
+      Japan: 2,
+      Netherlands: 1.7,
+      'New Zealand': 1.2,
+      Spain: 1.3,
+      Sweden: 1.2,
+      Switzerland: null,
+      'United Kingdom': 3.9,
+      'United States': 4.3
+    },
+    {
+      country: 1932,
+      Austria: 3.4,
+      Canada: 1.4,
+      France: 1.6,
+      Germany: 2.3,
+      Japan: 2.1,
+      Netherlands: 1.8,
+      'New Zealand': 1,
+      Spain: 1.4,
+      Sweden: 1.2,
+      Switzerland: null,
+      'United Kingdom': 4.1,
+      'United States': 4.4
+    },
+    {
+      country: 1933,
+      Austria: 3,
+      Canada: 1.6,
+      France: 1.6,
+      Germany: 2.3,
+      Japan: 2.2,
+      Netherlands: 1.9,
+      'New Zealand': 1,
+      Spain: 1.3,
+      Sweden: 1.1,
+      Switzerland: null,
+      'United Kingdom': 4.2,
+      'United States': 4.8
+    },
+    {
+      country: 1934,
+      Austria: 2.9,
+      Canada: 1.8,
+      France: 1.5,
+      Germany: 2.5,
+      Japan: 2.3,
+      Netherlands: 1.8,
+      'New Zealand': 1.1,
+      Spain: 1.2,
+      Sweden: 1.1,
+      Switzerland: 1.5,
+      'United Kingdom': 4.4,
+      'United States': 5.3
+    },
+    {
+      country: 1935,
+      Austria: 2.9,
+      Canada: 1.9,
+      France: 1.4,
+      Germany: 2.5,
+      Japan: 2.4,
+      Netherlands: 1.9,
+      'New Zealand': 1.4,
+      Spain: 1.1,
+      Sweden: 1,
+      Switzerland: 1.5,
+      'United Kingdom': 4.7,
+      'United States': 5.7
+    },
+    {
+      country: 1936,
+      Austria: 2.9,
+      Canada: 2,
+      France: 1.5,
+      Germany: 2.6,
+      Japan: 2.4,
+      Netherlands: 1.8,
+      'New Zealand': 1.7,
+      Spain: null,
+      Sweden: 1,
+      Switzerland: 1.5,
+      'United Kingdom': 4.9,
+      'United States': 6
+    },
+    {
+      country: 1937,
+      Austria: 2.8,
+      Canada: 2.3,
+      France: 1.6,
+      Germany: 2.8,
+      Japan: 2.5,
+      Netherlands: 1.9,
+      'New Zealand': 1.9,
+      Spain: null,
+      Sweden: 1,
+      Switzerland: 1.5,
+      'United Kingdom': 5.2,
+      'United States': 6
+    },
+    {
+      country: 1938,
+      Austria: 3.2,
+      Canada: 2.4,
+      France: 1.6,
+      Germany: 3.2,
+      Japan: 2.5,
+      Netherlands: 2.1,
+      'New Zealand': 2.1,
+      Spain: null,
+      Sweden: 1,
+      Switzerland: 1.9,
+      'United Kingdom': 5.5,
+      'United States': 6.1
+    },
+    {
+      country: 1939,
+      Austria: 4,
+      Canada: 2.4,
+      France: 1.8,
+      Germany: null,
+      Japan: 2.9,
+      Netherlands: 2.3,
+      'New Zealand': 2.1,
+      Spain: null,
+      Sweden: 1.1,
+      Switzerland: 1.9,
+      'United Kingdom': 5.7,
+      'United States': 6.3
+    },
+    {
+      country: 1940,
+      Austria: 5,
+      Canada: 2.6,
+      France: 1.7,
+      Germany: null,
+      Japan: 3.1,
+      Netherlands: null,
+      'New Zealand': 1.9,
+      Spain: 1,
+      Sweden: 1.1,
+      Switzerland: 1.9,
+      'United Kingdom': 5.6,
+      'United States': 6.5
+    },
+    {
+      country: 1941,
+      Austria: 5.8,
+      Canada: 2.9,
+      France: 1.4,
+      Germany: null,
+      Japan: 3.1,
+      Netherlands: null,
+      'New Zealand': 2,
+      Spain: 1.1,
+      Sweden: 1.2,
+      Switzerland: 2.3,
+      'United Kingdom': 6.2,
+      'United States': 6.8
+    },
+    {
+      country: 1942,
+      Austria: 5.3,
+      Canada: 3.3,
+      France: 1,
+      Germany: null,
+      Japan: 3.2,
+      Netherlands: null,
+      'New Zealand': 2.3,
+      Spain: 1.1,
+      Sweden: 1.2,
+      Switzerland: 2.2,
+      'United Kingdom': 6.5,
+      'United States': 7.4
+    },
+    {
+      country: 1943,
+      Austria: 5.3,
+      Canada: 3.6,
+      France: 0.9,
+      Germany: null,
+      Japan: 3.2,
+      Netherlands: null,
+      'New Zealand': 2.3,
+      Spain: 1.3,
+      Sweden: 1.2,
+      Switzerland: 2.6,
+      'United Kingdom': 6.5,
+      'United States': 7.8
+    },
+    {
+      country: 1944,
+      Austria: 4.2,
+      Canada: 3.7,
+      France: 0.8,
+      Germany: null,
+      Japan: 2.7,
+      Netherlands: null,
+      'New Zealand': 2.5,
+      Spain: 1.3,
+      Sweden: 1.2,
+      Switzerland: 2.8,
+      'United Kingdom': 6.5,
+      'United States': 7
+    },
+    {
+      country: 1945,
+      Austria: 1.6,
+      Canada: 4.5,
+      France: 1.2,
+      Germany: null,
+      Japan: 0.9,
+      Netherlands: null,
+      'New Zealand': 2.6,
+      Spain: 1.3,
+      Sweden: 1.3,
+      Switzerland: 3.2,
+      'United Kingdom': 7.2,
+      'United States': 8.1
+    },
+    {
+      country: 1946,
+      Austria: 1.1,
+      Canada: 4.7,
+      France: 1.6,
+      Germany: null,
+      Japan: 0.9,
+      Netherlands: 1.4,
+      'New Zealand': 3.4,
+      Spain: 1.4,
+      Sweden: 1.6,
+      Switzerland: 3.5,
+      'United Kingdom': 7.6,
+      'United States': 8.9
+    },
+    {
+      country: 1947,
+      Austria: 1.6,
+      Canada: 4.7,
+      France: 2.1,
+      Germany: null,
+      Japan: 1,
+      Netherlands: 2.2,
+      'New Zealand': 4.3,
+      Spain: 1.5,
+      Sweden: 1.9,
+      Switzerland: 4,
+      'United Kingdom': 6.7,
+      'United States': 9.1
+    },
+    {
+      country: 1948,
+      Austria: 2,
+      Canada: 4.8,
+      France: 2.3,
+      Germany: null,
+      Japan: 1.9,
+      Netherlands: 2.1,
+      'New Zealand': 3.4,
+      Spain: 1.3,
+      Sweden: 2,
+      Switzerland: 3.9,
+      'United Kingdom': 6.5,
+      'United States': 9.3
+    },
+    {
+      country: 1949,
+      Austria: 2.5,
+      Canada: 4.9,
+      France: 2.4,
+      Germany: null,
+      Japan: 2.8,
+      Netherlands: 2.4,
+      'New Zealand': 3.4,
+      Spain: 1.4,
+      Sweden: 2,
+      Switzerland: 4,
+      'United Kingdom': 6.4,
+      'United States': 9.3
+    },
+    {
+      country: 1950,
+      Austria: 3,
+      Canada: 4.9,
+      France: 4.4,
+      Germany: 2.7,
+      Japan: 3.3,
+      Netherlands: 3.1,
+      'New Zealand': 7.6,
+      Spain: 1.2,
+      Sweden: 2.5,
+      Switzerland: 4.1,
+      'United Kingdom': 6.5,
+      'United States': 9.3
+    },
+    {
+      country: 1951,
+      Austria: 3.5,
+      Canada: 4.4,
+      France: 4.4,
+      Germany: 3.1,
+      Japan: 3.7,
+      Netherlands: 3.2,
+      'New Zealand': 8,
+      Spain: 1.3,
+      Sweden: 2.5,
+      Switzerland: 4.3,
+      'United Kingdom': 6.8,
+      'United States': 9.8
+    },
+    {
+      country: 1952,
+      Austria: 3.7,
+      Canada: 4.9,
+      France: 4.5,
+      Germany: 3.1,
+      Japan: 3.9,
+      Netherlands: 3.6,
+      'New Zealand': 7.7,
+      Spain: 1.5,
+      Sweden: 2.9,
+      Switzerland: 4.7,
+      'United Kingdom': 7,
+      'United States': 10
+    },
+    {
+      country: 1953,
+      Austria: 3.8,
+      Canada: 5.7,
+      France: 4.4,
+      Germany: 3.3,
+      Japan: 4.3,
+      Netherlands: 3.8,
+      'New Zealand': 7.7,
+      Spain: 1.7,
+      Sweden: 2.9,
+      Switzerland: 4.6,
+      'United Kingdom': 7,
+      'United States': 9.7
+    },
+    {
+      country: 1954,
+      Austria: 3.3,
+      Canada: 5.8,
+      France: 4.5,
+      Germany: 3.5,
+      Japan: 4.5,
+      Netherlands: 4.2,
+      'New Zealand': 8,
+      Spain: 1.8,
+      Sweden: 2.9,
+      Switzerland: 4.6,
+      'United Kingdom': 7.3,
+      'United States': 9.2
+    },
+    {
+      country: 1955,
+      Austria: 3.7,
+      Canada: 8.6,
+      France: 4.6,
+      Germany: 3.8,
+      Japan: 4.5,
+      Netherlands: 4.3,
+      'New Zealand': 8.2,
+      Spain: 2,
+      Sweden: 3,
+      Switzerland: 4.8,
+      'United Kingdom': 7.5,
+      'United States': 9.4
+    },
+    {
+      country: 1956,
+      Austria: 4.1,
+      Canada: 8.8,
+      France: 4.8,
+      Germany: 4,
+      Japan: 4.4,
+      Netherlands: 4.7,
+      'New Zealand': 7.7,
+      Spain: 1.9,
+      Sweden: 3.1,
+      Switzerland: 5.1,
+      'United Kingdom': 7.5,
+      'United States': 9.4
+    },
+    {
+      country: 1957,
+      Austria: 4.3,
+      Canada: 9.3,
+      France: 5.1,
+      Germany: 4.4,
+      Japan: 4.5,
+      Netherlands: 4.8,
+      'New Zealand': 8.1,
+      Spain: 3.8,
+      Sweden: 3.2,
+      Switzerland: 5.3,
+      'United Kingdom': 7.7,
+      'United States': 9.7
+    },
+    {
+      country: 1958,
+      Austria: 4.6,
+      Canada: 9.7,
+      France: 5.2,
+      Germany: 4.4,
+      Japan: 4.6,
+      Netherlands: 4.6,
+      'New Zealand': 7.5,
+      Spain: 4.3,
+      Sweden: 3.2,
+      Switzerland: 5.8,
+      'United Kingdom': 7.8,
+      'United States': 10.2
+    },
+    {
+      country: 1959,
+      Austria: 4.7,
+      Canada: 9.9,
+      France: 4.9,
+      Germany: 4.7,
+      Japan: 4.8,
+      Netherlands: 4.6,
+      'New Zealand': 7.3,
+      Spain: 4.2,
+      Sweden: 3.3,
+      Switzerland: 5.9,
+      'United Kingdom': 8,
+      'United States': 10.5
+    },
+    {
+      country: 1960,
+      Austria: 4.8,
+      Canada: 9.8,
+      France: 5,
+      Germany: 5.1,
+      Japan: 5.1,
+      Netherlands: 7.3,
+      'New Zealand': 8.2,
+      Spain: 4.2,
+      Sweden: 3.5,
+      Switzerland: 6.6,
+      'United Kingdom': 8.3,
+      'United States': 10.7
+    },
+    {
+      country: 1961,
+      Austria: 4.7,
+      Canada: 10.2,
+      France: 5,
+      Germany: 5.4,
+      Japan: 5.6,
+      Netherlands: 7.5,
+      'New Zealand': 8.2,
+      Spain: 4.5,
+      Sweden: 3.7,
+      Switzerland: 7.2,
+      'United Kingdom': 8.4,
+      'United States': 11
+    },
+    {
+      country: 1962,
+      Austria: 4.9,
+      Canada: 10.5,
+      France: 5.1,
+      Germany: 5.3,
+      Japan: 5.7,
+      Netherlands: 7.4,
+      'New Zealand': 8.1,
+      Spain: 4.6,
+      Sweden: 3.8,
+      Switzerland: 7.6,
+      'United Kingdom': 8.1,
+      'United States': 10.9
+    },
+    {
+      country: 1963,
+      Austria: 5.1,
+      Canada: 10.5,
+      France: 5.1,
+      Germany: 5.4,
+      Japan: 5.9,
+      Netherlands: 7.6,
+      'New Zealand': 8.4,
+      Spain: 4.7,
+      Sweden: 3.9,
+      Switzerland: 7.6,
+      'United Kingdom': 8.3,
+      'United States': 11
+    },
+    {
+      country: 1964,
+      Austria: 5.2,
+      Canada: 10.4,
+      France: 5.1,
+      Germany: 5.7,
+      Japan: 6.2,
+      Netherlands: 6.9,
+      'New Zealand': 8.2,
+      Spain: 4.9,
+      Sweden: 3.9,
+      Switzerland: 7.2,
+      'United Kingdom': 8.3,
+      'United States': 10.6
+    },
+    {
+      country: 1965,
+      Austria: 5.4,
+      Canada: 10.7,
+      France: 5.3,
+      Germany: 6,
+      Japan: 6.4,
+      Netherlands: 8.4,
+      'New Zealand': 8.1,
+      Spain: 5.3,
+      Sweden: 4,
+      Switzerland: 8.5,
+      'United Kingdom': 8.1,
+      'United States': 10.7
+    },
+    {
+      country: 1966,
+      Austria: 5.8,
+      Canada: 10.8,
+      France: 5.3,
+      Germany: 6.2,
+      Japan: 6.7,
+      Netherlands: 6.8,
+      'New Zealand': 8.6,
+      Spain: 5.4,
+      Sweden: 4.2,
+      Switzerland: 6.7,
+      'United Kingdom': 8.4,
+      'United States': 10.7
+    },
+    {
+      country: 1967,
+      Austria: 5.9,
+      Canada: 10.6,
+      France: 5.6,
+      Germany: 6.1,
+      Japan: 7,
+      Netherlands: 7.7,
+      'New Zealand': 8.3,
+      Spain: 5.6,
+      Sweden: 4.2,
+      Switzerland: 7.7,
+      'United Kingdom': 8.5,
+      'United States': 10.7
+    },
+    {
+      country: 1968,
+      Austria: 6,
+      Canada: 10.3,
+      France: 5.6,
+      Germany: 6.5,
+      Japan: 7,
+      Netherlands: 8.4,
+      'New Zealand': 8.2,
+      Spain: 5.7,
+      Sweden: 4.5,
+      Switzerland: 8.1,
+      'United Kingdom': 8.6,
+      'United States': 10.4
+    },
+    {
+      country: 1969,
+      Austria: 6.2,
+      Canada: 10.1,
+      France: 5.6,
+      Germany: 6.8,
+      Japan: 7.5,
+      Netherlands: 7.7,
+      'New Zealand': 8.2,
+      Spain: 5.7,
+      Sweden: 4.7,
+      Switzerland: 9,
+      'United Kingdom': 8.8,
+      'United States': 10
+    },
+    {
+      country: 1970,
+      Austria: 6.5,
+      Canada: 10.5,
+      France: 5.8,
+      Germany: 7.1,
+      Japan: 7.8,
+      Netherlands: 8.3,
+      'New Zealand': 8.3,
+      Spain: 5.8,
+      Sweden: 4.7,
+      Switzerland: 9.5,
+      'United Kingdom': 9,
+      'United States': 10.2
+    },
+    {
+      country: 1971,
+      Austria: 6.6,
+      Canada: 10.5,
+      France: 5.9,
+      Germany: 7.5,
+      Japan: 8.2,
+      Netherlands: 8.4,
+      'New Zealand': 8.2,
+      Spain: 5.9,
+      Sweden: 4.6,
+      Switzerland: 10.3,
+      'United Kingdom': 8.5,
+      'United States': 9.9
+    },
+    {
+      country: 1972,
+      Austria: 6.5,
+      Canada: 10.6,
+      France: 5.7,
+      Germany: 7.5,
+      Japan: 8.6,
+      Netherlands: 9.2,
+      'New Zealand': 8.3,
+      Spain: 6.1,
+      Sweden: 5.1,
+      Switzerland: 10.7,
+      'United Kingdom': 9.1,
+      'United States': 10.2
+    },
+    {
+      country: 1973,
+      Austria: 7,
+      Canada: 10.8,
+      France: 5.9,
+      Germany: 7.3,
+      Japan: 8.9,
+      Netherlands: 9.7,
+      'New Zealand': 8.3,
+      Spain: 6.4,
+      Sweden: 4.2,
+      Switzerland: 9.3,
+      'United Kingdom': 9.5,
+      'United States': 10.7
+    },
+    {
+      country: 1974,
+      Austria: 6.9,
+      Canada: 10.7,
+      France: 6.1,
+      Germany: 7.5,
+      Japan: 9.5,
+      Netherlands: 9.9,
+      'New Zealand': 8.3,
+      Spain: 6.8,
+      Sweden: 4.9,
+      Switzerland: 9.2,
+      'United Kingdom': 9.4,
+      'United States': 10.6
+    },
+    {
+      country: 1975,
+      Austria: 6.6,
+      Canada: 10.6,
+      France: 6.3,
+      Germany: 7.3,
+      Japan: 9.5,
+      Netherlands: 9.9,
+      'New Zealand': 8.6,
+      Spain: 6.4,
+      Sweden: 5.1,
+      Switzerland: 8.6,
+      'United Kingdom': 9.2,
+      'United States': 10.4
+    },
+    {
+      country: 1976,
+      Austria: 6.8,
+      Canada: 10.9,
+      France: 6.1,
+      Germany: 7.6,
+      Japan: 9.4,
+      Netherlands: 9.6,
+      'New Zealand': 8.4,
+      Spain: 6.7,
+      Sweden: 5.2,
+      Switzerland: 8.5,
+      'United Kingdom': 9,
+      'United States': 10.3
+    },
+    {
+      country: 1977,
+      Austria: 6.9,
+      Canada: 10.7,
+      France: 6.3,
+      Germany: 7,
+      Japan: 9.7,
+      Netherlands: 10.8,
+      'New Zealand': 8.5,
+      Spain: 7,
+      Sweden: 4.9,
+      Switzerland: 8.8,
+      'United Kingdom': 8.7,
+      'United States': 10.2
+    },
+    {
+      country: 1978,
+      Austria: 7,
+      Canada: 10.4,
+      France: 6.1,
+      Germany: 7.3,
+      Japan: 9.6,
+      Netherlands: 9.7,
+      'New Zealand': 8.3,
+      Spain: 6.5,
+      Sweden: 5.1,
+      Switzerland: 8.5,
+      'United Kingdom': 8.6,
+      'United States': 10
+    },
+    {
+      country: 1979,
+      Austria: 7.2,
+      Canada: 10.5,
+      France: 6.2,
+      Germany: 7.4,
+      Japan: 9.6,
+      Netherlands: 10.4,
+      'New Zealand': 7.9,
+      Spain: 7.2,
+      Sweden: 5.1,
+      Switzerland: 8.2,
+      'United Kingdom': 8.4,
+      'United States': 9.9
+    },
+    {
+      country: 1980,
+      Austria: 7.1,
+      Canada: 10.3,
+      France: 6.1,
+      Germany: 7.5,
+      Japan: 9.4,
+      Netherlands: 9.2,
+      'New Zealand': 7.7,
+      Spain: 7,
+      Sweden: 5.1,
+      Switzerland: 8.3,
+      'United Kingdom': 8.1,
+      'United States': 9.9
+    },
+    {
+      country: 1981,
+      Austria: 7.1,
+      Canada: 10.3,
+      France: 6,
+      Germany: 7.6,
+      Japan: 9.5,
+      Netherlands: 8.8,
+      'New Zealand': 7.8,
+      Spain: 6.4,
+      Sweden: 4.9,
+      Switzerland: 8.4,
+      'United Kingdom': 7.5,
+      'United States': 9.9
+    },
+    {
+      country: 1982,
+      Austria: 7,
+      Canada: 10.4,
+      France: 6,
+      Germany: 6.9,
+      Japan: 9.4,
+      Netherlands: 9.1,
+      'New Zealand': 7.6,
+      Spain: 6.7,
+      Sweden: 5.1,
+      Switzerland: 8.4,
+      'United Kingdom': 6.9,
+      'United States': 9.7
+    },
+    {
+      country: 1983,
+      Austria: 7.2,
+      Canada: 9.7,
+      France: 6.1,
+      Germany: 7.2,
+      Japan: 9.3,
+      Netherlands: 9.8,
+      'New Zealand': 7.5,
+      Spain: 6.7,
+      Sweden: 4.9,
+      Switzerland: 8.5,
+      'United Kingdom': 6.9,
+      'United States': 9.1
+    },
+    {
+      country: 1984,
+      Austria: 7,
+      Canada: 9.6,
+      France: 6.1,
+      Germany: 7.1,
+      Japan: 9.2,
+      Netherlands: 8,
+      'New Zealand': 7.5,
+      Spain: 6.9,
+      Sweden: 5,
+      Switzerland: 8.4,
+      'United Kingdom': 6.6,
+      'United States': 9
+    },
+    {
+      country: 1985,
+      Austria: 7,
+      Canada: 9.1,
+      France: 6.4,
+      Germany: 7.2,
+      Japan: 9,
+      Netherlands: 8,
+      'New Zealand': 6.7,
+      Spain: 7.3,
+      Sweden: 4.9,
+      Switzerland: 8.1,
+      'United Kingdom': 6.5,
+      'United States': 8.8
+    },
+    {
+      country: 1986,
+      Austria: 7,
+      Canada: 8.7,
+      France: 6.2,
+      Germany: 7,
+      Japan: 8.8,
+      Netherlands: 7.9,
+      'New Zealand': 6.2,
+      Spain: 7.1,
+      Sweden: 4.8,
+      Switzerland: 8.1,
+      'United Kingdom': 6.3,
+      'United States': 8.6
+    },
+    {
+      country: 1987,
+      Austria: 6.8,
+      Canada: 8.3,
+      France: 6.1,
+      Germany: 7,
+      Japan: 8.7,
+      Netherlands: 7.6,
+      'New Zealand': 6.2,
+      Spain: 7.2,
+      Sweden: 4.7,
+      Switzerland: 8,
+      'United Kingdom': 6.3,
+      'United States': 8.3
+    },
+    {
+      country: 1988,
+      Austria: 6.4,
+      Canada: 8,
+      France: 6,
+      Germany: 6.9,
+      Japan: 8.6,
+      Netherlands: 7.5,
+      'New Zealand': 6.3,
+      Spain: 6.9,
+      Sweden: 4.7,
+      Switzerland: 7.9,
+      'United Kingdom': 6.2,
+      'United States': 8.1
+    },
+    {
+      country: 1989,
+      Austria: 6.2,
+      Canada: 7.3,
+      France: 6,
+      Germany: 7,
+      Japan: 8.6,
+      Netherlands: 7.5,
+      'New Zealand': 5.1,
+      Spain: 7,
+      Sweden: 4.6,
+      Switzerland: 7.9,
+      'United Kingdom': 6.3,
+      'United States': 7.6
+    },
+    {
+      country: 1990,
+      Austria: 6.3,
+      Canada: 7,
+      France: 5.9,
+      Germany: null,
+      Japan: 8.8,
+      Netherlands: 7.6,
+      'New Zealand': 5.3,
+      Spain: 7.2,
+      Sweden: 4.5,
+      Switzerland: 7.8,
+      'United Kingdom': 6.5,
+      'United States': 7.4
+    },
+    {
+      country: 1991,
+      Austria: 6.4,
+      Canada: 6.3,
+      France: 6,
+      Germany: 6.6,
+      Japan: 8.9,
+      Netherlands: 8,
+      'New Zealand': 4.7,
+      Spain: 7.3,
+      Sweden: 4.5,
+      Switzerland: 7.8,
+      'United Kingdom': 6.2,
+      'United States': 7.1
+    },
+    {
+      country: 1992,
+      Austria: 6.1,
+      Canada: 6.4,
+      France: 5.9,
+      Germany: 6.1,
+      Japan: 8.8,
+      Netherlands: 7.3,
+      'New Zealand': 4.2,
+      Spain: 6.9,
+      Sweden: 4.6,
+      Switzerland: 8.2,
+      'United Kingdom': 5.9,
+      'United States': 6.9
+    },
+    {
+      country: 1993,
+      Austria: 5.8,
+      Canada: 6,
+      France: 5.7,
+      Germany: 5.9,
+      Japan: 8.8,
+      Netherlands: 6.6,
+      'New Zealand': 4.2,
+      Spain: 6.3,
+      Sweden: 3.8,
+      Switzerland: 7.6,
+      'United Kingdom': 5.7,
+      'United States': 6.6
+    },
+    {
+      country: 1994,
+      Austria: 5.9,
+      Canada: 6.6,
+      France: 5.6,
+      Germany: 6,
+      Japan: 8.8,
+      Netherlands: 6.8,
+      'New Zealand': 4,
+      Spain: 6.8,
+      Sweden: 3.6,
+      Switzerland: 7.4,
+      'United Kingdom': 5.6,
+      'United States': 6.6
+    },
+    {
+      country: 1995,
+      Austria: 5.6,
+      Canada: 5.9,
+      France: 5.4,
+      Germany: 6,
+      Japan: 8.8,
+      Netherlands: 6.8,
+      'New Zealand': 4,
+      Spain: 6.3,
+      Sweden: 3.4,
+      Switzerland: 7.3,
+      'United Kingdom': 5.7,
+      'United States': 6.5
+    },
+    {
+      country: 1996,
+      Austria: 5.4,
+      Canada: 6.2,
+      France: 5.4,
+      Germany: 6,
+      Japan: 9.1,
+      Netherlands: 6.2,
+      'New Zealand': 4.2,
+      Spain: 6,
+      Sweden: 3.5,
+      Switzerland: 7.2,
+      'United Kingdom': 5.7,
+      'United States': 6.4
+    },
+    {
+      country: 1997,
+      Austria: 5.7,
+      Canada: 5.8,
+      France: 5.2,
+      Germany: 6.1,
+      Japan: 8.5,
+      Netherlands: 6.5,
+      'New Zealand': 4.1,
+      Spain: 6.6,
+      Sweden: 2.6,
+      Switzerland: 7,
+      'United Kingdom': 5.6,
+      'United States': 6.3
+    },
+    {
+      country: 1998,
+      Austria: 6.4,
+      Canada: 5.8,
+      France: 5.2,
+      Germany: 6.1,
+      Japan: 8.7,
+      Netherlands: 6.6,
+      'New Zealand': 4,
+      Spain: 7.3,
+      Sweden: 2.5,
+      Switzerland: 7.1,
+      'United Kingdom': 5.6,
+      'United States': 6
+    },
+    {
+      country: 1999,
+      Austria: 6.6,
+      Canada: 5.7,
+      France: 5.2,
+      Germany: 6.4,
+      Japan: 8.5,
+      Netherlands: 6.4,
+      'New Zealand': 3.8,
+      Spain: 7.1,
+      Sweden: 2.8,
+      Switzerland: 6.8,
+      'United Kingdom': 5.8,
+      'United States': 5.7
+    },
+    {
+      country: 2000,
+      Austria: 6.5,
+      Canada: 5.3,
+      France: 5.1,
+      Germany: 6.1,
+      Japan: 8.3,
+      Netherlands: 6.4,
+      'New Zealand': 3.9,
+      Spain: 7.1,
+      Sweden: 2.9,
+      Switzerland: 6.7,
+      'United Kingdom': 5.7,
+      'United States': 5.4
+    },
+    {
+      country: 2001,
+      Austria: 6.3,
+      Canada: 5,
+      France: 5.2,
+      Germany: 6.2,
+      Japan: 8.1,
+      Netherlands: 6,
+      'New Zealand': 3.4,
+      Spain: 7.2,
+      Sweden: 2.9,
+      Switzerland: 6.5,
+      'United Kingdom': 5.6,
+      'United States': 5.3
+    },
+    {
+      country: 2002,
+      Austria: 4.8,
+      Canada: 4.4,
+      France: 4.9,
+      Germany: 6.3,
+      Japan: 7.9,
+      Netherlands: 6.3,
+      'New Zealand': 3.5,
+      Spain: 7.1,
+      Sweden: 3,
+      Switzerland: 6.5,
+      'United Kingdom': 5.5,
+      'United States': 5.1
+    },
+    {
+      country: 2003,
+      Austria: 4.6,
+      Canada: 4.2,
+      France: 4.3,
+      Germany: 5.9,
+      Japan: 7.6,
+      Netherlands: 6.2,
+      'New Zealand': 3.1,
+      Spain: 7.1,
+      Sweden: 2.9,
+      Switzerland: 6.6,
+      'United Kingdom': 5.4,
+      'United States': 4.9
+    },
+    {
+      country: 2004,
+      Austria: 4.6,
+      Canada: 4,
+      France: 3.5,
+      Germany: 5.2,
+      Japan: 7.4,
+      Netherlands: 5.6,
+      'New Zealand': 3.1,
+      Spain: 7.2,
+      Sweden: 2.8,
+      Switzerland: 6.4,
+      'United Kingdom': 5.2,
+      'United States': 4.7
+    },
+    {
+      country: 2005,
+      Austria: null,
+      Canada: 3.7,
+      France: 3.5,
+      Germany: 5,
+      Japan: 7.2,
+      Netherlands: 5.1,
+      'New Zealand': 3.3,
+      Spain: 7,
+      Sweden: 2.7,
+      Switzerland: 5.7,
+      'United Kingdom': 5.1,
+      'United States': 4.5
+    },
+    {
+      country: 2006,
+      Austria: null,
+      Canada: 3.4,
+      France: 3.5,
+      Germany: 4.5,
+      Japan: 6.8,
+      Netherlands: 5.1,
+      'New Zealand': 3.2,
+      Spain: 6.8,
+      Sweden: 2.6,
+      Switzerland: 5.8,
+      'United Kingdom': 4.9,
+      'United States': 4.5
+    },
+    {
+      country: 2007,
+      Austria: null,
+      Canada: 3.2,
+      France: 3.5,
+      Germany: 4.4,
+      Japan: 6.5,
+      Netherlands: 5.3,
+      'New Zealand': 3.2,
+      Spain: 6.6,
+      Sweden: null,
+      Switzerland: 5.4,
+      'United Kingdom': 4.7,
+      'United States': 4.2
+    },
+    {
+      country: 2008,
+      Austria: null,
+      Canada: 3,
+      France: 3.4,
+      Germany: 4.2,
+      Japan: 6.2,
+      Netherlands: 5.1,
+      'New Zealand': 3.3,
+      Spain: 6.7,
+      Sweden: null,
+      Switzerland: 5.7,
+      'United Kingdom': 4.5,
+      'United States': 4
+    },
+    {
+      country: 2009,
+      Austria: null,
+      Canada: 3.1,
+      France: 3.5,
+      Germany: 4.3,
+      Japan: 5.9,
+      Netherlands: 4.6,
+      'New Zealand': 3.1,
+      Spain: 6.1,
+      Sweden: null,
+      Switzerland: 5.6,
+      'United Kingdom': 4.3,
+      'United States': 3.7
+    },
+    {
+      country: 2010,
+      Austria: null,
+      Canada: 3.5,
+      France: 3.5,
+      Germany: 4.2,
+      Japan: 5.3,
+      Netherlands: 4.5,
+      'New Zealand': null,
+      Spain: 5.5,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 4,
+      'United States': 3.6
+    },
+    {
+      country: 2011,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: 4.4,
+      Japan: 4.9,
+      Netherlands: 1.5,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 3.5,
+      'United States': 3.5
+    },
+    {
+      country: 2012,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: 4.2,
+      Japan: 4.9,
+      Netherlands: 1.5,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 3.4,
+      'United States': 3.5
+    },
+    {
+      country: 2013,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: 4.1,
+      Japan: 4.9,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 3.2,
+      'United States': 3.3
+    },
+    {
+      country: 2014,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: 4.1,
+      Japan: 4.5,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': 3,
+      'United States': 3.2
+    },
+    {
+      country: 2015,
+      Austria: null,
+      Canada: null,
+      France: null,
+      Germany: 4.2,
+      Japan: 4.6,
+      Netherlands: null,
+      'New Zealand': null,
+      Spain: null,
+      Sweden: null,
+      Switzerland: null,
+      'United Kingdom': null,
+      'United States': null
+    }
+  ];
+
+
+  type FoldedRow = {
+    name: string;
+    value: number | null;
+    country: number;
+  };
+  
+  // Demo timeline chart spec
+  const demoChartSpec = {
+    type: 'line',
+    data: {
+      values: latestData,
+      transforms: [
+        {
+          type: 'fold',
+          options: {
+            key: 'name',
+            value: 'value',
+            fields: [
+              'Austria',
+              'Canada',
+              'France',
+              'Germany',
+              'Japan',
+              'Netherlands',
+              'New Zealand',
+              'Spain',
+              'Sweden',
+              'Switzerland',
+              'United Kingdom',
+              'United States'
+            ]
+          }
+        }
+      ]
+    },
+    xField: 'country',
+    yField: 'value',
+    seriesField: 'name',
+    point: {
+      style: { size: 0 },
+      state: {
+        dimension_hover: {
+          size: (datum: FoldedRow) => {
+            if (datum.name === 'United States') return 8;
+            if (datum.name === 'Germany') return 8;
+            if (datum.name === 'France') return 8;
+            return 0;
+          },
+          fill: (datum: FoldedRow) => {
+            if (datum.name === 'United States') return '#c02d24';
+            if (datum.name === 'Germany') return '#15607a';
+            if (datum.name === 'France') return '#008cb7';
+            return 'rgb(204, 204, 204)';
+          }
+        }
+      }
+    },
+    line: {
+      style: {
+        lineWidth: (datum: FoldedRow) => {
+          if (datum.name === 'United States') return 3;
+          if (datum.name === 'Germany') return 3;
+          if (datum.name === 'France') return 3;
+          return 1;
+        },
+        stroke: (datum: FoldedRow) => {
+          if (datum.name === 'United States') return '#c02d24';
+          if (datum.name === 'Germany') return '#15607a';
+          if (datum.name === 'France') return '#008cb7';
+          return 'rgb(204, 204, 204)';
+        },
+        zIndex: (datum: FoldedRow) => {
+          if (datum.name === 'United States') return 1;
+          if (datum.name === 'Germany') return 1;
+          if (datum.name === 'France') return 1;
+          return 0;
+        }
+      }
+    },
+    axes: [
+      {
+        orient: 'left',
+        domainLine: { visible: false },
+        tick: { visible: false },
+        label: {
+          style: {
+            fill: 'rgb(162, 162, 162)'
+          }
+        },
+        grid: {
+          style: {
+            lineDash: [0],
+            stroke: 'rgb(231, 231, 231)'
+          }
+        }
+      },
+      {
+        orient: 'bottom',
+        domainLine: { visible: true, style: { stroke: '#000' } },
+        tick: {
+          style: { stroke: '#000' }
+        }
+      }
+    ],
+    title: {
+      visible: true,
+      text: 'The rise and fall of cigarette consumption.',
+      subtext: `Sales of cigarettes per adult per day, in selected countries.`
+    },
+    crosshair: {
+      xField: {
+        visible: true,
+        line: {
+          type: 'line'
+        },
+        label: {
+          visible: false
+        }
+      },
+      yField: {
+        visible: false
+      }
+    }
+  };
+
+  // Start animation when section comes into view (with slight delay for fade-in)
+  useEffect(() => {
+    if (!hasIntersected || hasStarted) return;
+    
+    setHasStarted(true);
+    
+    // Run animation once only
+    // Reset animation
+    setStep(0);
+    setTypedText('');
+    setShowSpinner(false);
+    
+    // Step 1: Typing animation (delayed for fade-in)
+    setTimeout(() => {
+      setStep(1);
+      let i = 0;
+      const typingInterval = setInterval(() => {
+        if (i <= fullText.length) {
+          setTypedText(fullText.slice(0, i));
+          i++;
+        } else {
+          clearInterval(typingInterval);
+          // Step 2: Send button click
+          setTimeout(() => {
+            setStep(2);
+            setShowSpinner(true);
+            // Step 3: Show response and chart
+            setTimeout(() => {
+              setShowSpinner(false);
+              setStep(3);
+            }, 2000);
+          }, 500);
+        }
+      }, 80);
+    }, 1500); // Increased delay to allow fade-in to complete
+  }, [hasIntersected, fullText]);
+
+  return (
+    <AnimatedSection className="py-12 sm:py-16 lg:py-20 bg-white">
+      <div ref={observerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">See It In Action</h2>
+          <p className="text-lg sm:text-xl text-gray-600">Watch how easy it is to create stunning visualizations</p>
+        </div>
+        
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-stretch max-h-[600px] lg:max-h-[500px]">
+          {/* Left Side - Chat Interface */}
+          <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg flex flex-col h-full">
+            <div className="mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Chat with your data</h3>
+              
+              {/* Dataset Bubble */}
+              <div className="inline-flex items-center bg-blue-50 border border-blue-200 rounded-full px-3 py-1.5 mb-4">
+                <svg className="w-3.5 h-3.5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-xs sm:text-sm font-medium text-blue-800">cigarette_sales_data.csv</span>
+              </div>
+            </div>
+            
+            {/* Chat Messages */}
+            <div className="space-y-3 mb-4 flex-1 flex flex-col justify-end min-h-[140px] sm:min-h-[180px]">
+              {/* User Input */}
+              <div className="bg-white rounded-xl rounded-br-sm p-3 ml-4 sm:ml-8 shadow-sm border border-gray-100">
+                <div className="text-gray-900 text-xs font-medium mb-1">You</div>
+                <div className="text-gray-800 text-sm">
+                  {typedText}
+                  {step === 1 && <span className="animate-pulse">|</span>}
+                </div>
+              </div>
+              
+              {/* Loading Spinner */}
+              {showSpinner && (
+                <div className="bg-gray-100 rounded-xl rounded-bl-sm p-3 mr-4 sm:mr-8">
+                  <div className="text-gray-600 text-xs font-medium mb-1">AI Assistant</div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-gray-600 text-sm">Analyzing your data...</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* AI Response */}
+              {step === 3 && (
+                <div className="bg-gray-100 rounded-xl rounded-bl-sm p-3 mr-4 sm:mr-8 animate-fade-in">
+                  <div className="text-gray-600 text-xs font-medium mb-1">AI Assistant</div>
+                  <div className="text-gray-800 text-sm">I have successfully created the chart! 📈</div>
+                </div>
+              )}
+            </div>
+            
+            {/* Input Field */}
+            <div className="relative">
+              <input
+                type="text"
+                value={step >= 2 ? fullText : typedText}
+                readOnly
+                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2.5 pr-10 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ask me anything about your data..."
+              />
+              <button
+                className={`absolute right-2 top-2 p-1.5 rounded-md transition-colors ${
+                  step >= 1 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300'
+                }`}
+                disabled={step < 1}
+              >
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          {/* Right Side - Chart Result */}
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg flex flex-col h-full">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Your generated chart</h3>
+            <div className="bg-white rounded-xl p-3 sm:p-4 flex-1 flex items-center justify-center min-h-[200px] sm:min-h-[250px]">
+              {step === 3 ? (
+                <div className="w-full h-full animate-fade-in">
+                  <ChartComponent spec={demoChartSpec} className="w-full h-full" shouldAnimate={false} />
+                </div>
+              ) : (
+                <div className="text-center space-y-6">
+                  <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">AI-Powered Charts</h3>
+                    <p className="text-sm text-gray-600 mt-2">AI is analyzing your data and creating the perfect visualization</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </AnimatedSection>
+  );
+}
+
 export default function LandingPage() {
   // Hero animated line chart
   const heroChartSpec = {
@@ -256,7 +2353,7 @@ export default function LandingPage() {
     },
     label: {
       visible: true,
-      formatMethod: (text: any, datum: any) => `${datum.value}%`
+      formatMethod: (text: any, datum: { value: number }) => `${datum.value}%`
     }
   };
 
@@ -504,6 +2601,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Interactive Demo Section */}
+      <AnimatedDemo />
 
       {/* Features Section */}
       <AnimatedSection id="features" className="py-20 bg-gray-50">
