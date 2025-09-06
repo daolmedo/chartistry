@@ -788,6 +788,115 @@ function buildStep3UserPrompt({ selection, aggregation }) {
 }
 
 
+/* ----------------------------- Helper Functions ----------------------------- */
+
+/**
+ * Extract field names that the VChart spec expects from the data
+ * This helps detect mismatches between SQL results and chart expectations
+ */
+function extractFieldsFromSpec(spec) {
+  const fields = [];
+  
+  try {
+    // Extract common field mappings
+    if (spec.categoryField) fields.push(spec.categoryField);
+    if (spec.valueField) fields.push(spec.valueField);
+    if (spec.xField) fields.push(spec.xField);
+    if (spec.yField) fields.push(spec.yField);
+    if (spec.seriesField) fields.push(spec.seriesField);
+    
+    // For multi-series charts, check series configurations
+    if (spec.series && Array.isArray(spec.series)) {
+      spec.series.forEach(s => {
+        if (s.categoryField) fields.push(s.categoryField);
+        if (s.valueField) fields.push(s.valueField);
+        if (s.xField) fields.push(s.xField);
+        if (s.yField) fields.push(s.yField);
+      });
+    }
+    
+    // Look at data structure if available (for validation)
+    if (spec.data && Array.isArray(spec.data) && spec.data.length > 0) {
+      const firstDataset = spec.data[0];
+      if (firstDataset.values && Array.isArray(firstDataset.values) && firstDataset.values.length > 0) {
+        const sampleRow = firstDataset.values[0];
+        if (typeof sampleRow === 'object' && sampleRow !== null) {
+          Object.keys(sampleRow).forEach(key => {
+            if (!fields.includes(key)) {
+              fields.push(key);
+            }
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Error extracting fields from spec:', error);
+  }
+  
+  return [...new Set(fields)]; // Remove duplicates
+}
+
+/**
+ * Store chart generation metadata in database for tracking and future dynamic fetching
+ */
+async function storeChartGenerationMetadata(params) {
+  const { 
+    user_intent, 
+    dataset_id, 
+    selection, 
+    aggregation, 
+    spec, 
+    sqlFields, 
+    specFields,
+    execution_time_ms 
+  } = params;
+  
+  const client = await pool.connect();
+  try {
+    // Check if fields are compatible
+    const fieldsCompatible = JSON.stringify([...sqlFields].sort()) === JSON.stringify([...specFields].sort());
+    
+    const insertResult = await client.query(`
+      INSERT INTO chart_generations (
+        user_id, dataset_id, user_prompt, generated_chart_config,
+        chart_type, columns_used, model_used, execution_time_ms,
+        was_successful, sql_query, field_mappings, confidence_score,
+        generated_sql_query, sql_fields, spec_fields, fields_compatible,
+        dynamic_fetch_ready
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      RETURNING generation_id
+    `, [
+      'system', // user_id - we'd need to pass this from the request
+      dataset_id,
+      user_intent,
+      JSON.stringify(spec),
+      `${selection.chart.type}.${selection.chart.subtype}`,
+      JSON.stringify(sqlFields),
+      'gpt-5-mini',
+      execution_time_ms || 0,
+      true,
+      aggregation.sql,
+      JSON.stringify(selection.mapping),
+      selection.confidence || 0.5,
+      aggregation.sql, // generated_sql_query (same as sql_query for now)
+      JSON.stringify(sqlFields),
+      JSON.stringify(specFields),
+      fieldsCompatible,
+      true // dynamic_fetch_ready - Phase 1 is ready for dynamic fetching
+    ]);
+    
+    console.log('Chart generation metadata stored with ID:', insertResult.rows[0].generation_id);
+    return insertResult.rows[0].generation_id;
+    
+  } catch (error) {
+    console.error('Error storing chart generation metadata:', error);
+    // Don't fail the entire request if metadata storage fails
+    return null;
+  } finally {
+    client.release();
+  }
+}
+
 /* ----------------------------- Lambda Handler ----------------------------- */
 
 // Helper to create streaming response chunks
@@ -849,6 +958,7 @@ exports.handler = awslambda.streamifyResponse(
 
 // Main processing function that can work with or without streaming
 async function processChartGeneration(event, streamThought = null) {
+  const startTime = Date.now(); // Track total execution time
   const body = typeof event.body === "string" ? JSON.parse(event.body || "{}") : (event.body || {});
   console.log('Parsed body:', JSON.stringify(body));
   
@@ -985,13 +1095,45 @@ async function processChartGeneration(event, streamThought = null) {
   
   // --- Final response ---
   console.log('\n=== Success! Returning final response ===');
+  
+  // Extract field information for future dynamic fetching
+  const sqlFields = aggregation.result.rows.length > 0 ? Object.keys(aggregation.result.rows[0]) : [];
+  const specFields = extractFieldsFromSpec(specOut.spec);
+  
+  // Store chart generation metadata in database (async, non-blocking)
+  const executionTime = Date.now() - startTime;
+  
+  storeChartGenerationMetadata({
+    user_intent,
+    dataset_id,
+    selection,
+    aggregation,
+    spec: specOut.spec,
+    sqlFields,
+    specFields,
+    execution_time_ms: executionTime
+  }).catch(error => {
+    console.error('Failed to store chart metadata (non-blocking):', error);
+  });
+  
   const result = {
     step: "spec",
     selection,
-    aggregation,
+    aggregation: {
+      ...aggregation,
+      // Add metadata for future dynamic data fetching
+      sql: aggregation.sql,
+      table_name: tableFQ,
+      dataSchema: {
+        sqlFields: sqlFields,
+        specFields: specFields,
+        chartType: selection.chart.type,
+        subtype: selection.chart.subtype
+      }
+    },
     spec: specOut.spec
   };
   
-  console.log('Response ready');
+  console.log('Response ready with field mapping metadata:', result.aggregation.dataSchema);
   return result;
 }

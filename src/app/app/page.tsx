@@ -32,6 +32,7 @@ export default function ChartApp() {
   const [showDatasetPreview, setShowDatasetPreview] = useState(false);
   const [streamingThoughts, setStreamingThoughts] = useState<string[]>([]);
   const [enableStreaming, setEnableStreaming] = useState(true);
+  const [generationResponse, setGenerationResponse] = useState<any>(null);
   
   const { currentUser, logout } = useAuth();
   
@@ -61,6 +62,7 @@ export default function ChartApp() {
     setChartSpec(null);
     setGenerationTime(undefined);
     setStreamingThoughts([]);
+    setGenerationResponse(null);
 
     try {
       const startTime = Date.now();
@@ -109,6 +111,7 @@ export default function ChartApp() {
                   setStreamingThoughts([data.content]); // Replace with latest status instead of appending
                 } else if (data.type === 'complete') {
                   const endTime = Date.now();
+                  setGenerationResponse(data.content); // Store full response for metadata
                   setChartSpec(data.content.spec); // data.content is the result object, so .spec gets the VChart spec
                   setGenerationTime(endTime - startTime);
                 } else if (data.type === 'error') {
@@ -142,6 +145,7 @@ export default function ChartApp() {
         const data: GenerationResponse = await response.json();
         const endTime = Date.now();
         
+        setGenerationResponse(data); // Store full response for metadata
         setChartSpec(data.spec);
         setGenerationTime(data.time || (endTime - startTime));
       }
@@ -202,6 +206,7 @@ export default function ChartApp() {
             isGenerating={isLoading}
             enableStreaming={enableStreaming}
             onToggleStreaming={() => setEnableStreaming(!enableStreaming)}
+            generationResponse={generationResponse}
           />
           
           {/* Dataset Viewer - Resizable Bottom Panel */}

@@ -4,10 +4,28 @@ import { useEffect, useRef, useState } from 'react';
 import VChart from '@visactor/vchart';
 import { Dataset } from '../../lib/api';
 
+// Helper function to compare arrays
+const arraysEqual = (a: string[], b: string[]): boolean => {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((val, index) => val === sortedB[index]);
+};
+
 interface VChartSpec {
   type: string;
   data: any[];
   [key: string]: any;
+}
+
+interface ChartMetadata {
+  sql: string;
+  tableName: string;
+  datasetId: string;
+  chartType: string;
+  subtype: string;
+  sqlFields: string[];
+  specFields: string[];
 }
 
 interface ChartPreviewProps {
@@ -19,6 +37,7 @@ interface ChartPreviewProps {
   isGenerating?: boolean;
   enableStreaming?: boolean;
   onToggleStreaming?: () => void;
+  generationResponse?: any; // Full response from chart generation API
 }
 
 export default function ChartPreview({ 
@@ -29,7 +48,8 @@ export default function ChartPreview({
   streamingThoughts = [],
   isGenerating = false,
   enableStreaming = true,
-  onToggleStreaming 
+  onToggleStreaming,
+  generationResponse 
 }: ChartPreviewProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const vchartInstance = useRef<any>(null);
@@ -41,6 +61,7 @@ export default function ChartPreview({
   const [insightResult, setInsightResult] = useState<any>(null);
   const [isStatusFading, setIsStatusFading] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>('');
+  const [chartMetadata, setChartMetadata] = useState<ChartMetadata | null>(null);
 
   // Effect to handle smooth status transitions
   useEffect(() => {
@@ -59,6 +80,31 @@ export default function ChartPreview({
       }
     }
   }, [streamingThoughts, currentStatus]);
+
+  // Effect to store chart metadata for future dynamic fetching
+  useEffect(() => {
+    if (spec && generationResponse?.aggregation?.dataSchema && selectedDataset) {
+      const metadata: ChartMetadata = {
+        sql: generationResponse.aggregation.sql,
+        tableName: generationResponse.aggregation.table_name,
+        datasetId: selectedDataset.dataset_id,
+        chartType: generationResponse.aggregation.dataSchema.chartType,
+        subtype: generationResponse.aggregation.dataSchema.subtype,
+        sqlFields: generationResponse.aggregation.dataSchema.sqlFields,
+        specFields: generationResponse.aggregation.dataSchema.specFields
+      };
+      
+      setChartMetadata(metadata);
+      
+      // Log field mapping info for debugging
+      console.log('Chart metadata stored:', {
+        chartType: metadata.chartType,
+        sqlFields: metadata.sqlFields,
+        specFields: metadata.specFields,
+        fieldsMatch: arraysEqual(metadata.sqlFields, metadata.specFields)
+      });
+    }
+  }, [spec, generationResponse, selectedDataset]);
 
   const generateInsights = async (userIntent: string) => {
     if (!selectedDataset) {
@@ -465,6 +511,29 @@ export default function ChartPreview({
                 {JSON.stringify(currentSpec, null, 2)}
               </pre>
               
+              {/* Chart Metadata for Dynamic Fetching */}
+              {chartMetadata && (
+                <div className="mt-4 space-y-2">
+                  <div className="bg-purple-50 p-3 rounded-lg">
+                    <h4 className="text-xs font-bold text-purple-900">Dynamic Data Info:</h4>
+                    <div className="text-xs text-purple-800 space-y-1">
+                      <div><strong>Chart Type:</strong> {chartMetadata.chartType}.{chartMetadata.subtype}</div>
+                      <div><strong>Table:</strong> {chartMetadata.tableName}</div>
+                      <div><strong>SQL Fields:</strong> {chartMetadata.sqlFields.join(', ')}</div>
+                      <div><strong>Spec Fields:</strong> {chartMetadata.specFields.join(', ')}</div>
+                      <div className={`flex items-center space-x-1 ${arraysEqual(chartMetadata.sqlFields, chartMetadata.specFields) ? 'text-green-800' : 'text-yellow-800'}`}>
+                        <span>{arraysEqual(chartMetadata.sqlFields, chartMetadata.specFields) ? '✅' : '⚠️'}</span>
+                        <span><strong>Field Mapping:</strong> {arraysEqual(chartMetadata.sqlFields, chartMetadata.specFields) ? 'Compatible' : 'Needs Mapping'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <h4 className="text-xs font-bold text-blue-900">Generated SQL:</h4>
+                    <code className="text-xs text-blue-800 break-all">{chartMetadata.sql}</code>
+                  </div>
+                </div>
+              )}
+
               {insightResult && (
                 <div className="mt-4 space-y-2">
                   <div className="bg-blue-50 p-3 rounded-lg">
