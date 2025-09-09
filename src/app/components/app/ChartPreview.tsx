@@ -7,7 +7,7 @@ import { Dataset } from '../../lib/api';
 
 interface VChartSpec {
   type: string;
-  data: any[];
+  data: any[] | { values: any[] } | any;
   [key: string]: any;
 }
 
@@ -114,11 +114,17 @@ export default function ChartPreview({
           
           // Simple path resolution for common cases
           if (targetPath === 'data.0.values') {
-            if (hydratedSpec.data && hydratedSpec.data[0]) {
+            if (hydratedSpec.data && Array.isArray(hydratedSpec.data) && hydratedSpec.data[0]) {
               hydratedSpec.data[0].values = sqlResult.rows || [];
             }
           } else if (targetPath === 'data.values') {
-            hydratedSpec.data = { values: sqlResult.rows || [] };
+            // For line charts, data should be an object with values property
+            if (typeof hydratedSpec.data === 'object' && !Array.isArray(hydratedSpec.data) && hydratedSpec.data !== null) {
+              (hydratedSpec.data as any).values = sqlResult.rows || [];
+            } else {
+              // If data is not the right structure, create the correct one
+              hydratedSpec.data = { values: sqlResult.rows || [] };
+            }
           }
           // Add more path cases as needed for other chart types
           
