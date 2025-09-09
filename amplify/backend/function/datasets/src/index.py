@@ -542,13 +542,14 @@ def handler(event, context):
                     # Basic SQL safety checks
                     print(f"Starting SQL safety checks")
                     sql_lower = sql.lower().strip()
-                    if not sql_lower.startswith('select'):
-                        print(f"SQL doesn't start with SELECT")
+                    # Allow SELECT queries and CTEs (Common Table Expressions) that start with WITH
+                    if not (sql_lower.startswith('select') or sql_lower.startswith('with')):
+                        print(f"SQL doesn't start with SELECT or WITH")
                         return {
                             'statusCode': 400,
                             'headers': cors_headers,
                             'body': json.dumps({
-                                'error': 'Only SELECT queries are allowed'
+                                'error': 'Only SELECT queries and CTEs (WITH) are allowed'
                             })
                         }
                     
