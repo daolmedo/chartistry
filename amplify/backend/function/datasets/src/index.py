@@ -517,8 +517,10 @@ def handler(event, context):
                 
                 try:
                     cursor = conn.cursor()
+                    print(f"Created cursor for executeSQL")
                     
                     # First verify the dataset exists
+                    print(f"Verifying dataset exists: {dataset_id}, {table_name}")
                     cursor.execute("""
                         SELECT dataset_id, table_name, ingestion_status
                         FROM datasets 
@@ -526,7 +528,9 @@ def handler(event, context):
                     """, (dataset_id, table_name))
                     
                     dataset_info = cursor.fetchone()
+                    print(f"Dataset verification result: {dataset_info}")
                     if not dataset_info:
+                        print(f"Dataset not found or not completed")
                         return {
                             'statusCode': 404,
                             'headers': cors_headers,
@@ -536,8 +540,10 @@ def handler(event, context):
                         }
                     
                     # Basic SQL safety checks
+                    print(f"Starting SQL safety checks")
                     sql_lower = sql.lower().strip()
                     if not sql_lower.startswith('select'):
+                        print(f"SQL doesn't start with SELECT")
                         return {
                             'statusCode': 400,
                             'headers': cors_headers,
@@ -548,7 +554,9 @@ def handler(event, context):
                     
                     # Check for dangerous operations
                     dangerous_keywords = ['insert', 'update', 'delete', 'drop', 'alter', 'create', 'truncate', 'grant', 'revoke']
-                    if any(keyword in sql_lower for keyword in dangerous_keywords):
+                    found_dangerous = [kw for kw in dangerous_keywords if kw in sql_lower]
+                    if found_dangerous:
+                        print(f"Found dangerous keywords: {found_dangerous}")
                         return {
                             'statusCode': 400,
                             'headers': cors_headers,
@@ -560,16 +568,24 @@ def handler(event, context):
                     # Add LIMIT if not present (safety measure)
                     if 'limit' not in sql_lower:
                         sql = f"{sql} LIMIT {limit}"
+                        print(f"Added LIMIT to SQL")
                     
-                    print(f"Executing SQL: {sql}")
+                    print(f"About to execute SQL: {sql[:200]}...")  # Log first 200 chars
+                    print(f"SQL safety checks passed, executing query")
                     cursor.execute(sql)
+                    print(f"SQL execution completed, fetching results")
+                    
                     rows = cursor.fetchall()
+                    print(f"Fetched {len(rows) if rows else 0} rows from SQL execution")
                     
                     # Get column names from cursor description
                     column_names = [desc[0] for desc in cursor.description] if cursor.description else []
+                    print(f"Column names from cursor: {column_names}")
                     
                     # Transform to objects ready for chart consumption
+                    print(f"Starting data transformation to objects")
                     data_objects = [dict(zip(column_names, row)) for row in rows]
+                    print(f"Data transformation completed, created {len(data_objects)} objects")
                     
                     response_data = {
                         'data': data_objects,  # Ready-to-use objects for charts
@@ -578,6 +594,7 @@ def handler(event, context):
                         'returnedRows': len(data_objects),
                         'sql': sql
                     }
+                    print(f"Response data structure created, about to return")
                     print(f"SQL executed successfully, returning {len(data_objects)} rows with columns: {column_names}")
                     
                     return {
@@ -586,14 +603,31 @@ def handler(event, context):
                         'body': json.dumps(response_data, default=json_serializer)
                     }
                 
+                except psycopg2.Error as e:
+                    print(f"PostgreSQL error executing SQL: {e}")
+                    print(f"Error code: {e.pgcode}")
+                    print(f"Error sqlstate: {e.sqlstate if hasattr(e, 'sqlstate') else 'N/A'}")
+                    return {
+                        'statusCode': 500,
+                        'headers': cors_headers,
+                        'body': json.dumps({
+                            'error': 'PostgreSQL error',
+                            'details': str(e),
+                            'pgcode': e.pgcode
+                        })
+                    }
                 except Exception as e:
-                    print(f"Error executing SQL: {e}")
+                    print(f"General error executing SQL: {e}")
+                    print(f"Error type: {type(e).__name__}")
+                    import traceback
+                    print(f"Full traceback: {traceback.format_exc()}")
                     return {
                         'statusCode': 500,
                         'headers': cors_headers,
                         'body': json.dumps({
                             'error': 'Failed to execute SQL query',
-                            'details': str(e)
+                            'details': str(e),
+                            'error_type': type(e).__name__
                         })
                     }
         
