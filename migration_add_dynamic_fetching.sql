@@ -1,7 +1,10 @@
 -- Migration: Add Phase 1 Dynamic Data Fetching fields to chart_generations table
 -- This migration adds the necessary fields to support the hybrid approach for dynamic chart data fetching
 
--- Add new columns to chart_generations table
+-- Fix column name mismatch if needed (in case of inconsistency)
+-- ALTER TABLE chart_generations RENAME COLUMN generated_chart_config TO generated_chart_spec;
+
+-- Add new columns to chart_generations table (these should already exist based on your schema)
 ALTER TABLE chart_generations ADD COLUMN IF NOT EXISTS generated_sql_query TEXT;
 ALTER TABLE chart_generations ADD COLUMN IF NOT EXISTS sql_fields JSONB;
 ALTER TABLE chart_generations ADD COLUMN IF NOT EXISTS spec_fields JSONB;

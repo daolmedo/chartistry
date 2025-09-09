@@ -60,7 +60,7 @@ CREATE TABLE chart_generations (
     user_id VARCHAR(128) NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
     dataset_id UUID REFERENCES datasets(dataset_id) ON DELETE CASCADE,
     user_prompt TEXT NOT NULL,
-    generated_chart_config JSONB, -- the Visx/D3 configuration
+    generated_chart_spec JSONB, -- the full VChart specification JSON
     chart_type VARCHAR(100), -- bar, line, scatter, pie, etc.
     columns_used JSONB, -- array of column names used
     generation_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

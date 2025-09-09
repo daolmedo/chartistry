@@ -858,7 +858,7 @@ async function storeChartGenerationMetadata(params) {
     
     const insertResult = await client.query(`
       INSERT INTO chart_generations (
-        user_id, dataset_id, user_prompt, generated_chart_config,
+        user_id, dataset_id, user_prompt, generated_chart_spec,
         chart_type, columns_used, model_used, execution_time_ms,
         was_successful, sql_query, field_mappings, confidence_score,
         generated_sql_query, sql_fields, spec_fields, fields_compatible,

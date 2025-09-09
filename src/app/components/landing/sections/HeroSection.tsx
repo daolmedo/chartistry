@@ -21,12 +21,12 @@ export default function HeroSection() {
               Turn Data into Stunning Dashboards and Charts in Seconds. chartz.ai lets you create dashboards and beautiful data visualizations effortlessly with AI, no learning curve.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-8">
-              <Link
-                href="/login"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+              <button
+                disabled
+                className="bg-gray-400 text-white px-8 py-4 rounded-xl font-semibold text-lg cursor-not-allowed opacity-60"
               >
-                Get Started Free
-              </Link>
+                Get Started Free (Coming Soon)
+              </button>
               <button className="border border-gray-300 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200">
                 See How It Works
               </button>
