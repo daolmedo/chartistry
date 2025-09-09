@@ -496,6 +496,105 @@ def handler(event, context):
                             'details': str(e)
                         })
                     }
+            
+            elif action == 'executeSQL':
+                # Execute custom SQL query on a dataset table
+                print(f"executeSQL action triggered")
+                dataset_id = body.get('datasetId')
+                table_name = body.get('tableName')
+                sql = body.get('sql')
+                limit = body.get('limit', 1000)  # Default to 1000 rows
+                print(f"Parameters: dataset_id={dataset_id}, table_name={table_name}, sql={sql[:100]}...")
+                
+                if not dataset_id or not table_name or not sql or not conn:
+                    return {
+                        'statusCode': 400,
+                        'headers': cors_headers,
+                        'body': json.dumps({
+                            'error': 'Missing datasetId, tableName, sql, or database connection'
+                        })
+                    }
+                
+                try:
+                    cursor = conn.cursor()
+                    
+                    # First verify the dataset exists
+                    cursor.execute("""
+                        SELECT dataset_id, table_name, ingestion_status
+                        FROM datasets 
+                        WHERE dataset_id = %s AND table_name = %s AND ingestion_status = 'completed'
+                    """, (dataset_id, table_name))
+                    
+                    dataset_info = cursor.fetchone()
+                    if not dataset_info:
+                        return {
+                            'statusCode': 404,
+                            'headers': cors_headers,
+                            'body': json.dumps({
+                                'error': 'Dataset not found or not completed ingestion'
+                            })
+                        }
+                    
+                    # Basic SQL safety checks
+                    sql_lower = sql.lower().strip()
+                    if not sql_lower.startswith('select'):
+                        return {
+                            'statusCode': 400,
+                            'headers': cors_headers,
+                            'body': json.dumps({
+                                'error': 'Only SELECT queries are allowed'
+                            })
+                        }
+                    
+                    # Check for dangerous operations
+                    dangerous_keywords = ['insert', 'update', 'delete', 'drop', 'alter', 'create', 'truncate', 'grant', 'revoke']
+                    if any(keyword in sql_lower for keyword in dangerous_keywords):
+                        return {
+                            'statusCode': 400,
+                            'headers': cors_headers,
+                            'body': json.dumps({
+                                'error': 'Query contains forbidden operations'
+                            })
+                        }
+                    
+                    # Add LIMIT if not present (safety measure)
+                    if 'limit' not in sql_lower:
+                        sql = f"{sql} LIMIT {limit}"
+                    
+                    print(f"Executing SQL: {sql}")
+                    cursor.execute(sql)
+                    rows = cursor.fetchall()
+                    
+                    # Get column names from cursor description
+                    column_names = [desc[0] for desc in cursor.description] if cursor.description else []
+                    
+                    # Convert to list format for JSON serialization
+                    data_rows = [list(row) for row in rows]
+                    
+                    response_data = {
+                        'columns': column_names,
+                        'rows': data_rows,
+                        'returnedRows': len(data_rows),
+                        'sql': sql
+                    }
+                    print(f"SQL executed successfully, returning {len(data_rows)} rows with columns: {column_names}")
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': cors_headers,
+                        'body': json.dumps(response_data, default=json_serializer)
+                    }
+                
+                except Exception as e:
+                    print(f"Error executing SQL: {e}")
+                    return {
+                        'statusCode': 500,
+                        'headers': cors_headers,
+                        'body': json.dumps({
+                            'error': 'Failed to execute SQL query',
+                            'details': str(e)
+                        })
+                    }
         
         elif http_method == 'GET':
             # Get user's datasets

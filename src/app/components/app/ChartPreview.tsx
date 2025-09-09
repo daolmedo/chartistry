@@ -4,13 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import VChart from '@visactor/vchart';
 import { Dataset } from '../../lib/api';
 
-// Helper function to compare arrays
-const arraysEqual = (a: string[], b: string[]): boolean => {
-  if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((val, index) => val === sortedB[index]);
-};
 
 interface VChartSpec {
   type: string;
@@ -18,14 +11,10 @@ interface VChartSpec {
   [key: string]: any;
 }
 
-interface ChartMetadata {
+
+interface DataMapping {
   sql: string;
-  tableName: string;
-  datasetId: string;
-  chartType: string;
-  subtype: string;
-  sqlFields: string[];
-  specFields: string[];
+  target: string;
 }
 
 interface ChartPreviewProps {
@@ -61,7 +50,8 @@ export default function ChartPreview({
   const [insightResult, setInsightResult] = useState<any>(null);
   const [isStatusFading, setIsStatusFading] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>('');
-  const [chartMetadata, setChartMetadata] = useState<ChartMetadata | null>(null);
+  const [finalSpec, setFinalSpec] = useState<VChartSpec | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Effect to handle smooth status transitions
   useEffect(() => {
@@ -81,30 +71,76 @@ export default function ChartPreview({
     }
   }, [streamingThoughts, currentStatus]);
 
-  // Effect to store chart metadata for future dynamic fetching
+  // Effect to handle dynamic data fetching and spec hydration
   useEffect(() => {
-    if (spec && generationResponse?.aggregation?.dataSchema && selectedDataset) {
-      const metadata: ChartMetadata = {
-        sql: generationResponse.aggregation.sql,
-        tableName: generationResponse.aggregation.table_name,
-        datasetId: selectedDataset.dataset_id,
-        chartType: generationResponse.aggregation.dataSchema.chartType,
-        subtype: generationResponse.aggregation.dataSchema.subtype,
-        sqlFields: generationResponse.aggregation.dataSchema.sqlFields,
-        specFields: generationResponse.aggregation.dataSchema.specFields
-      };
-      
-      setChartMetadata(metadata);
-      
-      // Log field mapping info for debugging
-      console.log('Chart metadata stored:', {
-        chartType: metadata.chartType,
-        sqlFields: metadata.sqlFields,
-        specFields: metadata.specFields,
-        fieldsMatch: arraysEqual(metadata.sqlFields, metadata.specFields)
-      });
+    async function handleDynamicData() {
+      // Check if we have a dynamic spec with dataMapping
+      if (spec && generationResponse?.dataMapping && selectedDataset) {
+        const dataMapping: DataMapping = generationResponse.dataMapping;
+        
+        console.log('Detected dynamic spec, fetching data:', {
+          sql: dataMapping.sql,
+          target: dataMapping.target,
+          dataset: selectedDataset.dataset_id
+        });
+        
+        setIsLoadingData(true);
+        
+        try {
+          // Fetch data from the datasets lambda
+          const response = await fetch('/api/datasets/data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'executeSQL',
+              datasetId: selectedDataset.dataset_id,
+              tableName: selectedDataset.table_name,
+              sql: dataMapping.sql
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const sqlResult = await response.json();
+          console.log('Dynamic data fetched:', sqlResult);
+
+          // Inject data into spec using lodash.set equivalent
+          const hydratedSpec = { ...spec };
+          const targetPath = dataMapping.target;
+          
+          // Simple path resolution for common cases
+          if (targetPath === 'data.0.values') {
+            if (hydratedSpec.data && hydratedSpec.data[0]) {
+              hydratedSpec.data[0].values = sqlResult.rows || [];
+            }
+          } else if (targetPath === 'data.values') {
+            hydratedSpec.data = { values: sqlResult.rows || [] };
+          }
+          // Add more path cases as needed for other chart types
+          
+          console.log('Spec hydrated with dynamic data:', hydratedSpec);
+          setFinalSpec(hydratedSpec);
+          
+        } catch (error) {
+          console.error('Error fetching dynamic data:', error);
+          // Fallback to original spec on error
+          setFinalSpec(spec);
+        } finally {
+          setIsLoadingData(false);
+        }
+      } else {
+        // For non-dynamic specs (hardcoded data or insight results)
+        setFinalSpec(spec);
+      }
     }
+
+    handleDynamicData();
   }, [spec, generationResponse, selectedDataset]);
+
 
   const generateInsights = async (userIntent: string) => {
     if (!selectedDataset) {
@@ -153,10 +189,10 @@ export default function ChartPreview({
     }
   };
 
-  // Effect to render chart from either spec or insightResult
+  // Effect to render chart from finalSpec or insightResult
   useEffect(() => {
     const renderChart = async () => {
-      const chartSpec = spec || insightResult?.chart_spec;
+      const chartSpec = finalSpec || insightResult?.chart_spec;
       if (!chartSpec || !chartRef.current) return;
 
       try {
@@ -209,7 +245,7 @@ export default function ChartPreview({
         vchartInstance.current = null;
       }
     };
-  }, [spec, insightResult]);
+  }, [finalSpec, insightResult]);
 
   // Handle window resize with throttling
   useEffect(() => {
@@ -266,7 +302,7 @@ export default function ChartPreview({
     );
   }
 
-  if (!spec && !insightResult) {
+  if ((!finalSpec && !insightResult) || isLoadingData) {
     return (
       <div className="flex-1 flex flex-col">
         <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
@@ -285,14 +321,16 @@ export default function ChartPreview({
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">
-                {isGenerating ? 'Generating Chart...' : 'AI-Powered Charts'}
+                {isLoadingData ? 'Loading Fresh Data...' : isGenerating ? 'Generating Chart...' : 'AI-Powered Charts'}
               </h3>
               <p className="text-sm text-gray-600 mt-2">
-                {isGenerating 
-                  ? 'AI is analyzing your data and creating the perfect visualization'
-                  : selectedDataset 
-                    ? 'Generate intelligent charts from your selected dataset'
-                    : 'Select a dataset first, then generate AI-powered visualizations'
+                {isLoadingData 
+                  ? 'Fetching latest data from your dataset and updating the chart'
+                  : isGenerating 
+                    ? 'AI is analyzing your data and creating the perfect visualization'
+                    : selectedDataset 
+                      ? 'Generate intelligent charts from your selected dataset'
+                      : 'Select a dataset first, then generate AI-powered visualizations'
                 }
               </p>
             </div>
@@ -362,7 +400,7 @@ export default function ChartPreview({
         </div>
         
         {/* ChatGPT-style Streaming Status */}
-        {(streamingThoughts.length > 0 || isGenerating || workflowThoughts.length > 0 || isGeneratingInsights) && (
+        {(streamingThoughts.length > 0 || isGenerating || workflowThoughts.length > 0 || isGeneratingInsights || isLoadingData) && (
           <div className="border-t border-gray-100 bg-white px-6 py-4">
             <div className="flex items-center space-x-3">
               {/* AI Avatar */}
@@ -397,8 +435,20 @@ export default function ChartPreview({
                   </div>
                 )}
                 
+                {/* Data loading state */}
+                {isLoadingData && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-900">🔄 Loading fresh data from dataset</span>
+                    <div className="flex space-x-1">
+                      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Initial connecting state */}
-                {isGenerating && enableStreaming && streamingThoughts.length === 0 && (
+                {isGenerating && enableStreaming && streamingThoughts.length === 0 && !isLoadingData && (
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium text-gray-900">Connecting to AI agent</span>
                     <div className="flex space-x-1">
@@ -511,25 +561,16 @@ export default function ChartPreview({
                 {JSON.stringify(currentSpec, null, 2)}
               </pre>
               
-              {/* Chart Metadata for Dynamic Fetching */}
-              {chartMetadata && (
+              {/* Dynamic Data Mapping Info */}
+              {generationResponse?.dataMapping && (
                 <div className="mt-4 space-y-2">
-                  <div className="bg-purple-50 p-3 rounded-lg">
-                    <h4 className="text-xs font-bold text-purple-900">Dynamic Data Info:</h4>
-                    <div className="text-xs text-purple-800 space-y-1">
-                      <div><strong>Chart Type:</strong> {chartMetadata.chartType}.{chartMetadata.subtype}</div>
-                      <div><strong>Table:</strong> {chartMetadata.tableName}</div>
-                      <div><strong>SQL Fields:</strong> {chartMetadata.sqlFields.join(', ')}</div>
-                      <div><strong>Spec Fields:</strong> {chartMetadata.specFields.join(', ')}</div>
-                      <div className={`flex items-center space-x-1 ${arraysEqual(chartMetadata.sqlFields, chartMetadata.specFields) ? 'text-green-800' : 'text-yellow-800'}`}>
-                        <span>{arraysEqual(chartMetadata.sqlFields, chartMetadata.specFields) ? '✅' : '⚠️'}</span>
-                        <span><strong>Field Mapping:</strong> {arraysEqual(chartMetadata.sqlFields, chartMetadata.specFields) ? 'Compatible' : 'Needs Mapping'}</span>
-                      </div>
+                  <div className="bg-green-50 p-3 rounded-lg">
+                    <h4 className="text-xs font-bold text-green-900">🔄 Dynamic Data Flow:</h4>
+                    <div className="text-xs text-green-800 space-y-1">
+                      <div><strong>Status:</strong> {isLoadingData ? 'Loading fresh data...' : 'Using live data from dataset'}</div>
+                      <div><strong>Target:</strong> {generationResponse.dataMapping.target}</div>
+                      <div><strong>SQL:</strong> <code className="bg-green-100 px-1 rounded">{generationResponse.dataMapping.sql}</code></div>
                     </div>
-                  </div>
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <h4 className="text-xs font-bold text-blue-900">Generated SQL:</h4>
-                    <code className="text-xs text-blue-800 break-all">{chartMetadata.sql}</code>
                   </div>
                 </div>
               )}

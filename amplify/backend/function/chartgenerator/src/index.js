@@ -181,6 +181,7 @@ const CHART_CATALOG = {
         { rows: "[{ type: string, value: number }]" },
         { rows: "[{ [categoryField]: string, [valueField]: number }]" }
       ],
+      dataInjection: { target: "data.0.values" },
       vchartGuidance: {
         chartType: "pie",
         defaultFields: { categoryField: "type", valueField: "value" },
@@ -219,6 +220,10 @@ const CHART_CATALOG = {
         { inner: "[{ type: string, value: number }]",
           outer: "[{ parent: string, type: string, value: number }]" }
       ],
+      dataInjection: { 
+        inner: "data.0.values",
+        outer: "data.1.values" 
+      },
       vchartGuidance: {
         chartType: "common",
         dataInjection: "two datasets: id 'id0' (inner/parents), id 'id1' (outer/children)",
@@ -259,6 +264,7 @@ const CHART_CATALOG = {
         { rows: "[{ step: string, value: number }]" },
         { rows: "[{ name: string, value: number }]" }
       ],
+      dataInjection: { target: "data.0.values" },
       vchartGuidance: {
         chartType: "funnel",
         defaultFields: { categoryField: "name|step", valueField: "value" },
@@ -287,6 +293,7 @@ const CHART_CATALOG = {
       expectedDataShapes: [
         { rows: "[{ step: string, value: number }]" }
       ],
+      dataInjection: { target: "data.0.values" },
       vchartGuidance: {
         chartType: "funnel",
         defaultFields: { categoryField: "name|step", valueField: "value" },
@@ -324,6 +331,7 @@ const CHART_CATALOG = {
         { rows: "[{ x: string|number|date, value: number, series: string }]" },
         { rows: "[{ [xField]: any, [yField]: number }]" }
       ],
+      dataInjection: { target: "data.values" },
       vchartGuidance: {
         chartType: "line",
         defaultFields: { xField: "x", yField: "value", seriesField: "series" },
@@ -736,37 +744,38 @@ function buildSpecGraph() {
 
 function buildStep3SystemPrompt() {
   return [
-    "You are a VChart spec generator.",
+    "You are a VChart spec template generator.",
     "Input context will include: (a) chart selection {type, subtype, mapping}, (b) aggregated rows from SQL.",
     "You MUST first call get_chart_definition with { type, subtype } to retrieve targeted guidance and examples.",
-    "Then produce ONE valid VChart spec JSON object that matches the aggregated rows.",
+    "Then produce ONE valid VChart spec template WITHOUT embedded data + dataMapping instructions.",
     "",
     "Very important output constraints:",
-    "- The output MUST be valid JSON. Do NOT include functions, code, or comments anywhere (no arrow functions in tooltip, etc.).",
+    "- The output MUST be valid JSON. Do NOT include functions, code, or comments anywhere.",
     "- Only use JSON-serializable values (strings, numbers, booleans, arrays, objects, null).",
+    "- DO NOT embed actual data in the spec - create empty data containers instead.",
     "",
     "Rules:",
-    "- Use the aggregated rows AS-IS; do not hallucinate values.",
-    "- Use field names per guidance defaults, but adapt if rows use 'step' vs 'name' or 'type' etc.",
-    "- Follow the dataInjection, defaultFields, and other guidance from the chart definition.",
+    "- Create a template spec with EMPTY data containers (empty arrays).",
+    "- Use field names per guidance defaults from the chart definition.",
+    "- Follow the dataInjection target from the chart definition for mapping.",
     "- Add reasonable defaults from guidance (legends/labels/title).",
-    "- Output ONLY a JSON object with key 'spec'. No markdown, no extra text.",
+    "- Output ONLY a JSON object with keys 'spec' and 'dataMapping'. No markdown, no extra text.",
     "",
     "Example output:",
     JSON.stringify({
       spec: {
         type: "pie",
-        data: [{ id: "id0", values: [ { type: "Images", value: 45 }, { type: "Videos", value: 30 } ] }],
+        data: [{ id: "id0", values: [] }], // Empty data container
         outerRadius: 0.8,
         valueField: "value",
         categoryField: "type",
         legends: { visible: true, orient: "left" },
         label: { visible: true },
-        title: { visible: true, text: "Files by Category" },
-        tooltip: {
-          // Use plain strings only; do NOT use functions
-          // If you need formatting, bake it into the value strings beforehand.
-        }
+        title: { visible: true, text: "Chart Title" }
+      },
+      dataMapping: {
+        sql: "SELECT category AS type, SUM(amount) AS value FROM table GROUP BY category",
+        target: "data.0.values"
       }
     }, null, 2)
   ].join("\n");
@@ -777,13 +786,15 @@ function buildStep3UserPrompt({ selection, aggregation }) {
   return [
     `Chart selection: ${JSON.stringify(selection.chart)}`,
     `Mapping: ${JSON.stringify(selection.mapping)}`,
-    `Aggregated rows (sample or all): ${JSON.stringify(aggregation.result.rows)}`,
+    `SQL used: ${aggregation.sql}`,
+    `Sample rows: ${JSON.stringify(aggregation.result.rows.slice(0, 3))}`,
     "",
     "Steps:",
     "1) Call get_chart_definition with { type, subtype }.",
-    "2) Generate a VChart spec that uses the aggregated rows.",
-    "3) Return ONLY: { \"spec\": <object> }",
-    "4) DON'T return your comments, markdown, quotes, triple quotes or anything. Just the JSON }"
+    "2) Use the 'dataInjection' target from the definition for your dataMapping.",
+    "3) Generate a VChart spec template with EMPTY data containers.",
+    "4) Return ONLY: { \"spec\": <template>, \"dataMapping\": { \"sql\": <sql>, \"target\": <target> } }",
+    "5) DON'T return your comments, markdown, quotes, triple quotes or anything. Just the JSON"
   ].join("\n");
 }
 
@@ -1087,8 +1098,8 @@ async function processChartGeneration(event, streamThought = null) {
     }
   }
 
-  if (!specOut || !specOut.spec) {
-    throw new Error("Spec generation step did not return a valid { spec } object: " + step3Last?.content);
+  if (!specOut || !specOut.spec || !specOut.dataMapping) {
+    throw new Error("Spec generation step did not return a valid { spec, dataMapping } object: " + step3Last?.content);
   }
 
   streamThought?.("✨ Chart ready! Rendering your visualization...");
@@ -1131,7 +1142,8 @@ async function processChartGeneration(event, streamThought = null) {
         subtype: selection.chart.subtype
       }
     },
-    spec: specOut.spec
+    spec: specOut.spec,
+    dataMapping: specOut.dataMapping
   };
   
   console.log('Response ready with field mapping metadata:', result.aggregation.dataSchema);

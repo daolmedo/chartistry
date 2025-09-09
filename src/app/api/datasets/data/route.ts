@@ -45,13 +45,65 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { action, datasetId, tableName, sql } = body;
+
+    if (!datasetId || !tableName) {
+      return NextResponse.json(
+        { error: 'datasetId and tableName are required' },
+        { status: 400 }
+      );
+    }
+
+    if (action === 'executeSQL') {
+      if (!sql) {
+        return NextResponse.json(
+          { error: 'sql is required for executeSQL action' },
+          { status: 400 }
+        );
+      }
+
+      // Call the datasets Lambda function to execute custom SQL
+      const response = await post({
+        apiName: 'chartistryapi',
+        path: '/datasets',
+        options: {
+          body: {
+            action: 'executeSQL',
+            datasetId,
+            tableName,
+            sql,
+            limit: 1000 // Safety limit
+          }
+        }
+      }).response;
+
+      const data = await response.body.json();
+      return NextResponse.json(data);
+    }
+
+    return NextResponse.json(
+      { error: 'Invalid action. Supported actions: executeSQL' },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error('Error in POST /api/datasets/data:', error);
+    return NextResponse.json(
+      { error: 'Failed to process request', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
 // Handle CORS preflight
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
