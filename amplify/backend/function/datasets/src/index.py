@@ -568,16 +568,17 @@ def handler(event, context):
                     # Get column names from cursor description
                     column_names = [desc[0] for desc in cursor.description] if cursor.description else []
                     
-                    # Convert to list format for JSON serialization
-                    data_rows = [list(row) for row in rows]
+                    # Transform to objects ready for chart consumption
+                    data_objects = [dict(zip(column_names, row)) for row in rows]
                     
                     response_data = {
-                        'columns': column_names,
-                        'rows': data_rows,
-                        'returnedRows': len(data_rows),
+                        'data': data_objects,  # Ready-to-use objects for charts
+                        'columns': column_names,  # Keep for debugging/metadata
+                        'rows': data_objects,  # Alias for backwards compatibility during transition
+                        'returnedRows': len(data_objects),
                         'sql': sql
                     }
-                    print(f"SQL executed successfully, returning {len(data_rows)} rows with columns: {column_names}")
+                    print(f"SQL executed successfully, returning {len(data_objects)} rows with columns: {column_names}")
                     
                     return {
                         'statusCode': 200,

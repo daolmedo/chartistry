@@ -108,6 +108,10 @@ export default function ChartPreview({
           const sqlResult = await response.json();
           console.log('Dynamic data fetched:', sqlResult);
 
+          // Use the pre-formatted data objects from backend
+          const chartData = sqlResult.data || sqlResult.rows || [];
+          console.log('Chart-ready data:', chartData);
+
           // Inject data into spec using lodash.set equivalent
           const hydratedSpec = { ...spec };
           const targetPath = dataMapping.target;
@@ -115,15 +119,15 @@ export default function ChartPreview({
           // Simple path resolution for common cases
           if (targetPath === 'data.0.values') {
             if (hydratedSpec.data && Array.isArray(hydratedSpec.data) && hydratedSpec.data[0]) {
-              hydratedSpec.data[0].values = sqlResult.rows || [];
+              hydratedSpec.data[0].values = chartData;
             }
           } else if (targetPath === 'data.values') {
             // For line charts, data should be an object with values property
             if (typeof hydratedSpec.data === 'object' && !Array.isArray(hydratedSpec.data) && hydratedSpec.data !== null) {
-              (hydratedSpec.data as any).values = sqlResult.rows || [];
+              (hydratedSpec.data as any).values = chartData;
             } else {
               // If data is not the right structure, create the correct one
-              hydratedSpec.data = { values: sqlResult.rows || [] };
+              hydratedSpec.data = { values: chartData };
             }
           }
           // Add more path cases as needed for other chart types
