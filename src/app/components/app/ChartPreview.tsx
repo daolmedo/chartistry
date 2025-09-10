@@ -13,8 +13,33 @@ interface VChartSpec {
 
 
 interface DataMapping {
-  sql: string;
-  target: string;
+  sql?: string;
+  target?: string;
+  queries?: {
+    [key: string]: {
+      sql: string;
+      target: string;
+    };
+  };
+}
+
+// Utility function to set data at a specific path in the spec
+function setDataAtPath(spec: any, path: string, data: any) {
+  console.log(`Setting data at path: ${path}`, data);
+  
+  if (path === 'data.0.values' && spec.data && Array.isArray(spec.data) && spec.data[0]) {
+    spec.data[0].values = data;
+  } else if (path === 'data.1.values' && spec.data && Array.isArray(spec.data) && spec.data[1]) {
+    spec.data[1].values = data;
+  } else if (path === 'data.values') {
+    if (typeof spec.data === 'object' && !Array.isArray(spec.data) && spec.data !== null) {
+      spec.data.values = data;
+    } else {
+      spec.data = { values: data };
+    }
+  } else {
+    console.warn(`Unsupported path: ${path}`);
+  }
 }
 
 interface ChartPreviewProps {
@@ -87,50 +112,69 @@ export default function ChartPreview({
         setIsLoadingData(true);
         
         try {
-          // Fetch data from the datasets lambda
-          const response = await fetch('/api/datasets/data', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'executeSQL',
-              datasetId: selectedDataset.dataset_id,
-              tableName: selectedDataset.table_name,
-              sql: dataMapping.sql
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const sqlResult = await response.json();
-          console.log('Dynamic data fetched:', sqlResult);
-
-          // Use the pre-formatted data objects from backend
-          const chartData = sqlResult.data || sqlResult.rows || [];
-          console.log('Chart-ready data:', chartData);
-
-          // Inject data into spec using lodash.set equivalent
           const hydratedSpec = { ...spec };
-          const targetPath = dataMapping.target;
-          
-          // Simple path resolution for common cases
-          if (targetPath === 'data.0.values') {
-            if (hydratedSpec.data && Array.isArray(hydratedSpec.data) && hydratedSpec.data[0]) {
-              hydratedSpec.data[0].values = chartData;
+
+          if (dataMapping.queries) {
+            // Multi-query chart - execute each query separately
+            console.log('Multi-query chart detected, executing queries:', Object.keys(dataMapping.queries));
+            
+            for (const [queryKey, queryInfo] of Object.entries(dataMapping.queries)) {
+              console.log(`Executing query: ${queryKey}`, queryInfo.sql);
+              
+              const response = await fetch('/api/datasets/data', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  action: 'executeSQL',
+                  datasetId: selectedDataset.dataset_id,
+                  tableName: selectedDataset.table_name,
+                  sql: queryInfo.sql
+                }),
+              });
+
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+
+              const sqlResult = await response.json();
+              const chartData = sqlResult.data || sqlResult.rows || [];
+              
+              console.log(`Query ${queryKey} result:`, chartData);
+              
+              // Inject data using simple path resolution
+              setDataAtPath(hydratedSpec, queryInfo.target, chartData);
             }
-          } else if (targetPath === 'data.values') {
-            // For line charts, data should be an object with values property
-            if (typeof hydratedSpec.data === 'object' && !Array.isArray(hydratedSpec.data) && hydratedSpec.data !== null) {
-              (hydratedSpec.data as any).values = chartData;
-            } else {
-              // If data is not the right structure, create the correct one
-              hydratedSpec.data = { values: chartData };
+          } else if (dataMapping.sql && dataMapping.target) {
+            // Single query chart - traditional approach
+            console.log('Single-query chart detected, executing SQL');
+            
+            const response = await fetch('/api/datasets/data', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                action: 'executeSQL',
+                datasetId: selectedDataset.dataset_id,
+                tableName: selectedDataset.table_name,
+                sql: dataMapping.sql
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const sqlResult = await response.json();
+            const chartData = sqlResult.data || sqlResult.rows || [];
+            
+            console.log('Single query result:', chartData);
+            
+            // Inject data using simple path resolution  
+            setDataAtPath(hydratedSpec, dataMapping.target, chartData);
           }
-          // Add more path cases as needed for other chart types
           
           console.log('Spec hydrated with dynamic data:', hydratedSpec);
           setFinalSpec(hydratedSpec);
