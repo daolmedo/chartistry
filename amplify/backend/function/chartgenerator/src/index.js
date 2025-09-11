@@ -868,17 +868,41 @@ function buildStep3SystemPrompt() {
 
 
 function buildStep3UserPrompt({ selection, aggregation }) {
+  let sqlInfo, sampleRowsInfo;
+  
+  if (aggregation.queries) {
+    // Multi-query format
+    const queryEntries = Object.entries(aggregation.queries);
+    sqlInfo = `SQL queries used:\n${queryEntries.map(([key, query]) => `  ${key}: ${query.sql}`).join('\n')}`;
+    
+    // Show sample rows from each query
+    const sampleRows = {};
+    queryEntries.forEach(([key, query]) => {
+      sampleRows[key] = query.result.rows.slice(0, 2); // 2 samples per query
+    });
+    sampleRowsInfo = `Sample rows by query: ${JSON.stringify(sampleRows)}`;
+    
+  } else {
+    // Single-query format (legacy)
+    sqlInfo = `SQL used: ${aggregation.sql}`;
+    sampleRowsInfo = `Sample rows: ${JSON.stringify(aggregation.result.rows.slice(0, 3))}`;
+  }
+
   return [
     `Chart selection: ${JSON.stringify(selection.chart)}`,
     `Mapping: ${JSON.stringify(selection.mapping)}`,
-    `SQL used: ${aggregation.sql}`,
-    `Sample rows: ${JSON.stringify(aggregation.result.rows.slice(0, 3))}`,
+    sqlInfo,
+    sampleRowsInfo,
     "",
     "Steps:",
     "1) Call get_chart_definition with { type, subtype }.",
-    "2) Use the 'dataInjection' target from the definition for your dataMapping.",
+    aggregation.queries ? 
+      "2) For multi-query charts, use the 'dataQueries' from the definition for your dataMapping." :
+      "2) Use the 'dataInjection' target from the definition for your dataMapping.",
     "3) Generate a VChart spec template with EMPTY data containers.",
-    "4) Return ONLY: { \"spec\": <template>, \"dataMapping\": { \"sql\": <sql>, \"target\": <target> } }",
+    aggregation.queries ?
+      "4) Return ONLY: { \"spec\": <template>, \"dataMapping\": { \"queries\": { \"<queryKey>\": { \"sql\": <sql>, \"target\": <target> }, ... } } }" :
+      "4) Return ONLY: { \"spec\": <template>, \"dataMapping\": { \"sql\": <sql>, \"target\": <target> } }",
     "5) DON'T return your comments, markdown, quotes, triple quotes or anything. Just the JSON"
   ].join("\n");
 }
