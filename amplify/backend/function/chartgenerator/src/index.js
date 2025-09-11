@@ -221,22 +221,22 @@ const CHART_CATALOG = {
     "pie.nested": {
       id: "pie_nested_v1",
       requirement:
-        "pie.nested: inner ring (dimension1 totals) => { type, value }; outer ring (dimension2 within dimension1) => { parent, type, value }",
-      sql_guidance: "Produce two datasets with consistent totals. Inner (id0): group by dimension1 as `type`, aggregate measure as `value`. Outer (id1): group by dimension1,dimension2; alias dimension1 as `parent`, dimension2 as `type`, aggregate as `value`. Filter outer to the same parent set as inner (e.g., top 8–12). Ensure per-parent child sums equal the inner `value`. Use COUNT(DISTINCT id) for identifier measures; otherwise SUM(measure). COALESCE nulls to 'Unknown'/'Other'. Keep categories per parent ≤ 8 and allow an 'Other' bucket. Alias columns exactly as specified and order by `value` desc.",
+        "pie.nested: INNER ring shows dimension1 totals => { type, value }; OUTER ring shows dimension2 breakdown within each dimension1 => { parent, type, value }",
+      sql_guidance: "RING ASSIGNMENT: dimension1 → INNER ring, dimension2 → OUTER ring. If user requests specific ring placement (e.g., 'countries in inner ring'), assign dimensions accordingly (dimension1=country, dimension2=other_field). Produce two datasets with consistent totals. Inner (id0): group by dimension1 as `type`, aggregate measure as `value`. Outer (id1): group by dimension1,dimension2; alias dimension1 as `parent`, dimension2 as `type`, aggregate as `value`. Filter outer to the same parent set as inner (e.g., top 8–12). Ensure per-parent child sums equal the inner `value`. Use COUNT(DISTINCT id) for identifier measures; otherwise SUM(measure). COALESCE nulls to 'Unknown'/'Other'. Keep categories per parent ≤ 8 and allow an 'Other' bucket. Alias columns exactly as specified and order by `value` desc.",
       expectedDataShapes: [
-        { inner: "[{ type: string, value: number }]",
-          outer: "[{ parent: string, type: string, value: number }]" }
+        { inner: "[{ type: string, value: number }]  -- INNER ring (small circle in center)",
+          outer: "[{ parent: string, type: string, value: number }]  -- OUTER ring (large circle around inner)" }
       ],
       dataQueries: {
         inner: {
           target: "data.0.values",
-          description: "Inner ring - aggregate totals by main dimension",
+          description: "INNER ring (small circle) - shows dimension1 categories",
           expectedFields: ["type", "value"],
           sqlHint: "GROUP BY dimension1 as type, aggregate measure as value, ORDER BY value DESC, LIMIT 8-12"
         },
         outer: {
           target: "data.1.values", 
-          description: "Outer ring - breakdown of secondary dimension within each main dimension",
+          description: "OUTER ring (large circle) - shows dimension2 breakdown within each dimension1",
           expectedFields: ["parent", "type", "value"],
           sqlHint: "GROUP BY dimension1 as parent, dimension2 as type, aggregate as value, filter to parents from inner query, ORDER BY parent, value DESC"
         }
