@@ -1150,12 +1150,33 @@ async function processChartGeneration(event, streamThought = null) {
     }
   }
 
-  if (!aggregation || !aggregation.result || !Array.isArray(aggregation.result.rows)) {
-    throw new Error("Aggregation step did not return valid rows: " + step2Last?.content);
+  // Validate aggregation format - handle both single-query and multi-query formats
+  let totalRowCount = 0;
+  if (aggregation?.queries) {
+    // Multi-query format
+    const queryKeys = Object.keys(aggregation.queries);
+    if (queryKeys.length === 0) {
+      throw new Error("Multi-query aggregation step did not return any queries: " + step2Last?.content);
+    }
+    
+    for (const [queryKey, queryData] of Object.entries(aggregation.queries)) {
+      if (!queryData?.result || !Array.isArray(queryData.result.rows)) {
+        throw new Error(`Multi-query aggregation step query '${queryKey}' did not return valid rows: ` + step2Last?.content);
+      }
+      totalRowCount += queryData.result.rows.length;
+    }
+    console.log(`Multi-query aggregation: ${queryKeys.length} queries with total ${totalRowCount} rows`);
+    
+  } else if (aggregation?.result && Array.isArray(aggregation.result.rows)) {
+    // Single-query format (legacy)
+    totalRowCount = aggregation.result.rows.length;
+    console.log('Single-query aggregation rows count:', totalRowCount);
+    
+  } else {
+    throw new Error("Aggregation step did not return valid format (expected either 'result.rows' or 'queries'): " + step2Last?.content);
   }
-  console.log('Aggregation rows count:', aggregation.result.rows.length);
   
-  streamThought?.(`📈 Data processed: ${aggregation.result.rows.length} data points ready for visualization`);
+  streamThought?.(`📈 Data processed: ${totalRowCount} data points ready for visualization`);
 
   // --- STEP 3: VChart Spec Generation ---
   streamThought?.("🎨 Building interactive chart specification...");
