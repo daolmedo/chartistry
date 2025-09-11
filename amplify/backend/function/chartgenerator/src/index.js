@@ -1238,7 +1238,20 @@ async function processChartGeneration(event, streamThought = null) {
   console.log('\n=== Success! Returning final response ===');
   
   // Extract field information for future dynamic fetching
-  const sqlFields = aggregation.result.rows.length > 0 ? Object.keys(aggregation.result.rows[0]) : [];
+  let sqlFields = [];
+  if (aggregation.queries) {
+    // Multi-query format - extract fields from all queries
+    const allFields = new Set();
+    Object.values(aggregation.queries).forEach(query => {
+      if (query.result?.rows?.length > 0) {
+        Object.keys(query.result.rows[0]).forEach(field => allFields.add(field));
+      }
+    });
+    sqlFields = Array.from(allFields);
+  } else if (aggregation.result?.rows?.length > 0) {
+    // Single-query format (legacy)
+    sqlFields = Object.keys(aggregation.result.rows[0]);
+  }
   const specFields = extractFieldsFromSpec(specOut.spec);
   
   // Store chart generation metadata in database (async, non-blocking)
