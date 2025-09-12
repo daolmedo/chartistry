@@ -56,7 +56,7 @@ export const OrganizationSchema = {
   name: 'chartz.ai',
   description: 'AI-powered data visualization platform',
   url: 'https://chartz.ai',
-  logo: 'https://chartz.ai/logo.png',
+  logo: '/logo.png',
   sameAs: [
     // Add your social media profiles when available
     // 'https://twitter.com/chartz_ai',

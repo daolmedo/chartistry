@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     description: 'Turn data into stunning dashboards and charts in seconds. Create beautiful data visualizations effortlessly with AI.',
     siteName: 'chartz.ai',
     images: [{
-      url: 'https://chartz.ai/og-image.png',
+      url: 'https://chartz.ai/logo.png',
       width: 1200,
       height: 630,
       alt: 'chartz.ai - AI-Powered Data Visualization',
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'chartz.ai - AI-Powered Data Visualization Platform',
     description: 'Turn data into stunning dashboards and charts in seconds. Create beautiful data visualizations effortlessly with AI.',
-    images: ['https://chartz.ai/og-image.png'],
+    images: ['https://chartz.ai/logo.png'],
   },
   verification: {
     google: 'your-google-verification-code',

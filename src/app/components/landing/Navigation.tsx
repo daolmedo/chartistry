@@ -8,7 +8,7 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"></div>
+            <img src="/logo.png" alt="chartz.ai logo" className="w-8 h-8 rounded-lg" />
             <span className="text-2xl font-bold text-gray-900">chartz.ai</span>
           </div>
           <div className="hidden md:flex items-center space-x-8">

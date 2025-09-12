@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"></div>
+              <img src="/logo.png" alt="chartz.ai logo" className="w-8 h-8 rounded-lg" />
               <span className="text-2xl font-bold">chartz.ai</span>
             </div>
             <p className="text-gray-400 leading-relaxed">
