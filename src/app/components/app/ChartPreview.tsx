@@ -587,60 +587,71 @@ export default function ChartPreview({
       </div>
 
       {/* Chart Content */}
-      <div className="flex-1 flex">
-        {/* Chart Visualization */}
-        <div className={`${showSpec ? 'w-2/3' : 'w-full'} p-6 bg-gradient-to-br from-white to-gray-50`}>
+      <div className="flex-1 relative">
+        {/* Chart Visualization - Always full width */}
+        <div className="w-full h-full p-6 bg-gradient-to-br from-white to-gray-50">
           <div 
             ref={chartRef} 
             className="w-full h-full min-h-[400px] border border-gray-200 rounded-xl shadow-sm bg-white"
           />
         </div>
 
-        {/* Spec Panel */}
+        {/* Spec Panel Overlay */}
         {showSpec && (
-          <div className="w-1/3 border-l border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100">
-            <div className="p-4">
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-br from-gray-50 to-gray-100 border-l border-gray-200 shadow-lg z-50">
+            <div className="p-4 h-full flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-gray-900">Chart Specification</h3>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(JSON.stringify(spec, null, 2));
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-                >
-                  Copy
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(spec, null, 2));
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    onClick={() => setShowSpec(false)}
+                    className="text-xs text-gray-600 hover:text-gray-800 px-2 py-1 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
-              <pre className="text-xs bg-white p-3 rounded-lg border shadow-sm overflow-auto h-96 text-gray-800">
-                {JSON.stringify(currentSpec, null, 2)}
-              </pre>
               
-              {/* Dynamic Data Mapping Info */}
-              {generationResponse?.dataMapping && (
-                <div className="mt-4 space-y-2">
-                  <div className="bg-green-50 p-3 rounded-lg">
-                    <h4 className="text-xs font-bold text-green-900">🔄 Dynamic Data Flow:</h4>
-                    <div className="text-xs text-green-800 space-y-1">
-                      <div><strong>Status:</strong> {isLoadingData ? 'Loading fresh data...' : 'Using live data from dataset'}</div>
-                      <div><strong>Target:</strong> {generationResponse.dataMapping.target}</div>
-                      <div><strong>SQL:</strong> <code className="bg-green-100 px-1 rounded">{generationResponse.dataMapping.sql}</code></div>
+              <div className="flex-1 overflow-auto">
+                <pre className="text-xs bg-white p-3 rounded-lg border shadow-sm mb-4 text-gray-800">
+                  {JSON.stringify(currentSpec, null, 2)}
+                </pre>
+                
+                {/* Dynamic Data Mapping Info */}
+                {generationResponse?.dataMapping && (
+                  <div className="mb-4 space-y-2">
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <h4 className="text-xs font-bold text-green-900">🔄 Dynamic Data Flow:</h4>
+                      <div className="text-xs text-green-800 space-y-1">
+                        <div><strong>Status:</strong> {isLoadingData ? 'Loading fresh data...' : 'Using live data from dataset'}</div>
+                        <div><strong>Target:</strong> {generationResponse.dataMapping.target}</div>
+                        <div><strong>SQL:</strong> <code className="bg-green-100 px-1 rounded">{generationResponse.dataMapping.sql}</code></div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {insightResult && (
-                <div className="mt-4 space-y-2">
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <h4 className="text-xs font-bold text-blue-900">SQL Query:</h4>
-                    <code className="text-xs text-blue-800 break-all">{insightResult.sql_query}</code>
+                {insightResult && (
+                  <div className="space-y-2">
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <h4 className="text-xs font-bold text-blue-900">SQL Query:</h4>
+                      <code className="text-xs text-blue-800 break-all">{insightResult.sql_query}</code>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <h4 className="text-xs font-bold text-green-900">Insight:</h4>
+                      <p className="text-xs text-green-800">{insightResult.insight_explanation}</p>
+                    </div>
                   </div>
-                  <div className="bg-green-50 p-3 rounded-lg">
-                    <h4 className="text-xs font-bold text-green-900">Insight:</h4>
-                    <p className="text-xs text-green-800">{insightResult.insight_explanation}</p>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
