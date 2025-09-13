@@ -24,7 +24,7 @@ export async function generateStaticParams() {
   // Include competitor tutorial slugs
   const competitors = ['tableau', 'powerbi', 'looker-studio'];
   const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot'];
-  const competitorTutorialSlugs = [];
+  const competitorTutorialSlugs: Array<{slug: string}> = [];
   
   competitors.forEach(competitor => {
     competitorChartTypes.forEach(chartType => {
