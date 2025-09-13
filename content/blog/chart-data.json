@@ -123,5 +123,71 @@
         "value3": "22000"
       }
     }
+  },
+
+  "competitorInfo": {
+    "tableau": {
+      "displayName": "Tableau",
+      "cost": "Expensive licensing fees starting at $70/month per user",
+      "type": "Desktop"
+    },
+    "powerbi": {
+      "displayName": "Power BI",
+      "cost": "Microsoft licensing fees starting at $10/month per user",
+      "type": "Desktop/Cloud"
+    },
+    "looker-studio": {
+      "displayName": "Looker Studio",
+      "cost": "Free for basic features, enterprise pricing for advanced features",
+      "type": "Cloud"
+    }
+  },
+
+  "competitorSteps": {
+    "tableau": {
+      "pie-chart": "1. Drag your categorical dimension to the 'Color' shelf\n2. Drag your measure to the 'Angle' shelf\n3. Go to 'Show Me' panel and select the pie chart option\n4. Adjust the mark type to 'Pie' if not automatically set\n5. Right-click on the pie chart and select 'Format'\n6. Configure labels, colors, and sizing manually\n7. Add percentage calculations using calculated fields",
+      "donut-chart": "1. Create a pie chart following the standard steps\n2. Create a calculated field for the inner circle (constant value)\n3. Drag this calculated field to the 'Rows' shelf\n4. Set the mark type to 'Circle' for the inner chart\n5. Adjust sizing and positioning manually\n6. Overlay the pie chart on top of the circle\n7. Fine-tune alignment and spacing\n8. Configure dual-axis settings for proper display",
+      "stacked-bar-chart": "1. Drag your categorical dimension to the 'Rows' shelf\n2. Drag your primary measure to the 'Columns' shelf\n3. Drag your secondary dimension to the 'Color' shelf\n4. Ensure the mark type is set to 'Bar'\n5. Right-click on the measure axis and select 'Edit Axis'\n6. Configure stacking options in the 'Analysis' menu\n7. Manually adjust colors and labels for each segment\n8. Add data labels using the 'Label' shelf",
+      "heat-map": "1. Drag your first dimension to 'Columns'\n2. Drag your second dimension to 'Rows'\n3. Drag your measure to both 'Color' and 'Size' shelves\n4. Change mark type to 'Square' or 'Circle'\n5. Configure the color palette manually\n6. Adjust the size range for proper scaling\n7. Set up proper legends and labels\n8. Fine-tune grid lines and borders\n9. Configure tooltips for data values",
+      "scatter-plot": "1. Drag your first measure to the 'Columns' shelf\n2. Drag your second measure to the 'Rows' shelf\n3. Set mark type to 'Circle'\n4. Optionally drag a dimension to 'Color' for grouping\n5. Drag a measure to 'Size' if you want bubble chart effect\n6. Add trend lines through the 'Analytics' pane\n7. Configure axis ranges and scaling\n8. Set up proper labels and formatting\n9. Add reference lines or bands if needed"
+    },
+    "powerbi": {
+      "pie-chart": "1. Click on the Pie Chart visualization in the Visualizations pane\n2. Drag your category field to the 'Legend' field well\n3. Drag your measure to the 'Values' field well\n4. Configure data labels through the Format pane\n5. Adjust colors using the Data Colors section\n6. Set up tooltips and conditional formatting\n7. Apply filters and slicers as needed",
+      "donut-chart": "1. Select the Donut Chart visualization from the Visualizations pane\n2. Add your categorical field to the 'Legend' well\n3. Add your measure to the 'Values' well\n4. Configure the inner radius through Format options\n5. Customize colors and data labels\n6. Set up drill-through actions if needed\n7. Apply formatting for professional appearance",
+      "stacked-bar-chart": "1. Choose the Stacked Bar Chart from Visualizations\n2. Drag your primary category to the 'Axis' field\n3. Add your measure to the 'Values' field\n4. Drag your secondary category to the 'Legend' field\n5. Format data labels and colors through the Format pane\n6. Configure axis properties and scaling\n7. Add conditional formatting rules\n8. Set up interactions with other visuals",
+      "heat-map": "1. Import a custom heatmap visual from AppSource\n2. Configure row and column categories\n3. Add your measure to the Values field\n4. Set up color saturation rules\n5. Configure tooltips and labels\n6. Adjust grid appearance and spacing\n7. Apply filters and cross-filtering\n8. Format legends and axes",
+      "scatter-plot": "1. Select Scatter Chart from the Visualizations pane\n2. Add your X-axis measure to the 'X Axis' field\n3. Add your Y-axis measure to the 'Y Axis' field\n4. Optionally add a category to the 'Legend' field\n5. Add a measure to 'Size' for bubble chart effect\n6. Configure play axis for animated charts\n7. Format markers, colors, and data labels\n8. Add trend lines through Analytics pane"
+    },
+    "looker-studio": {
+      "pie-chart": "1. Click 'Add a Chart' and select Pie Chart\n2. Choose your data source from the dropdown\n3. Drag your dimension to the 'Dimension' field\n4. Drag your metric to the 'Metric' field\n5. Configure slice sorting and filtering\n6. Customize colors through the Style tab\n7. Set up data labels and legend positioning\n8. Apply conditional formatting rules",
+      "donut-chart": "1. Add a Pie Chart to your report\n2. Configure dimension and metric fields\n3. Go to the Style tab and enable 'Donut chart'\n4. Adjust the donut hole size\n5. Configure slice colors and data labels\n6. Set up hover tooltips\n7. Apply filters and date range controls\n8. Format legend and chart title",
+      "stacked-bar-chart": "1. Select 'Add a Chart' and choose Stacked Bar Chart\n2. Connect to your data source\n3. Set your primary dimension for the bars\n4. Add your metric to the Metric field\n5. Add a secondary dimension for stacking\n6. Configure bar orientation (horizontal/vertical)\n7. Format colors and data labels\n8. Set up interactive filters",
+      "heat-map": "1. Add a Heatmap chart (may require community visualization)\n2. Configure row and column dimensions\n3. Set your metric for color intensity\n4. Choose an appropriate color scale\n5. Configure cell labels and tooltips\n6. Set up dimension filtering\n7. Format grid lines and spacing\n8. Apply conditional color rules",
+      "scatter-plot": "1. Click 'Add a Chart' and select Scatter Chart\n2. Choose your data source\n3. Set X-axis metric in the X field\n4. Set Y-axis metric in the Y field\n5. Optionally add a dimension for color coding\n6. Configure bubble size with a metric\n7. Format axis ranges and labels\n8. Add trend lines through chart settings"
+    }
+  },
+
+  "competitorComplexity": {
+    "tableau": {
+      "pie-chart": "While pie charts might seem simple, Tableau's implementation requires understanding of shelf hierarchy, mark properties, and manual color configuration. Users often struggle with label positioning, percentage calculations, and creating visually appealing color schemes. The process becomes even more complex when dealing with small slices or when you need to sort categories by value.",
+      "donut-chart": "Donut charts in Tableau are notoriously difficult to create, requiring workarounds with dual-axis charts, calculated fields for inner circles, and precise alignment techniques. Most users need to follow complex tutorials involving multiple chart overlays, manual positioning, and custom sizing - a process that can take hours to master.",
+      "stacked-bar-chart": "Creating stacked bar charts requires careful attention to dimension hierarchy, proper aggregation settings, and manual color coding for each segment. Users frequently encounter issues with data ordering, label placement, and ensuring consistent color schemes across different chart views. The complexity increases significantly when trying to add percentage labels or create horizontal stacked bars.",
+      "heat-map": "Heat maps in Tableau require understanding of continuous vs. discrete field types, color palette customization, and proper scaling of both color and size elements. Users often struggle with creating meaningful color gradients, handling missing data points, and configuring appropriate grid layouts. The process becomes complex when dealing with large datasets or when trying to create custom color ranges.",
+      "scatter-plot": "While basic scatter plots are straightforward, creating meaningful visualizations requires understanding of trend lines, reference bands, clustering analysis, and proper axis configuration. Users frequently struggle with overlapping points, appropriate scaling, color coding for categories, and adding statistical elements like correlation coefficients or regression lines."
+    },
+    "powerbi": {
+      "pie-chart": "Power BI pie charts require navigating between multiple panes (Visualizations, Fields, Format) and understanding field well hierarchies. Users often struggle with data aggregation settings, custom color schemes, and proper label positioning. The complexity increases when dealing with measures that need specific aggregation functions or when trying to create calculated fields for percentages.",
+      "donut-chart": "Creating effective donut charts in Power BI involves understanding visualization properties, configuring inner radius settings, and managing data label overlap. Users frequently encounter issues with color consistency across different chart instances, tooltip customization, and ensuring proper drill-through functionality when integrated with other report elements.",
+      "stacked-bar-chart": "Stacked bar charts in Power BI require careful field mapping, understanding of legend hierarchies, and proper axis configuration. Users often struggle with category ordering, color management across multiple data series, conditional formatting rules, and ensuring proper interaction with slicers and filters. The complexity grows significantly when implementing custom calculations or percentage stacking.",
+      "heat-map": "Heat maps in Power BI often require custom visuals from AppSource, adding complexity to report deployment and sharing. Users struggle with configuring color scales, managing data density, handling missing values, and ensuring proper tooltip information. The process becomes even more complex when trying to implement custom color ranges or when integrating with other interactive elements.",
+      "scatter-plot": "Power BI scatter plots require understanding of multiple field wells (X Axis, Y Axis, Legend, Size, Play Axis) and their interactions. Users frequently struggle with axis scaling, bubble sizing algorithms, animated chart configurations, and trend line customization. The complexity increases when implementing drill-through actions or when trying to create custom tooltips with multiple data points."
+    },
+    "looker-studio": {
+      "pie-chart": "Looker Studio pie charts require understanding of dimension vs. metric field types, data source connections, and the relationship between different chart properties. Users often struggle with data filtering, custom color palettes, slice sorting, and ensuring charts update properly when connected to dynamic data sources. The process becomes complex when implementing calculated fields or custom aggregations.",
+      "donut-chart": "Creating donut charts in Looker Studio involves configuring pie chart properties and enabling donut mode, which isn't immediately obvious to new users. Users frequently encounter issues with hole size optimization, data label positioning around the circular layout, and maintaining visual consistency across different screen sizes and devices.",
+      "stacked-bar-chart": "Stacked bar charts in Looker Studio require proper understanding of dimension hierarchies, metric calculations, and the interaction between different chart elements. Users often struggle with stack ordering, color assignment consistency, tooltip configuration, and ensuring proper responsiveness across different report formats and sharing methods.",
+      "heat-map": "Heat maps in Looker Studio may require community visualizations or workarounds, making them less straightforward than basic chart types. Users struggle with color scale configuration, handling sparse data, grid formatting, and ensuring proper drill-down functionality. The complexity increases when trying to implement custom color rules or when dealing with large datasets that require aggregation.",
+      "scatter-plot": "Looker Studio scatter plots require careful configuration of axis metrics, optional grouping dimensions, and bubble sizing parameters. Users frequently encounter issues with axis range optimization, point overlap when dealing with dense data, trend line configuration, and ensuring proper interactivity with other report elements and filters."
+    }
   }
 }

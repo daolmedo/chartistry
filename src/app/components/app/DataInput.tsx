@@ -190,8 +190,20 @@ export default function DataInput({
                 accept=".csv"
                 onChange={handleS3FileUpload}
                 disabled={uploadStatus === 'uploading'}
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:shadow-sm disabled:opacity-50"
+                className="hidden"
+                id="csv-file-input"
               />
+              <label
+                htmlFor="csv-file-input"
+                className={`w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer transition-colors ${
+                  uploadStatus === 'uploading' ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Select File
+              </label>
               {uploadStatus === 'uploading' && (
                 <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg">
                   <div className="flex items-center space-x-2 text-sm text-blue-600">

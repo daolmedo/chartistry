@@ -15,17 +15,31 @@ interface BlogPostPageProps {
 export async function generateStaticParams() {
   const posts = await getAllBlogPosts();
   
-  // Also include programmatic SEO chart guide slugs
+  // Include programmatic SEO chart guide slugs
   const chartTypes = ['pie', 'bar', 'line', 'scatter', 'area', 'column', 'donut', 'heatmap', 'funnel', 'gauge'];
   const chartGuideSlugs = chartTypes.map(type => ({
     slug: `how-to-create-${type}-charts`
   }));
+
+  // Include competitor tutorial slugs
+  const competitors = ['tableau', 'powerbi', 'looker-studio'];
+  const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot'];
+  const competitorTutorialSlugs = [];
+  
+  competitors.forEach(competitor => {
+    competitorChartTypes.forEach(chartType => {
+      competitorTutorialSlugs.push({
+        slug: `how-to-create-${chartType}-in-${competitor}`
+      });
+    });
+  });
 
   return [
     ...posts.map((post) => ({
       slug: post.slug,
     })),
     ...chartGuideSlugs,
+    ...competitorTutorialSlugs,
   ];
 }
 
@@ -161,7 +175,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                 {/* Article content */}
                 <div 
-                  className="prose prose-lg prose-blue max-w-none"
+                  className="prose prose-lg prose-blue max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:mb-4 prose-p:leading-relaxed prose-ul:mb-4 prose-ol:mb-4 prose-li:mb-1 prose-img:rounded-lg prose-img:shadow-md prose-img:my-6"
                   dangerouslySetInnerHTML={{ __html: post.content }}
                 />
 

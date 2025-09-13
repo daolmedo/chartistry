@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
+import { getAllBlogPosts } from '@/lib/blog'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://chartz.ai'
   
   // Define your static routes
@@ -38,9 +39,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // },
   ]
 
-  // TODO: Add dynamic routes here when you have them
-  // For example, if you add a blog or user profiles:
-  // const dynamicRoutes = await fetchDynamicRoutes()
+  // Get all blog posts (including generated ones)
+  const blogPosts = await getAllBlogPosts()
   
-  return staticRoutes
+  // Create blog routes
+  const blogRoutes = blogPosts.map(post => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }))
+
+  // Add main blog page
+  const blogMainRoute = {
+    url: `${baseUrl}/blog`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.8,
+  }
+  
+  return [...staticRoutes, blogMainRoute, ...blogRoutes]
 }
