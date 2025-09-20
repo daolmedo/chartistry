@@ -827,7 +827,23 @@ function buildSpecGraph() {
 
 /* -------- Prompts for Step 3 (only returns { spec }) -------- */
 
-function buildStep3SystemPrompt() {
+function buildStep3SystemPrompt(targetPaths) {
+  const isMultiQuery = targetPaths && typeof targetPaths === 'object' && !targetPaths.single;
+
+  let targetExample;
+  if (isMultiQuery) {
+    // Multi-query example with actual target paths
+    const exampleQueries = {};
+    Object.entries(targetPaths).forEach(([key, target]) => {
+      exampleQueries[key] = { sql: "SELECT ...", target: target };
+    });
+    targetExample = JSON.stringify({ dataMapping: { queries: exampleQueries } }, null, 2);
+  } else {
+    // Single-query example with actual target path
+    const singleTarget = targetPaths?.single || targetPaths || "data.values";
+    targetExample = JSON.stringify({ dataMapping: { sql: "SELECT ...", target: singleTarget } }, null, 2);
+  }
+
   return [
     "You are a VChart spec template generator.",
     "Input context will include: (a) chart selection {type, subtype, mapping}, (b) SQL queries and results.",
@@ -841,51 +857,44 @@ function buildStep3SystemPrompt() {
     "",
     "Rules:",
     "- Create a template spec with EMPTY data containers (empty arrays).",
-    "- Use field names per guidance defaults from the chart definition.", 
+    "- Use field names per guidance defaults from the chart definition.",
     "- For multi-query charts, create multiple empty data containers.",
     "- Add reasonable defaults from guidance (legends/labels/title).",
+    "- Use the EXACT target paths provided in the user prompt - do NOT modify them.",
     "- Output ONLY a JSON object with keys 'spec' and 'dataMapping'. No markdown, no extra text.",
     "",
-    "For SINGLE query charts, dataMapping format:",
-    JSON.stringify({
-      dataMapping: {
-        sql: "SELECT category AS type, SUM(amount) AS value FROM table",
-        target: "data.0.values"
-      }
-    }, null, 2),
-    "",
-    "For MULTI-query charts, dataMapping format:",
-    JSON.stringify({
-      dataMapping: {
-        queries: {
-          inner: { sql: "SELECT type, value FROM ...", target: "data.0.values" },
-          outer: { sql: "SELECT parent, type, value FROM ...", target: "data.1.values" }
-        }
-      }
-    }, null, 2)
+    "Target format example for this chart type:",
+    targetExample
   ].join("\n");
 }
 
 
-function buildStep3UserPrompt({ selection, aggregation }) {
-  let sqlInfo, sampleRowsInfo;
-  
+function buildStep3UserPrompt({ selection, aggregation, targetPaths }) {
+  let sqlInfo, sampleRowsInfo, targetInfo;
+
   if (aggregation.queries) {
     // Multi-query format
     const queryEntries = Object.entries(aggregation.queries);
     sqlInfo = `SQL queries used:\n${queryEntries.map(([key, query]) => `  ${key}: ${query.sql}`).join('\n')}`;
-    
+
     // Show sample rows from each query
     const sampleRows = {};
     queryEntries.forEach(([key, query]) => {
       sampleRows[key] = query.result.rows.slice(0, 2); // 2 samples per query
     });
     sampleRowsInfo = `Sample rows by query: ${JSON.stringify(sampleRows)}`;
-    
+
+    // Multi-query target paths
+    targetInfo = `Required target paths: ${JSON.stringify(targetPaths)}`;
+
   } else {
     // Single-query format (legacy)
     sqlInfo = `SQL used: ${aggregation.sql}`;
     sampleRowsInfo = `Sample rows: ${JSON.stringify(aggregation.result.rows.slice(0, 3))}`;
+
+    // Single-query target path
+    const singleTarget = targetPaths?.single || targetPaths;
+    targetInfo = `Required target path: "${singleTarget}"`;
   }
 
   return [
@@ -893,16 +902,15 @@ function buildStep3UserPrompt({ selection, aggregation }) {
     `Mapping: ${JSON.stringify(selection.mapping)}`,
     sqlInfo,
     sampleRowsInfo,
+    targetInfo,
     "",
     "Steps:",
     "1) Call get_chart_definition with { type, subtype }.",
-    aggregation.queries ? 
-      "2) For multi-query charts, use the 'dataQueries' from the definition for your dataMapping." :
-      "2) Use the 'dataInjection' target from the definition for your dataMapping.",
-    "3) Generate a VChart spec template with EMPTY data containers.",
+    "2) Generate a VChart spec template with EMPTY data containers that match the target structure.",
     aggregation.queries ?
-      "4) Return ONLY: { \"spec\": <template>, \"dataMapping\": { \"queries\": { \"<queryKey>\": { \"sql\": <sql>, \"target\": <target> }, ... } } }" :
-      "4) Return ONLY: { \"spec\": <template>, \"dataMapping\": { \"sql\": <sql>, \"target\": <target> } }",
+      "3) Return ONLY: { \"spec\": <template>, \"dataMapping\": { \"queries\": { \"<queryKey>\": { \"sql\": <sql>, \"target\": <exact_target_provided> }, ... } } }" :
+      "3) Return ONLY: { \"spec\": <template>, \"dataMapping\": { \"sql\": <sql>, \"target\": <exact_target_provided> } }",
+    "4) CRITICAL: Use the EXACT target paths provided above. Do NOT modify them.",
     "5) DON'T return your comments, markdown, quotes, triple quotes or anything. Just the JSON"
   ].join("\n");
 }
@@ -1206,9 +1214,32 @@ async function processChartGeneration(event, streamThought = null) {
   // --- STEP 3: VChart Spec Generation ---
   streamThought?.("🎨 Building interactive chart specification...");
   console.log('\n=== Step 3: VChart Spec Generation ===');
+
+  // Extract target paths from chart definition (reuse existing chartKey and chartDef)
+  let targetPaths;
+
+  if (chartDef?.dataQueries) {
+    const queries = chartDef.dataQueries;
+    if (Object.keys(queries).length === 1 && queries.main) {
+      // Single query chart
+      targetPaths = queries.main.target;
+    } else {
+      // Multi-query chart
+      targetPaths = {};
+      Object.entries(queries).forEach(([key, query]) => {
+        targetPaths[key] = query.target;
+      });
+    }
+  } else {
+    // Fallback to default
+    targetPaths = "data.values";
+  }
+
+  console.log('Extracted target paths from chart definition:', targetPaths);
+
   const step3App = buildSpecGraph();
-  const step3System = new SystemMessage(buildStep3SystemPrompt());
-  const step3Human = new HumanMessage(buildStep3UserPrompt({ selection, aggregation }));
+  const step3System = new SystemMessage(buildStep3SystemPrompt(targetPaths));
+  const step3Human = new HumanMessage(buildStep3UserPrompt({ selection, aggregation, targetPaths }));
 
   console.log('Invoking spec generation graph...');
   const step3State = await step3App.invoke({ messages: [step3System, step3Human] });
