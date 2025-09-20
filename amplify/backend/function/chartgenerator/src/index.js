@@ -960,15 +960,16 @@ function extractFieldsFromSpec(spec) {
  * Store chart generation metadata in database for tracking and future dynamic fetching
  */
 async function storeChartGenerationMetadata(params) {
-  const { 
-    user_intent, 
-    dataset_id, 
-    selection, 
-    aggregation, 
-    spec, 
-    sqlFields, 
+  const {
+    user_intent,
+    dataset_id,
+    user_id,
+    selection,
+    aggregation,
+    spec,
+    sqlFields,
     specFields,
-    execution_time_ms 
+    execution_time_ms
   } = params;
   
   const client = await pool.connect();
@@ -986,7 +987,7 @@ async function storeChartGenerationMetadata(params) {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING generation_id
     `, [
-      'system', // user_id - we'd need to pass this from the request
+      user_id || 'anonymous', // user_id from request
       dataset_id,
       user_intent,
       JSON.stringify(spec),
@@ -1082,8 +1083,8 @@ async function processChartGeneration(event, streamThought = null) {
   const body = typeof event.body === "string" ? JSON.parse(event.body || "{}") : (event.body || {});
   console.log('Parsed body:', JSON.stringify(body));
   
-  const { user_intent, dataset_id, table_name } = body || {};
-  console.log('Extracted params:', { user_intent, dataset_id, table_name });
+  const { user_intent, dataset_id, table_name, user_id } = body || {};
+  console.log('Extracted params:', { user_intent, dataset_id, table_name, user_id });
 
   if (!user_intent || !dataset_id || !table_name) {
     throw new Error("Missing required fields: user_intent, dataset_id, table_name");
@@ -1260,6 +1261,7 @@ async function processChartGeneration(event, streamThought = null) {
   storeChartGenerationMetadata({
     user_intent,
     dataset_id,
+    user_id,
     selection,
     aggregation,
     spec: specOut.spec,

@@ -5,7 +5,7 @@ const CHART_GENERATOR_FUNCTION_URL = 'https://7xj5vtwghbnjb3p6cupkx7jjc40nfznv.l
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_intent, dataset_id, table_name, stream } = body;
+    const { user_intent, dataset_id, table_name, user_id, stream } = body;
 
     if (!user_intent || !dataset_id || !table_name) {
       return NextResponse.json({ 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       const lambdaPayload = {
         httpMethod: 'POST',
         queryStringParameters: isStreaming ? { stream: 'true' } : null,
-        body: JSON.stringify({ user_intent, dataset_id, table_name })
+        body: JSON.stringify({ user_intent, dataset_id, table_name, user_id })
       };
 
       const response = await fetch('http://localhost:9000/2015-03-31/functions/function/invocations', {
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           user_intent,
           dataset_id,
-          table_name
+          table_name,
+          user_id
         })
       });
 

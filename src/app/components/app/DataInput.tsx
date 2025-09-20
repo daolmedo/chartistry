@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/UserContext';
 import { getUserDatasets, type Dataset } from '../../lib/api';
 
 interface DataInputProps {

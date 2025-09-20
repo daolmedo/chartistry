@@ -6,7 +6,7 @@ import DataInput from '../components/app/DataInput';
 import ChartPreview from '../components/app/ChartPreview';
 import DatasetViewer from '../components/app/DatasetViewer';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/UserContext';
 import { Dataset } from '../lib/api';
 
 interface VChartSpec {
@@ -34,7 +34,7 @@ export default function ChartApp() {
   const [enableStreaming, setEnableStreaming] = useState(true);
   const [generationResponse, setGenerationResponse] = useState<any>(null);
   
-  const { currentUser, logout } = useAuth();
+  const { currentUser, userId, logout } = useAuth();
   
   const handleDatasetSelect = (dataset: Dataset) => {
     setSelectedDataset(dataset);
@@ -78,6 +78,7 @@ export default function ChartApp() {
             user_intent: prompt,
             dataset_id: selectedDataset.dataset_id,
             table_name: selectedDataset.table_name,
+            user_id: userId,
             stream: true
           }),
         });
@@ -133,7 +134,8 @@ export default function ChartApp() {
           body: JSON.stringify({
             user_intent: prompt,
             dataset_id: selectedDataset.dataset_id,
-            table_name: selectedDataset.table_name
+            table_name: selectedDataset.table_name,
+            user_id: userId
           }),
         });
 
