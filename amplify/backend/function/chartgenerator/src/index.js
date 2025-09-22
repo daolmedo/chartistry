@@ -170,35 +170,31 @@ const CHART_CATALOG = {
     }
   ],
 
-  // Rich, per-chart definitions (for Step 3). Key = `${type}.${subtype}`
+  // Streamlined chart definitions for AI agents. Key = `${type}.${subtype}`
   defs: {
     "pie.basic": {
       id: "pie_basic_v1",
-      requirement: "pie.basic: columns => type, value",
-      sql_guidance: "Produce a single dataset with categorical breakdown. Group by the dimension field as `type`, aggregate the measure as `value`. Use SUM for numeric measures, COUNT for frequency analysis, or COUNT(DISTINCT id) for unique identifiers. COALESCE null categories to 'Unknown'. Limit to top 10-12 categories and consider creating an 'Other' bucket for remaining small categories. Order by `value` DESC to show largest segments first.",
-      expectedDataShapes: [
-        // Agent should adapt to any of these shapes and produce a valid spec.
-        { rows: "[{ type: string, value: number }]" },
-        { rows: "[{ [categoryField]: string, [valueField]: number }]" }
-      ],
-      dataQueries: {
-        main: {
-          target: "data.0.values",
-          description: "Pie chart segments - categorical breakdown with values",
+
+      // Clear contract for dynamic data fetching
+      dynamicData: {
+        sqlTemplate: {
+          pattern: "GROUP BY {dimension} as type, SUM({measure}) as value",
+          orderBy: "value DESC",
           expectedFields: ["type", "value"],
-          sqlHint: "GROUP BY dimension as type, aggregate measure as value, ORDER BY value DESC"
+          guidance: "Use SUM for numeric measures, COUNT for frequency analysis, COUNT(DISTINCT id) for unique identifiers. COALESCE null categories to 'Unknown'. Limit to top 10-12 categories."
+        },
+        injection: {
+          target: "data.0.values",
+          chartFields: { categoryField: "type", valueField: "value" }
         }
       },
-      vchartGuidance: {
-        chartType: "pie",
-        defaultFields: { categoryField: "type", valueField: "value" },
-        dataInjection: "single dataset with id 'id0'",
-        commonOptions: {
-          outerRadius: 0.8,
-          legends: { visible: true, orient: "left" },
-          label: { visible: true }
-        },
-        tooltipNote: "If values are percentages, show '%' in tooltip; otherwise raw value."
+
+      // VChart configuration defaults
+      chartDefaults: {
+        type: "pie",
+        outerRadius: 0.8,
+        legends: { visible: true, orient: "left" },
+        label: { visible: true }
       },
       exampleSpecs: [
         {
@@ -220,36 +216,46 @@ const CHART_CATALOG = {
 
     "pie.nested": {
       id: "pie_nested_v1",
-      requirement:
-        "pie.nested: INNER ring shows dimension1 totals => { type, value }; OUTER ring shows dimension2 breakdown within each dimension1 => { parent, type, value }",
-      sql_guidance: "RING ASSIGNMENT: dimension1 → INNER ring, dimension2 → OUTER ring. If user requests specific ring placement (e.g., 'countries in inner ring'), assign dimensions accordingly (dimension1=country, dimension2=other_field). Produce two datasets with consistent totals. Inner (id0): group by dimension1 as `type`, aggregate measure as `value`. Outer (id1): group by dimension1,dimension2; alias dimension1 as `parent`, dimension2 as `type`, aggregate as `value`. Filter outer to the same parent set as inner (e.g., top 8–12). Ensure per-parent child sums equal the inner `value`. Use COUNT(DISTINCT id) for identifier measures; otherwise SUM(measure). COALESCE nulls to 'Unknown'/'Other'. Keep categories per parent ≤ 8 and allow an 'Other' bucket. Alias columns exactly as specified and order by `value` desc.",
-      expectedDataShapes: [
-        { inner: "[{ type: string, value: number }]  -- INNER ring (small circle in center)",
-          outer: "[{ parent: string, type: string, value: number }]  -- OUTER ring (large circle around inner)" }
-      ],
-      dataQueries: {
-        inner: {
-          target: "data.0.values",
-          description: "INNER ring (small circle) - shows dimension1 categories",
-          expectedFields: ["type", "value"],
-          sqlHint: "GROUP BY dimension1 as type, aggregate measure as value, ORDER BY value DESC, LIMIT 8-12"
-        },
-        outer: {
-          target: "data.1.values", 
-          description: "OUTER ring (large circle) - shows dimension2 breakdown within each dimension1",
-          expectedFields: ["parent", "type", "value"],
-          sqlHint: "GROUP BY dimension1 as parent, dimension2 as type, aggregate as value, filter to parents from inner query, ORDER BY parent, value DESC"
+
+      // Clear contract for dynamic data fetching - Multi-query chart
+      dynamicData: {
+        queries: {
+          inner: {
+            sqlTemplate: {
+              pattern: "GROUP BY {dimension1} as type, SUM({measure}) as value",
+              orderBy: "value DESC",
+              limit: "8-12",
+              expectedFields: ["type", "value"],
+              guidance: "INNER ring (small circle) - shows dimension1 categories. Use SUM for measures, COUNT(DISTINCT id) for identifiers."
+            },
+            injection: {
+              target: "data.0.values",
+              chartFields: { categoryField: "type", valueField: "value" }
+            }
+          },
+          outer: {
+            sqlTemplate: {
+              pattern: "GROUP BY {dimension1} as parent, {dimension2} as type, SUM({measure}) as value",
+              orderBy: "parent, value DESC",
+              expectedFields: ["parent", "type", "value"],
+              guidance: "OUTER ring (large circle) - shows dimension2 breakdown within each dimension1. Filter to same parents as inner query. COALESCE nulls to 'Unknown'."
+            },
+            injection: {
+              target: "data.1.values",
+              chartFields: { categoryField: "type", valueField: "value" }
+            }
+          }
         }
       },
-      vchartGuidance: {
-        chartType: "common",
-        dataInjection: "two datasets: id 'id0' (inner/parents), id 'id1' (outer/children)",
+
+      // VChart configuration defaults
+      chartDefaults: {
+        type: "common",
         series: [
           { type: "pie", dataIndex: 0, outerRadius: 0.65, innerRadius: 0, valueField: "value", categoryField: "type" },
           { type: "pie", dataIndex: 1, outerRadius: 0.8, innerRadius: 0.67, valueField: "value", categoryField: "type" }
         ],
-        labelNotes: "Inner ring: inside labels; outer ring: outside labels as needed.",
-        colorNotes: "If possible, use a shared palette keyed by `parent` so child slices inherit related hues."
+        legends: { visible: true, orient: "left" }
       },
       exampleSpecs: [
         {
@@ -275,25 +281,26 @@ const CHART_CATALOG = {
 
     "funnel.basic": {
       id: "funnel_basic_v1",
-      requirement: "funnel.basic: columns => step, value",
-      sql_guidance: "Create a funnel progression dataset showing step-by-step flow. Group by the step/stage field as `step` (or alias as `name`), aggregate the measure as `value`. Steps should represent sequential stages in a process (e.g., 'Awareness', 'Interest', 'Purchase'). Use SUM for volume metrics, COUNT(DISTINCT id) for user counts. Values should generally decrease from top to bottom of funnel. Order by a sequence field or explicitly by funnel position. Keep to 4-8 meaningful steps.",
-      expectedDataShapes: [
-        { rows: "[{ step: string, value: number }]" },
-        { rows: "[{ name: string, value: number }]" }
-      ],
-      dataQueries: {
-        main: {
+
+      // Clear contract for dynamic data fetching
+      dynamicData: {
+        sqlTemplate: {
+          pattern: "GROUP BY {step} as name, SUM({measure}) as value",
+          orderBy: "funnel sequence",
+          expectedFields: ["name", "value"],
+          guidance: "Create funnel progression with sequential stages. Use SUM for volume metrics, COUNT(DISTINCT id) for user counts. Values should generally decrease from top to bottom. Keep to 4-8 meaningful steps."
+        },
+        injection: {
           target: "data.0.values",
-          description: "Funnel steps - sequential stages with decreasing values",
-          expectedFields: ["step", "value"],
-          sqlHint: "GROUP BY step_field as step, aggregate measure as value, ORDER BY funnel sequence"
+          chartFields: { categoryField: "name", valueField: "value" }
         }
       },
-      vchartGuidance: {
-        chartType: "funnel",
-        defaultFields: { categoryField: "name|step", valueField: "value" },
-        dataInjection: "single dataset with id 'funnel'",
-        labelAndLegends: { label: { visible: true }, legends: { visible: true, orient: "bottom" } }
+
+      // VChart configuration defaults
+      chartDefaults: {
+        type: "funnel",
+        label: { visible: true },
+        legends: { visible: true, orient: "bottom" }
       },
       exampleSpecs: [
         {
@@ -312,24 +319,29 @@ const CHART_CATALOG = {
 
     "funnel.conversion": {
       id: "funnel_conversion_v1",
-      requirement: "funnel.conversion: columns => step, value",
-      sql_guidance: "Build conversion step data with absolute counts at each stage. Focus on user journey progression where each step represents a conversion point. The visualization will automatically calculate conversion rates between steps, so provide raw counts rather than percentages.",
-      expectedDataShapes: [
-        { rows: "[{ step: string, value: number }]" }
-      ],
-      dataQueries: {
-        main: {
+
+      // Clear contract for dynamic data fetching
+      dynamicData: {
+        sqlTemplate: {
+          pattern: "GROUP BY {step} as name, COUNT(DISTINCT {user_id}) as value",
+          orderBy: "conversion sequence",
+          expectedFields: ["name", "value"],
+          guidance: "Build conversion steps with absolute counts at each stage. Focus on user journey progression. Provide raw counts rather than percentages - visualization will calculate conversion rates automatically."
+        },
+        injection: {
           target: "data.0.values",
-          description: "Conversion funnel - user journey steps with absolute counts",
-          expectedFields: ["step", "value"],
-          sqlHint: "GROUP BY step_field as step, COUNT(DISTINCT user_id) as value, ORDER BY conversion sequence"
+          chartFields: { categoryField: "name", valueField: "value" }
         }
       },
-      vchartGuidance: {
-        chartType: "funnel",
-        defaultFields: { categoryField: "name|step", valueField: "value" },
-        transformProps: { isTransform: true, isCone: false },
-        labels: { label: { visible: true }, transformLabel: { visible: true }, outerLabel: { position: "right", visible: true } },
+
+      // VChart configuration defaults
+      chartDefaults: {
+        type: "funnel",
+        isTransform: true,
+        isCone: false,
+        label: { visible: true },
+        transformLabel: { visible: true },
+        outerLabel: { position: "right", visible: true },
         legends: { visible: true, orient: "top" }
       },
       exampleSpecs: [
@@ -354,32 +366,27 @@ const CHART_CATALOG = {
 
     "line.basic": {
       id: "line_basic_v1",
-      requirement: "line.basic: columns => x, value [, series]",
-      sql_guidance:
-        "Return an ordered time/category series. Alias the horizontal axis as `x` and the numeric measure as `value`. If a grouping field is provided (e.g., product/region), alias it as `series`. Use SUM/AVG appropriately; for events over time, SUM per bucket is common. Ensure a sensible ORDER BY (time ascending, or categorical order) and LIMIT for safety. Handle null measures by returning NULL (the chart will break the line between valid points).",
-      expectedDataShapes: [
-        { rows: "[{ x: string|number|date, value: number }]" },
-        { rows: "[{ x: string|number|date, value: number, series: string }]" },
-        { rows: "[{ [xField]: any, [yField]: number }]" }
-      ],
-      dataQueries: {
-        main: {
-          target: "data.values",
-          description: "Line chart data - time series or ordered categories with optional series grouping",
+
+      // Clear contract for dynamic data fetching
+      dynamicData: {
+        sqlTemplate: {
+          pattern: "GROUP BY {x} as x[, {series} as series] SUM({measure}) as value",
+          orderBy: "x ASC",
           expectedFields: ["x", "value", "series?"],
-          sqlHint: "GROUP BY x_axis as x, [series_field as series,] aggregate measure as value, ORDER BY x ASC"
+          guidance: "Return ordered time/category series. Use SUM/AVG appropriately; for events over time, SUM per bucket is common. Handle null measures by returning NULL (chart will break line between valid points)."
+        },
+        injection: {
+          target: "data.values",
+          chartFields: { xField: "x", yField: "value", seriesField: "series" }
         }
       },
-      vchartGuidance: {
-        chartType: "line",
-        defaultFields: { xField: "x", yField: "value", seriesField: "series" },
-        dataInjection: "single dataset as { values: [...] }",
-        commonOptions: {
-          legends: { visible: true, orient: "top" },
-          tooltip: { visible: true },
-          // Break lines across nulls rather than drawing to them
-          invalidType: "link"
-        }
+
+      // VChart configuration defaults
+      chartDefaults: {
+        type: "line",
+        legends: { visible: true, orient: "top" },
+        tooltip: { visible: true },
+        invalidType: "link"
       },
       exampleSpecs: [
         {
@@ -684,20 +691,20 @@ function buildAggregationGraph({ table_name, selection }) {
 
 /* -------- Prompts for Step 2 (with output example) -------- */
 
-function buildStep2SystemPrompt(chartRequirement, chartDef) {
-  const isMultiQuery = chartDef && chartDef.dataQueries && Object.keys(chartDef.dataQueries).length > 1;
-  
+function buildStep2SystemPrompt(chartDef) {
+  const isMultiQuery = chartDef && chartDef.dynamicData && chartDef.dynamicData.queries;
+
   if (isMultiQuery) {
-    // Multi-query chart
-    const queryDescriptions = Object.entries(chartDef.dataQueries)
-      .map(([key, query]) => `  * ${key}: ${query.description} - Expected fields: ${query.expectedFields.join(', ')}`)
+    // Multi-query chart - use new dynamicData.queries structure
+    const queryDescriptions = Object.entries(chartDef.dynamicData.queries)
+      .map(([key, query]) => `  * ${key}: ${query.sqlTemplate.guidance} - Expected fields: ${query.sqlTemplate.expectedFields.join(', ')}`)
       .join('\n');
-    
+
     const exampleQueries = Object.fromEntries(
-      Object.entries(chartDef.dataQueries).map(([key, query]) => [
-        key, 
-        { 
-          sql: `SELECT ${query.expectedFields.join(', ')} FROM table WHERE ... GROUP BY ... ORDER BY ...`,
+      Object.entries(chartDef.dynamicData.queries).map(([key, query]) => [
+        key,
+        {
+          sql: `SELECT ${query.sqlTemplate.expectedFields.join(', ')} FROM table WHERE ... ${query.sqlTemplate.pattern} ORDER BY ${query.sqlTemplate.orderBy}`,
           result: { rows: [], rowCount: 0 }
         }
       ])
@@ -718,8 +725,7 @@ function buildStep2SystemPrompt(chartRequirement, chartDef) {
       "- Use ONLY the provided fully-qualified table name",
       "- SELECT or WITH ... SELECT only. No writes, no joins, no subqueries to other tables",
       "- Alias output columns exactly as specified in expectedFields",
-      "- For nested charts, ensure data consistency between queries",
-      "- Prefer SUM for numeric measures, COUNT(DISTINCT id) for conversion",
+      "- Follow the guidance provided for each query",
       "- Keep results small; add ORDER BY and LIMIT when sensible",
       "",
       "After executing ALL queries, return ONLY one JSON object:",
@@ -730,20 +736,25 @@ function buildStep2SystemPrompt(chartRequirement, chartDef) {
       }, null, 2)
     ].join("\n");
   } else {
-    // Single query chart (existing logic)
+    // Single query chart - use new dynamicData.sqlTemplate structure
+    const sqlTemplate = chartDef?.dynamicData?.sqlTemplate;
+    const expectedFields = sqlTemplate?.expectedFields?.join(', ') || 'field1, field2';
+
     return [
       "You are a SQL aggregation assistant.",
       "Goal: given {chart, mapping, table} produce exactly one read-only SQL query that returns the aggregated rows required by the chart.",
       "Then CALL the execute_sql tool with that query.",
+      "",
+      "SQL Template Guidance:",
+      sqlTemplate?.guidance || "Follow the chart requirements for field aliasing and aggregation.",
+      "",
       "Rules:",
-      "- Use ONLY the provided fully-qualified table name.",
-      "- First, explore the data with a simple SELECT * LIMIT 5 to understand all the fields and how the data can be mapped to the mapping.",
-      "- Then, perform the query and execute it to validate it.",
-      "- SELECT or WITH ... SELECT only. No writes, no joins, no subqueries to other tables.",
-      "- Alias output columns exactly as required:",
-      `  * ${chartRequirement}`,
-      "- Prefer SUM for numeric measures, COUNT(DISTINCT id) for conversion if mapping includes 'id'.",
-      "- Keep results small; add ORDER BY and LIMIT when sensible.",
+      "- Use ONLY the provided fully-qualified table name",
+      "- First, explore the data with SELECT * LIMIT 5 to understand the table structure",
+      "- Then, generate and execute the aggregation query",
+      "- SELECT or WITH ... SELECT only. No writes, no joins, no subqueries to other tables",
+      `- Alias output columns exactly as: ${expectedFields}`,
+      "- Keep results small; add ORDER BY and LIMIT when sensible",
       "",
       "After tool execution, return ONLY one JSON object:",
       JSON.stringify({
@@ -751,41 +762,42 @@ function buildStep2SystemPrompt(chartRequirement, chartDef) {
         mapping: { "<role>": "<column>" },
         sql: "<the query you executed>",
         result: { rows: [/* tool rows */], rowCount: 0 }
-      }, null, 2),
-      "",
-      "Example output:",
-      JSON.stringify({
-        chart: { type: "pie", subtype: "basic" },
-        mapping: { dimension: "category", measure: "count" },
-        sql: 'SELECT "category" AS type, SUM("count") AS value FROM public."user_KOJgQolKnCSIwJea4cvZoRB4LGF2_pie_chart_extended_c_1" GROUP BY 1 ORDER BY 2 DESC LIMIT 1000',
-        result: { rows: [ { type: "Images", value: 45 }, { type: "Videos", value: 30 } ], rowCount: 2 }
       }, null, 2)
     ].join("\n");
   }
 }
 
-function buildStep2UserPrompt({ table_name, selection, sqlGuidance = null }) {
+function buildStep2UserPrompt({ table_name, selection, chartDef }) {
   const promptParts = [
     `Table (use exactly as written): ${table_name}`,
     `Chart selection: ${JSON.stringify(selection.chart)}`,
     `Mapping: ${JSON.stringify(selection.mapping)}`
   ];
 
-  // Add SQL Conceptual Guidance if available
-  if (sqlGuidance) {
+  // Add SQL Template Pattern if available
+  const isMultiQuery = chartDef?.dynamicData?.queries;
+  if (isMultiQuery) {
     promptParts.push(
       "",
-      "SQL Conceptual Guidance:",
-      sqlGuidance
+      "SQL Template Patterns:",
+      Object.entries(chartDef.dynamicData.queries)
+        .map(([key, query]) => `  ${key}: ${query.sqlTemplate.pattern}`)
+        .join('\n')
+    );
+  } else if (chartDef?.dynamicData?.sqlTemplate?.pattern) {
+    promptParts.push(
+      "",
+      "SQL Template Pattern:",
+      chartDef.dynamicData.sqlTemplate.pattern
     );
   }
 
   promptParts.push(
     "",
     "Now:",
-    "1) Write the SQL.",
-    "2) Call execute_sql tool with { sql }.",
-    "3) Return ONLY the JSON object with chart, mapping, sql, result."
+    "1) Explore the data structure with SELECT * LIMIT 5",
+    "2) Generate and execute the required SQL queries",
+    "3) Return ONLY the JSON object with chart, mapping, and data"
   );
 
   return promptParts.join("\n");
@@ -1117,10 +1129,17 @@ async function processChartGeneration(event, streamThought = null) {
   // 3) Step 1: Chart Selection
   streamThought?.("📊 Choosing the best chart type for your dataset...");
   console.log('Step 3: Creating system and human messages for chart selection');
-  const system = new SystemMessage(buildSystemPrompt());
-  const human = new HumanMessage(
-    buildUserPrompt({ user_intent, table_name, columns, helper })
-  );
+
+  const systemPrompt = buildSystemPrompt();
+  const userPrompt = buildUserPrompt({ user_intent, table_name, columns, helper });
+
+  console.log('\n=== STEP 1: CHART SELECTION AGENT PROMPTS ===');
+  console.log('SYSTEM PROMPT:', systemPrompt);
+  console.log('USER PROMPT:', userPrompt);
+  console.log('=== END STEP 1 PROMPTS ===\n');
+
+  const system = new SystemMessage(systemPrompt);
+  const human = new HumanMessage(userPrompt);
 
   console.log('Invoking chart selection graph...');
   const finalState = await app.invoke({ messages: [system, human] });
@@ -1155,14 +1174,20 @@ async function processChartGeneration(event, streamThought = null) {
   console.log('Building aggregation graph for table:', tableFQ);
   const step2App = buildAggregationGraph({ table_name: tableFQ, selection });
 
-  // Get chart requirement and SQL guidance from catalog
+  // Get chart definition from catalog
   const chartKey = `${selection.chart.type}.${selection.chart.subtype}`;
   const chartDef = CHART_CATALOG.defs[chartKey];
-  const chartRequirement = chartDef?.requirement || `${selection.chart.type}.${selection.chart.subtype}: columns => [specify based on chart definition]`;
-  const sqlGuidance = chartDef?.sql_guidance || null;
-  
-  const step2System = new SystemMessage(buildStep2SystemPrompt(chartRequirement, chartDef));
-  const step2Human = new HumanMessage(buildStep2UserPrompt({ table_name: tableFQ, selection, sqlGuidance }));
+
+  const step2SystemPrompt = buildStep2SystemPrompt(chartDef);
+  const step2UserPrompt = buildStep2UserPrompt({ table_name: tableFQ, selection, chartDef });
+
+  console.log('\n=== STEP 2: SQL GENERATION AGENT PROMPTS ===');
+  console.log('SYSTEM PROMPT:', step2SystemPrompt);
+  console.log('USER PROMPT:', step2UserPrompt);
+  console.log('=== END STEP 2 PROMPTS ===\n');
+
+  const step2System = new SystemMessage(step2SystemPrompt);
+  const step2Human = new HumanMessage(step2UserPrompt);
 
   console.log('Invoking aggregation graph...');
   const step2State = await step2App.invoke({ messages: [step2System, step2Human] });
@@ -1215,21 +1240,18 @@ async function processChartGeneration(event, streamThought = null) {
   streamThought?.("🎨 Building interactive chart specification...");
   console.log('\n=== Step 3: VChart Spec Generation ===');
 
-  // Extract target paths from chart definition (reuse existing chartKey and chartDef)
+  // Extract target paths from new dynamicData structure
   let targetPaths;
 
-  if (chartDef?.dataQueries) {
-    const queries = chartDef.dataQueries;
-    if (Object.keys(queries).length === 1 && queries.main) {
-      // Single query chart
-      targetPaths = queries.main.target;
-    } else {
-      // Multi-query chart
-      targetPaths = {};
-      Object.entries(queries).forEach(([key, query]) => {
-        targetPaths[key] = query.target;
-      });
-    }
+  if (chartDef?.dynamicData?.queries) {
+    // Multi-query chart
+    targetPaths = {};
+    Object.entries(chartDef.dynamicData.queries).forEach(([key, query]) => {
+      targetPaths[key] = query.injection.target;
+    });
+  } else if (chartDef?.dynamicData?.injection?.target) {
+    // Single query chart
+    targetPaths = chartDef.dynamicData.injection.target;
   } else {
     // Fallback to default
     targetPaths = "data.values";
@@ -1238,8 +1260,16 @@ async function processChartGeneration(event, streamThought = null) {
   console.log('Extracted target paths from chart definition:', targetPaths);
 
   const step3App = buildSpecGraph();
-  const step3System = new SystemMessage(buildStep3SystemPrompt(targetPaths));
-  const step3Human = new HumanMessage(buildStep3UserPrompt({ selection, aggregation, targetPaths }));
+  const step3SystemPrompt = buildStep3SystemPrompt(targetPaths);
+  const step3UserPrompt = buildStep3UserPrompt({ selection, aggregation, targetPaths });
+
+  console.log('\n=== STEP 3: VCHART SPEC GENERATION AGENT PROMPTS ===');
+  console.log('SYSTEM PROMPT:', step3SystemPrompt);
+  console.log('USER PROMPT:', step3UserPrompt);
+  console.log('=== END STEP 3 PROMPTS ===\n');
+
+  const step3System = new SystemMessage(step3SystemPrompt);
+  const step3Human = new HumanMessage(step3UserPrompt);
 
   console.log('Invoking spec generation graph...');
   const step3State = await step3App.invoke({ messages: [step3System, step3Human] });
