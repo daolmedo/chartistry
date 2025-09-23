@@ -12,6 +12,7 @@ import ComplexChartsSection from './landing/sections/ComplexChartsSection';
 // import PricingSection from './landing/sections/PricingSection';
 import WaitingListSection from './landing/sections/WaitingListSection';
 // import CTASection from './landing/sections/CTASection';
+import MentionsSection from './landing/sections/MentionsSection';
 import Footer from './landing/sections/Footer';
 
 export default function LandingPage() {
@@ -29,6 +30,7 @@ export default function LandingPage() {
       {/* <PricingSection /> */}
       <WaitingListSection />
       {/* <CTASection /> */}
+      <MentionsSection />
       <Footer />
     </div>
   );
