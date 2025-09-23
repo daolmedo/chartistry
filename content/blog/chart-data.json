@@ -9,7 +9,8 @@
     "donut": "a variation of pie charts with a hollow center, making them easier to read and more modern-looking",
     "heatmap": "a graphical representation of data where values are represented as colors in a matrix format",
     "funnel": "a chart that shows how data moves through a process, typically displaying decreasing values",
-    "gauge": "a chart that displays a single value within a range, similar to a speedometer"
+    "gauge": "a chart that displays a single value within a range, similar to a speedometer",
+    "histogram": "a graphical representation that shows the distribution of numerical data by organizing data into bins or intervals"
   },
   
   "chartUseCases": {
@@ -22,7 +23,8 @@
     "donut": "displaying proportional data with better readability, modern dashboards, and when you need space for additional information in the center",
     "heatmap": "showing data density, correlation matrices, geographic data, time-based patterns, and large dataset visualization",
     "funnel": "conversion tracking, sales pipelines, user journey analysis, and process optimization",
-    "gauge": "KPI dashboards, performance monitoring, goal tracking, and single-value displays"
+    "gauge": "KPI dashboards, performance monitoring, goal tracking, and single-value displays",
+    "histogram": "data distribution analysis, quality control, statistical analysis, frequency analysis, and understanding data patterns"
   },
   
   "chartWhenToUse": {
@@ -35,7 +37,8 @@
     "donut": "- All the same use cases as pie charts\n- When you want a more modern, clean look\n- Need space in the center for additional information\n- Working with larger datasets (up to 12 categories)\n- Creating dashboard-style visualizations",
     "heatmap": "- Visualize large amounts of data in a compact format\n- Show patterns in time-based data (like website traffic by hour/day)\n- Display correlation between multiple variables\n- Geographic data visualization\n- When color coding adds meaning to your data",
     "funnel": "- Track conversion rates through a process\n- Analyze sales pipelines and stages\n- Monitor user journey through website/app\n- Identify bottlenecks in processes\n- Show progressive reduction in data",
-    "gauge": "- Display single KPIs or metrics\n- Show performance against targets\n- Create dashboard indicators\n- Monitor real-time values\n- When you need an intuitive, speedometer-like display"
+    "gauge": "- Display single KPIs or metrics\n- Show performance against targets\n- Create dashboard indicators\n- Monitor real-time values\n- When you need an intuitive, speedometer-like display",
+    "histogram": "- Analyze the distribution of numerical data\n- Identify patterns like normal distribution, skewness, or outliers\n- Quality control and process improvement\n- Statistical analysis and research\n- Understanding frequency of values in datasets\n- When you need to see data density across ranges"
   },
   
   "chartExamples": {
@@ -122,6 +125,34 @@
         "column3": "March",
         "value3": "22000"
       }
+    },
+    "histogram": {
+      "basic": "distribution of customer ages",
+      "detailed": "sales performance frequency with statistical indicators",
+      "advanced": "quality control measurements with normal distribution overlay",
+      "example1": {
+        "title": "Customer Age Distribution",
+        "description": "Perfect for understanding the age demographics of your customer base",
+        "prompt": "Create a histogram showing the distribution of customer ages"
+      },
+      "example2": {
+        "title": "Response Time Analysis",
+        "description": "Ideal for analyzing system performance and identifying bottlenecks",
+        "prompt": "Make a histogram of website response times to identify performance patterns"
+      },
+      "example3": {
+        "title": "Sales Amount Frequency",
+        "description": "Great for understanding the distribution of transaction values",
+        "prompt": "Show me a histogram of sales amounts to see our typical transaction sizes"
+      },
+      "dataFormat": {
+        "column1": "Value Range",
+        "value1": "Frequency",
+        "column2": "0-100",
+        "value2": "25",
+        "column3": "101-200",
+        "value3": "45"
+      }
     }
   },
 
@@ -149,21 +180,27 @@
       "donut-chart": "1. Create a pie chart following the standard steps\n2. Create a calculated field for the inner circle (constant value)\n3. Drag this calculated field to the 'Rows' shelf\n4. Set the mark type to 'Circle' for the inner chart\n5. Adjust sizing and positioning manually\n6. Overlay the pie chart on top of the circle\n7. Fine-tune alignment and spacing\n8. Configure dual-axis settings for proper display",
       "stacked-bar-chart": "1. Drag your categorical dimension to the 'Rows' shelf\n2. Drag your primary measure to the 'Columns' shelf\n3. Drag your secondary dimension to the 'Color' shelf\n4. Ensure the mark type is set to 'Bar'\n5. Right-click on the measure axis and select 'Edit Axis'\n6. Configure stacking options in the 'Analysis' menu\n7. Manually adjust colors and labels for each segment\n8. Add data labels using the 'Label' shelf",
       "heat-map": "1. Drag your first dimension to 'Columns'\n2. Drag your second dimension to 'Rows'\n3. Drag your measure to both 'Color' and 'Size' shelves\n4. Change mark type to 'Square' or 'Circle'\n5. Configure the color palette manually\n6. Adjust the size range for proper scaling\n7. Set up proper legends and labels\n8. Fine-tune grid lines and borders\n9. Configure tooltips for data values",
-      "scatter-plot": "1. Drag your first measure to the 'Columns' shelf\n2. Drag your second measure to the 'Rows' shelf\n3. Set mark type to 'Circle'\n4. Optionally drag a dimension to 'Color' for grouping\n5. Drag a measure to 'Size' if you want bubble chart effect\n6. Add trend lines through the 'Analytics' pane\n7. Configure axis ranges and scaling\n8. Set up proper labels and formatting\n9. Add reference lines or bands if needed"
+      "scatter-plot": "1. Drag your first measure to the 'Columns' shelf\n2. Drag your second measure to the 'Rows' shelf\n3. Set mark type to 'Circle'\n4. Optionally drag a dimension to 'Color' for grouping\n5. Drag a measure to 'Size' if you want bubble chart effect\n6. Add trend lines through the 'Analytics' pane\n7. Configure axis ranges and scaling\n8. Set up proper labels and formatting\n9. Add reference lines or bands if needed",
+      "line-chart": "1. Drag your date/time dimension to the 'Columns' shelf\n2. Drag your measure to the 'Rows' shelf\n3. Ensure the mark type is set to 'Line'\n4. Right-click on the date field and select appropriate date part\n5. Add multiple measures to create multi-line charts\n6. Configure line colors and styles through the 'Color' shelf\n7. Add markers or data points using dual-axis if needed\n8. Configure axis formatting and scaling\n9. Add trend lines or reference lines through Analytics pane",
+      "histogram-chart": "1. Drag your continuous measure to the 'Columns' shelf\n2. Right-click on the measure and select 'Create Bins'\n3. Configure bin size and range in the Create Bins dialog\n4. Drag the newly created bin field to the 'Rows' shelf\n5. Change mark type to 'Bar' for traditional histogram appearance\n6. Add COUNT() measure to create frequency counts\n7. Format axis labels and bin ranges\n8. Configure bar spacing and colors\n9. Add statistical reference lines or normal distribution curves through Analytics"
     },
     "powerbi": {
       "pie-chart": "1. Click on the Pie Chart visualization in the Visualizations pane\n2. Drag your category field to the 'Legend' field well\n3. Drag your measure to the 'Values' field well\n4. Configure data labels through the Format pane\n5. Adjust colors using the Data Colors section\n6. Set up tooltips and conditional formatting\n7. Apply filters and slicers as needed",
       "donut-chart": "1. Select the Donut Chart visualization from the Visualizations pane\n2. Add your categorical field to the 'Legend' well\n3. Add your measure to the 'Values' well\n4. Configure the inner radius through Format options\n5. Customize colors and data labels\n6. Set up drill-through actions if needed\n7. Apply formatting for professional appearance",
       "stacked-bar-chart": "1. Choose the Stacked Bar Chart from Visualizations\n2. Drag your primary category to the 'Axis' field\n3. Add your measure to the 'Values' field\n4. Drag your secondary category to the 'Legend' field\n5. Format data labels and colors through the Format pane\n6. Configure axis properties and scaling\n7. Add conditional formatting rules\n8. Set up interactions with other visuals",
       "heat-map": "1. Import a custom heatmap visual from AppSource\n2. Configure row and column categories\n3. Add your measure to the Values field\n4. Set up color saturation rules\n5. Configure tooltips and labels\n6. Adjust grid appearance and spacing\n7. Apply filters and cross-filtering\n8. Format legends and axes",
-      "scatter-plot": "1. Select Scatter Chart from the Visualizations pane\n2. Add your X-axis measure to the 'X Axis' field\n3. Add your Y-axis measure to the 'Y Axis' field\n4. Optionally add a category to the 'Legend' field\n5. Add a measure to 'Size' for bubble chart effect\n6. Configure play axis for animated charts\n7. Format markers, colors, and data labels\n8. Add trend lines through Analytics pane"
+      "scatter-plot": "1. Select Scatter Chart from the Visualizations pane\n2. Add your X-axis measure to the 'X Axis' field\n3. Add your Y-axis measure to the 'Y Axis' field\n4. Optionally add a category to the 'Legend' field\n5. Add a measure to 'Size' for bubble chart effect\n6. Configure play axis for animated charts\n7. Format markers, colors, and data labels\n8. Add trend lines through Analytics pane",
+      "line-chart": "1. Choose the Line Chart visualization from the Visualizations pane\n2. Drag your date/time field to the 'Axis' field well\n3. Add your measure to the 'Values' field well\n4. Configure the line style and markers through Format pane\n5. Add multiple measures for multi-line charts\n6. Set up legend and data labels\n7. Configure axis properties and scaling\n8. Apply conditional formatting and tooltips\n9. Add analytics features like trend lines or forecasting",
+      "histogram-chart": "1. Import a Histogram custom visual from AppSource (or use Column Chart as workaround)\n2. Add your continuous numeric field to the 'Values' field well\n3. Configure bin settings and ranges in the visual properties\n4. Format the X-axis to show proper bin ranges\n5. Set up frequency counts on the Y-axis\n6. Customize bar colors and spacing through Format pane\n7. Configure tooltips to show bin ranges and frequencies\n8. Apply conditional formatting for better visual distinction\n9. Add statistical reference lines if supported by the custom visual"
     },
     "looker-studio": {
       "pie-chart": "1. Click 'Add a Chart' and select Pie Chart\n2. Choose your data source from the dropdown\n3. Drag your dimension to the 'Dimension' field\n4. Drag your metric to the 'Metric' field\n5. Configure slice sorting and filtering\n6. Customize colors through the Style tab\n7. Set up data labels and legend positioning\n8. Apply conditional formatting rules",
       "donut-chart": "1. Add a Pie Chart to your report\n2. Configure dimension and metric fields\n3. Go to the Style tab and enable 'Donut chart'\n4. Adjust the donut hole size\n5. Configure slice colors and data labels\n6. Set up hover tooltips\n7. Apply filters and date range controls\n8. Format legend and chart title",
       "stacked-bar-chart": "1. Select 'Add a Chart' and choose Stacked Bar Chart\n2. Connect to your data source\n3. Set your primary dimension for the bars\n4. Add your metric to the Metric field\n5. Add a secondary dimension for stacking\n6. Configure bar orientation (horizontal/vertical)\n7. Format colors and data labels\n8. Set up interactive filters",
       "heat-map": "1. Add a Heatmap chart (may require community visualization)\n2. Configure row and column dimensions\n3. Set your metric for color intensity\n4. Choose an appropriate color scale\n5. Configure cell labels and tooltips\n6. Set up dimension filtering\n7. Format grid lines and spacing\n8. Apply conditional color rules",
-      "scatter-plot": "1. Click 'Add a Chart' and select Scatter Chart\n2. Choose your data source\n3. Set X-axis metric in the X field\n4. Set Y-axis metric in the Y field\n5. Optionally add a dimension for color coding\n6. Configure bubble size with a metric\n7. Format axis ranges and labels\n8. Add trend lines through chart settings"
+      "scatter-plot": "1. Click 'Add a Chart' and select Scatter Chart\n2. Choose your data source\n3. Set X-axis metric in the X field\n4. Set Y-axis metric in the Y field\n5. Optionally add a dimension for color coding\n6. Configure bubble size with a metric\n7. Format axis ranges and labels\n8. Add trend lines through chart settings",
+      "line-chart": "1. Click 'Add a Chart' and select Line Chart\n2. Connect to your data source\n3. Set your date/time dimension for the X-axis\n4. Add your metric to the Metric field\n5. Configure multiple lines by adding dimensions\n6. Format line colors and styles through Style tab\n7. Set up data labels and markers\n8. Configure axis formatting and scaling\n9. Apply date range controls and filters",
+      "histogram-chart": "1. Add a Column Chart (no native histogram available)\n2. Pre-process your data to create binned ranges\n3. Use the binned field as your dimension\n4. Add frequency count as your metric\n5. Configure column spacing to eliminate gaps\n6. Format X-axis to show bin ranges properly\n7. Set up appropriate colors and styling\n8. Configure tooltips to show bin information\n9. Apply filters and controls for interactivity"
     }
   },
 
@@ -173,21 +210,27 @@
       "donut-chart": "Donut charts in Tableau are notoriously difficult to create, requiring workarounds with dual-axis charts, calculated fields for inner circles, and precise alignment techniques. Most users need to follow complex tutorials involving multiple chart overlays, manual positioning, and custom sizing - a process that can take hours to master.",
       "stacked-bar-chart": "Creating stacked bar charts requires careful attention to dimension hierarchy, proper aggregation settings, and manual color coding for each segment. Users frequently encounter issues with data ordering, label placement, and ensuring consistent color schemes across different chart views. The complexity increases significantly when trying to add percentage labels or create horizontal stacked bars.",
       "heat-map": "Heat maps in Tableau require understanding of continuous vs. discrete field types, color palette customization, and proper scaling of both color and size elements. Users often struggle with creating meaningful color gradients, handling missing data points, and configuring appropriate grid layouts. The process becomes complex when dealing with large datasets or when trying to create custom color ranges.",
-      "scatter-plot": "While basic scatter plots are straightforward, creating meaningful visualizations requires understanding of trend lines, reference bands, clustering analysis, and proper axis configuration. Users frequently struggle with overlapping points, appropriate scaling, color coding for categories, and adding statistical elements like correlation coefficients or regression lines."
+      "scatter-plot": "While basic scatter plots are straightforward, creating meaningful visualizations requires understanding of trend lines, reference bands, clustering analysis, and proper axis configuration. Users frequently struggle with overlapping points, appropriate scaling, color coding for categories, and adding statistical elements like correlation coefficients or regression lines.",
+      "line-chart": "Although line charts appear simple, Tableau's implementation requires careful attention to date field formatting, continuous vs. discrete configurations, and mark type settings. Users often struggle with date aggregation levels, multiple measure comparisons, null value handling, and creating smooth vs. step line variations. The complexity increases when adding forecasting, reference lines, or when dealing with irregular time intervals.",
+      "histogram-chart": "Histograms in Tableau require understanding of bin creation, continuous field types, and proper aggregation methods. Users frequently struggle with determining appropriate bin sizes, handling outliers, configuring frequency calculations, and creating meaningful axis labels. The process becomes complex when trying to overlay normal distribution curves, handle missing values, or when working with non-uniform data distributions that require custom binning strategies."
     },
     "powerbi": {
       "pie-chart": "Power BI pie charts require navigating between multiple panes (Visualizations, Fields, Format) and understanding field well hierarchies. Users often struggle with data aggregation settings, custom color schemes, and proper label positioning. The complexity increases when dealing with measures that need specific aggregation functions or when trying to create calculated fields for percentages.",
       "donut-chart": "Creating effective donut charts in Power BI involves understanding visualization properties, configuring inner radius settings, and managing data label overlap. Users frequently encounter issues with color consistency across different chart instances, tooltip customization, and ensuring proper drill-through functionality when integrated with other report elements.",
       "stacked-bar-chart": "Stacked bar charts in Power BI require careful field mapping, understanding of legend hierarchies, and proper axis configuration. Users often struggle with category ordering, color management across multiple data series, conditional formatting rules, and ensuring proper interaction with slicers and filters. The complexity grows significantly when implementing custom calculations or percentage stacking.",
       "heat-map": "Heat maps in Power BI often require custom visuals from AppSource, adding complexity to report deployment and sharing. Users struggle with configuring color scales, managing data density, handling missing values, and ensuring proper tooltip information. The process becomes even more complex when trying to implement custom color ranges or when integrating with other interactive elements.",
-      "scatter-plot": "Power BI scatter plots require understanding of multiple field wells (X Axis, Y Axis, Legend, Size, Play Axis) and their interactions. Users frequently struggle with axis scaling, bubble sizing algorithms, animated chart configurations, and trend line customization. The complexity increases when implementing drill-through actions or when trying to create custom tooltips with multiple data points."
+      "scatter-plot": "Power BI scatter plots require understanding of multiple field wells (X Axis, Y Axis, Legend, Size, Play Axis) and their interactions. Users frequently struggle with axis scaling, bubble sizing algorithms, animated chart configurations, and trend line customization. The complexity increases when implementing drill-through actions or when trying to create custom tooltips with multiple data points.",
+      "line-chart": "Power BI line charts seem straightforward but require understanding of date hierarchies, measure aggregation, and axis configuration. Users often struggle with date formatting, handling missing data points, multi-line comparisons, and forecasting features. The complexity grows when implementing conditional formatting, custom tooltips, or when integrating with slicers and cross-filtering functionality across multiple report pages.",
+      "histogram-chart": "Power BI histograms typically require custom visuals from AppSource, creating additional deployment and maintenance complexity. Users struggle with importing the right visual, configuring bin parameters, understanding data transformation requirements, and ensuring compatibility across different Power BI environments. The process becomes particularly challenging when dealing with large datasets, implementing statistical overlays, or when trying to maintain visual consistency across different report pages and shared dashboards."
     },
     "looker-studio": {
       "pie-chart": "Looker Studio pie charts require understanding of dimension vs. metric field types, data source connections, and the relationship between different chart properties. Users often struggle with data filtering, custom color palettes, slice sorting, and ensuring charts update properly when connected to dynamic data sources. The process becomes complex when implementing calculated fields or custom aggregations.",
       "donut-chart": "Creating donut charts in Looker Studio involves configuring pie chart properties and enabling donut mode, which isn't immediately obvious to new users. Users frequently encounter issues with hole size optimization, data label positioning around the circular layout, and maintaining visual consistency across different screen sizes and devices.",
       "stacked-bar-chart": "Stacked bar charts in Looker Studio require proper understanding of dimension hierarchies, metric calculations, and the interaction between different chart elements. Users often struggle with stack ordering, color assignment consistency, tooltip configuration, and ensuring proper responsiveness across different report formats and sharing methods.",
       "heat-map": "Heat maps in Looker Studio may require community visualizations or workarounds, making them less straightforward than basic chart types. Users struggle with color scale configuration, handling sparse data, grid formatting, and ensuring proper drill-down functionality. The complexity increases when trying to implement custom color rules or when dealing with large datasets that require aggregation.",
-      "scatter-plot": "Looker Studio scatter plots require careful configuration of axis metrics, optional grouping dimensions, and bubble sizing parameters. Users frequently encounter issues with axis range optimization, point overlap when dealing with dense data, trend line configuration, and ensuring proper interactivity with other report elements and filters."
+      "scatter-plot": "Looker Studio scatter plots require careful configuration of axis metrics, optional grouping dimensions, and bubble sizing parameters. Users frequently encounter issues with axis range optimization, point overlap when dealing with dense data, trend line configuration, and ensuring proper interactivity with other report elements and filters.",
+      "line-chart": "Looker Studio line charts require understanding of date dimension configuration, metric aggregation, and time series formatting. Users often struggle with date range controls, missing data handling, multiple line comparisons, and ensuring proper chart responsiveness across devices. The complexity increases when implementing calculated fields, custom date periods, or when trying to synchronize multiple charts with shared filters and date controls.",
+      "histogram-chart": "Looker Studio lacks native histogram support, forcing users to implement workarounds with column charts and manual data preprocessing. Users must handle bin creation outside the platform, manage frequency calculations manually, and struggle with achieving proper bar spacing and formatting. The complexity escalates when trying to implement statistical features, handle dynamic binning, or when ensuring the chart updates properly with filtered data, often requiring complex calculated fields and data transformation steps."
     }
   }
 }

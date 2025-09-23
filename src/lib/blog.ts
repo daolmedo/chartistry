@@ -125,7 +125,7 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
 
   // Get generated competitor tutorial posts
   const competitors = ['tableau', 'powerbi', 'looker-studio'];
-  const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot'];
+  const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot', 'line-chart', 'histogram-chart'];
   const generatedPosts: BlogPost[] = [];
   
   for (const competitor of competitors) {
@@ -333,7 +333,9 @@ export async function generatePostFromTemplate(
       'donut-chart': 'donut-chart.png',
       'stacked-bar-chart': 'stacked-bar-chart.png',
       'heat-map': 'heatmap-chart.png',
-      'scatter-plot': 'scatter-chart.png'
+      'scatter-plot': 'scatter-chart.png',
+      'line-chart': 'line-chart.png',
+      'histogram-chart': 'histogram-chart.png'
     };
     
     ogImage = `/blog/images/${chartImageMap[variables.chartType] || 'pie-chart.png'}`;
@@ -347,7 +349,9 @@ export async function generatePostFromTemplate(
       'donut': 'donut-chart.png',
       'bar': 'stacked-bar-chart.png',
       'heatmap': 'heatmap-chart.png',
-      'scatter': 'scatter-chart.png'
+      'scatter': 'scatter-chart.png',
+      'line': 'line-chart.png',
+      'histogram': 'histogram-chart.png'
     };
     
     ogImage = `/blog/images/${chartImageMap[variables.chartType] || 'pie-chart.png'}`;
@@ -393,7 +397,9 @@ function transformValue(input: string, transform: string): string {
         'donut-chart': 'donut-chart.png',
         'stacked-bar-chart': 'stacked-bar-chart.png',
         'heat-map': 'heatmap-chart.png',
-        'scatter-plot': 'scatter-chart.png'
+        'scatter-plot': 'scatter-chart.png',
+        'line-chart': 'line-chart.png',
+        'histogram-chart': 'histogram-chart.png'
       };
       return chartImageMap[input] || 'pie-chart.png';
     default:
