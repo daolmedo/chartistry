@@ -205,14 +205,14 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
 // Get all available categories
 export async function getAllCategories(): Promise<string[]> {
   const allPosts = await getAllBlogPosts();
-  const categories = new Set(allPosts.map(post => post.category));
+  const categories = new Set(allPosts.map(post => post.category).filter(Boolean));
   return Array.from(categories).sort();
 }
 
 // Get all available tags
 export async function getAllTags(): Promise<string[]> {
   const allPosts = await getAllBlogPosts();
-  const tags = new Set(allPosts.flatMap(post => post.tags));
+  const tags = new Set(allPosts.flatMap(post => post.tags || []).filter(Boolean));
   return Array.from(tags).sort();
 }
 
