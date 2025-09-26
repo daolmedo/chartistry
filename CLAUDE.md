@@ -112,3 +112,149 @@ aws logs tail /aws/lambda/datasets-dev --region eu-west-2 --since 5m
 ```
 
 Use `--since` parameter to control time range (e.g., `1h`, `30m`, `5m`)
+
+## Blog System & Programmatic SEO
+
+### Blog Architecture Overview
+
+The blog system implements a hybrid approach combining traditional markdown posts with programmatically generated SEO content:
+
+**Blog Structure:**
+- `src/app/blog/` - Next.js App Router pages for blog functionality
+- `content/blog/` - Content repository with posts, templates, and data
+- `src/lib/blog.ts` - Core blog logic and template processing engine
+
+### Directory Structure
+
+```
+src/app/blog/
+├── page.tsx                    # Main blog listing page
+├── [slug]/page.tsx             # Dynamic blog post pages (handles both regular and generated posts)
+├── category/[category]/page.tsx # Category-based post filtering
+└── tag/[tag]/page.tsx          # Tag-based post filtering
+
+content/blog/
+├── posts/                     # Regular markdown blog posts
+├── templates/                 # SEO content templates
+├── vchart-specs/              # VChart TypeScript specifications
+└── chart-data.json            # Centralized data for template generation
+```
+
+### Programmatic SEO Implementation
+
+The blog system generates hundreds of SEO-optimized pages using templates and data:
+
+#### 1. Template System
+Two main templates drive pSEO content generation:
+
+**Chart Guide Template (`chart-guide-template.md`)**
+- Generates guides like "How to Create Pie Charts with AI"
+- URL pattern: `/blog/how-to-create-{chartType}-charts`
+- Covers 10+ chart types (pie, bar, line, scatter, etc.)
+
+**Competitor Tutorial Template (`competitor-tutorial-template.md`)**
+- Generates comparison content like "How to Create Pie Charts in Tableau"
+- URL pattern: `/blog/how-to-create-{chartType}-in-{competitor}`
+- Covers 3 competitors × 7 chart types = 21 generated posts per competitor
+
+#### 2. Data-Driven Content Generation
+
+**Central Data File (`chart-data.json`)**
+Contains structured data for template variables:
+- `chartDescriptions` - Technical definitions for each chart type
+- `chartUseCases` - Business use cases and applications
+- `chartWhenToUse` - Detailed guidance on appropriate usage
+- `chartExamples` - Practical examples with titles, descriptions, and prompts
+- `competitorInfo` - Competitor details (name, cost, type)
+- `competitorSteps` - Step-by-step instructions for each tool
+- `competitorComplexity` - Detailed explanations of why each tool is complex
+
+#### 3. Template Processing Engine
+
+**Variable Processing (`src/lib/blog.ts:251-379`)**
+Templates support multiple variable sources:
+- `parameter` - Direct input values (e.g., chartType: "pie")
+- `lookup` - Data from chart-data.json (e.g., descriptions, use cases)
+- `transform` - Modified input values (e.g., "pie" → "Pie Chart")
+- `static` - Fixed values
+
+**Dynamic URL Generation**
+- Regular posts: Loaded from filesystem
+- Generated posts: Created on-demand from templates
+- Static generation: All possible URLs pre-generated in `generateStaticParams()`
+
+#### 4. SEO Optimization Features
+
+**Metadata Generation**
+- Dynamic titles: "How to Create {ChartType} in {Competitor} | chartz.ai"
+- Optimized descriptions leveraging chart use cases and competitor pain points
+- OpenGraph images mapped to chart types
+- Structured schema markup for rich snippets
+
+**Content Quality**
+- 1000+ word articles with comprehensive coverage
+- Step-by-step tutorials for traditional tools vs AI approach
+- Real-world examples with specific use cases
+- Professional formatting with headings, lists, and CTAs
+
+**Internal Linking**
+- Automated cross-references between chart types
+- Category and tag-based navigation
+- Related posts suggestions in sidebars
+
+### URL Strategy
+
+**Generated URLs cover key search intents:**
+- `/blog/how-to-create-pie-charts` - Generic chart creation
+- `/blog/how-to-create-pie-chart-in-tableau` - Tool-specific tutorials
+- `/blog/how-to-create-donut-chart-in-powerbi` - Alternative tools
+- `/blog/category/chart-tutorials` - Category aggregation
+- `/blog/tag/tableau` - Tag-based filtering
+
+**Total SEO Footprint:**
+- 10 chart types × 1 guide each = 10 generic guides
+- 3 competitors × 7 chart types = 21 competitor tutorials
+- Manual posts + category/tag pages
+- **Total: 100+ indexed pages** from minimal template investment
+
+### Technical Implementation
+
+**Static Generation at Build Time**
+```typescript
+// generateStaticParams() in [slug]/page.tsx:14-44
+// Pre-generates all possible blog post URLs including:
+// - Regular markdown posts
+// - Chart guide posts (10 chart types)
+// - Competitor tutorial posts (3 × 7 = 21 combinations)
+```
+
+**Runtime Template Processing**
+```typescript
+// generatePostFromTemplate() in blog.ts:251-379
+// Dynamically processes templates with:
+// - Variable substitution from chart-data.json
+// - Markdown to HTML conversion
+// - SEO metadata generation
+// - Reading time calculation
+```
+
+**Content Caching Strategy**
+- Static generation ensures fast page loads
+- Generated content cached in memory during build
+- No database queries for template-based posts
+
+### Content Strategy
+
+**Competitive Advantage Focus**
+- Positions chartz.ai as simpler alternative to complex tools
+- Emphasizes speed (30 seconds vs hours)
+- Highlights cost savings (vs expensive licensing)
+- Demonstrates accessibility (plain English vs technical complexity)
+
+**Educational Value**
+- Comprehensive tutorials for traditional tools
+- Clear explanations of when to use each chart type
+- Best practices and common pitfalls
+- Real-world examples with specific business scenarios
+
+This pSEO implementation enables the blog to compete for thousands of long-tail keywords while maintaining high content quality and user value.

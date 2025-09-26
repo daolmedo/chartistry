@@ -100,9 +100,11 @@ After creating the basic chart:
 - Missing context or labels
 - Performance issues with large datasets
 
+{whyChartzSection:dataVisualization}
+
 ## The chartz.ai Alternative: AI-Powered Simplicity
 
-Instead of spending hours learning Tableau's complex interface, chartz.ai lets you create beautiful {chartTypeDisplay}s in seconds using natural language.
+Instead of spending hours learning {competitorDisplay}'s complex interface, chartz.ai lets you create beautiful {chartTypeDisplay}s in seconds using natural language.
 
 ### Step 1: Upload Your Data
 

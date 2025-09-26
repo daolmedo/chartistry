@@ -67,7 +67,7 @@ function calculateReadingTime(content: string): number {
 function processMarkdown(content: string): string {
   const processedHtml = remark()
     .use(remarkBreaks) // Preserve line breaks
-    .use(html, { sanitize: false }) // Allow all HTML but keep it simple
+    .use(html, { sanitize: false, allowDangerousHtml: true }) // Allow all HTML including dangerous
     .processSync(content);
   return processedHtml.toString();
 }
@@ -124,7 +124,7 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
   }
 
   // Get generated competitor tutorial posts
-  const competitors = ['tableau', 'powerbi', 'looker-studio'];
+  const competitors = ['tableau', 'powerbi', 'looker-studio', 'excel'];
   const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot', 'line-chart', 'histogram-chart'];
   const generatedPosts: BlogPost[] = [];
   
@@ -174,7 +174,10 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
     const fileContents = fs.readFileSync(fullPath, 'utf8');
     const { data, content } = matter(fileContents);
 
-    const processedContent = processMarkdown(content);
+    // Process blog blocks in regular posts
+    const contentWithBlocks = processBlocks(content);
+
+    const processedContent = processMarkdown(contentWithBlocks);
     const readingTime = calculateReadingTime(content);
 
     return {
@@ -315,6 +318,9 @@ export async function generatePostFromTemplate(
   } else {
     generatedSlug = `how-to-create-${variables.chartType}-charts`;
   }
+
+  // Process blog blocks before markdown conversion
+  generatedContent = processBlocks(generatedContent, variables);
 
   // Process markdown to HTML
   const processedContent = processMarkdown(generatedContent);
@@ -473,5 +479,183 @@ export async function getGeneratedPostBySlug(slug: string): Promise<GeneratedPos
 export function getAvailableChartTypes(): string[] {
   const chartData = loadChartData();
   return Object.keys(chartData.chartDescriptions || {});
+}
+
+// Blog block processing functions
+function processBlocks(content: string, variables: Record<string, any> = {}): string {
+  const chartData = loadChartData();
+
+  // Process combined Why Chartz blocks with features: {whyChartzSection:dataVisualization}
+  content = content.replace(/\{whyChartzSection:([^}:]+)(?::([^}]+))?\}/g, (match, blockType, featuresParam) => {
+    const block = chartData.blogBlocks?.whyChartzBlocks?.[blockType];
+    if (!block) return match;
+
+    const selectedVariation = selectVariation(block.variations, 'random');
+
+    // Get 3 random features (or specified features)
+    const allFeatures = Object.keys(chartData.blogBlocks?.featureBlocks || {});
+    let selectedFeatures;
+
+    if (featuresParam && featuresParam !== 'random') {
+      // Parse specific features: "feature1,feature2,feature3"
+      selectedFeatures = featuresParam.split(',').slice(0, 3);
+    } else {
+      // Select 3 random features
+      const shuffled = allFeatures.sort(() => 0.5 - Math.random());
+      selectedFeatures = shuffled.slice(0, 3);
+    }
+
+    // Generate feature blocks as markdown
+    const featureBlocksMarkdown = selectedFeatures.map((featureType: string) => {
+      const feature = chartData.blogBlocks?.featureBlocks?.[featureType];
+      if (!feature) return '';
+
+      const selectedFeatureVariation = selectFeatureVariation(feature.variations, 'random');
+      if (!selectedFeatureVariation) return '';
+
+      const benefitsList = selectedFeatureVariation.benefits.map((benefit: string) => `- ${benefit}`).join('\n');
+      const imageMarkdown = feature.image ? `\n![${feature.imageAlt || feature.title}](${feature.image})\n` : '';
+
+      return `
+### ${feature.icon} ${feature.title}
+${imageMarkdown}
+#### ${selectedFeatureVariation.headline}
+
+${selectedFeatureVariation.description}
+
+${benefitsList}
+`;
+    }).join('\n');
+
+    return `
+## ${block.title}
+
+${block.intro}
+
+**${selectedVariation}**
+
+${featureBlocksMarkdown}
+`;
+  });
+
+  // Keep individual Why Chartz blocks for backward compatibility: {whyChartzBlock:dataVisualization}
+  content = content.replace(/\{whyChartzBlock:([^}:]+)(?::([^}]+))?\}/g, (match, blockType, variation) => {
+    const block = chartData.blogBlocks?.whyChartzBlocks?.[blockType];
+    if (!block) return match;
+
+    const selectedVariation = selectVariation(block.variations, variation);
+
+    return `
+### ${block.title}
+
+${block.intro}
+
+${selectedVariation}
+`;
+  });
+
+  // Process feature blocks: {featureBlock:zeroLearningCurve:1}
+  content = content.replace(/\{featureBlock:([^}:]+)(?::([^}]+))?\}/g, (match, featureType, variation) => {
+    const feature = chartData.blogBlocks?.featureBlocks?.[featureType];
+    if (!feature) return match;
+
+    const selectedVariation = selectFeatureVariation(feature.variations, variation);
+    if (!selectedVariation) return match;
+
+    const benefitsList = selectedVariation.benefits.map((benefit: string) => `- ${benefit}`).join('\n');
+    const imageMarkdown = feature.image ? `\n![${feature.imageAlt || feature.title}](${feature.image})\n` : '';
+
+    return `
+#### ${feature.icon} ${feature.title}
+${imageMarkdown}
+##### ${selectedVariation.headline}
+
+${selectedVariation.description}
+
+${benefitsList}
+`;
+  });
+
+  // Process variable-based blocks: {whyChartzBlock:${useCase}}
+  content = content.replace(/\{whyChartzBlock:\$\{([^}]+)\}(?::([^}]+))?\}/g, (match, variableName, variation) => {
+    const blockType = variables[variableName];
+    if (!blockType) return match;
+
+    const block = chartData.blogBlocks?.whyChartzBlocks?.[blockType];
+    if (!block) return match;
+
+    const selectedVariation = selectVariation(block.variations, variation);
+
+    return `
+### ${block.title}
+
+${block.intro}
+
+${selectedVariation}
+`;
+  });
+
+  // Process variable-based feature blocks: {featureBlock:${feature}:random}
+  content = content.replace(/\{featureBlock:\$\{([^}]+)\}(?::([^}]+))?\}/g, (match, variableName, variation) => {
+    const featureType = variables[variableName];
+    if (!featureType) return match;
+
+    const feature = chartData.blogBlocks?.featureBlocks?.[featureType];
+    if (!feature) return match;
+
+    const selectedVariation = selectFeatureVariation(feature.variations, variation);
+    if (!selectedVariation) return match;
+
+    const benefitsList = selectedVariation.benefits.map((benefit: string) => `- ${benefit}`).join('\n');
+    const imageMarkdown = feature.image ? `\n![${feature.imageAlt || feature.title}](${feature.image})\n` : '';
+
+    return `
+#### ${feature.icon} ${feature.title}
+${imageMarkdown}
+##### ${selectedVariation.headline}
+
+${selectedVariation.description}
+
+${benefitsList}
+`;
+  });
+
+  return content;
+}
+
+function selectVariation(variations: string[], variationParam?: string): string {
+  if (!variations || variations.length === 0) return '';
+
+  if (!variationParam || variationParam === 'random') {
+    // Select random variation
+    return variations[Math.floor(Math.random() * variations.length)];
+  }
+
+  // Select specific variation by index
+  const index = parseInt(variationParam);
+  if (!isNaN(index) && index >= 0 && index < variations.length) {
+    return variations[index];
+  }
+
+  // Default to first variation
+  return variations[0];
+}
+
+function selectFeatureVariation(variations: any[], variationParam?: string): any {
+  if (!variations || variations.length === 0) return null;
+
+  if (!variationParam || variationParam === 'random') {
+    // Select random variation
+    return variations[Math.floor(Math.random() * variations.length)];
+  }
+
+  // Select specific variation by index
+  const index = parseInt(variationParam);
+  if (!isNaN(index) && index >= 0 && index < variations.length) {
+    return variations[index];
+  }
+
+  // Default to first variation
+  return variations[0];
 }
 

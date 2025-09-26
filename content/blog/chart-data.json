@@ -171,6 +171,11 @@
       "displayName": "Looker Studio",
       "cost": "Free for basic features, enterprise pricing for advanced features",
       "type": "Cloud"
+    },
+    "excel": {
+      "displayName": "Microsoft Excel",
+      "cost": "Microsoft Office subscription starting at $6/month per user or $150 one-time purchase",
+      "type": "Desktop/Web"
     }
   },
 
@@ -201,6 +206,15 @@
       "scatter-plot": "1. Click 'Add a Chart' and select Scatter Chart\n2. Choose your data source\n3. Set X-axis metric in the X field\n4. Set Y-axis metric in the Y field\n5. Optionally add a dimension for color coding\n6. Configure bubble size with a metric\n7. Format axis ranges and labels\n8. Add trend lines through chart settings",
       "line-chart": "1. Click 'Add a Chart' and select Line Chart\n2. Connect to your data source\n3. Set your date/time dimension for the X-axis\n4. Add your metric to the Metric field\n5. Configure multiple lines by adding dimensions\n6. Format line colors and styles through Style tab\n7. Set up data labels and markers\n8. Configure axis formatting and scaling\n9. Apply date range controls and filters",
       "histogram-chart": "1. Add a Column Chart (no native histogram available)\n2. Pre-process your data to create binned ranges\n3. Use the binned field as your dimension\n4. Add frequency count as your metric\n5. Configure column spacing to eliminate gaps\n6. Format X-axis to show bin ranges properly\n7. Set up appropriate colors and styling\n8. Configure tooltips to show bin information\n9. Apply filters and controls for interactivity"
+    },
+    "excel": {
+      "pie-chart": "1. Select your data range including headers\n2. Go to Insert tab → Charts → Pie Chart\n3. Choose the pie chart style you want\n4. Click on the chart to select it\n5. Use Chart Tools → Design tab to change colors and styles\n6. Add data labels by right-clicking chart → Add Data Labels\n7. Format data labels to show percentages if needed\n8. Adjust legend positioning and formatting",
+      "donut-chart": "1. Create a pie chart following the basic steps\n2. Right-click on the pie chart and select 'Format Data Series'\n3. In the Format Data Series pane, adjust the 'Doughnut Hole Size'\n4. Set the hole size to 50-75% for a proper donut appearance\n5. Format colors and data labels as needed\n6. Consider adding a text box in the center for key metrics\n7. Adjust chart title and legend positioning",
+      "stacked-bar-chart": "1. Arrange your data with categories in the first column and series in subsequent columns\n2. Select the entire data range including headers\n3. Insert → Charts → Bar Chart → Stacked Bar\n4. Use Chart Tools to modify colors and formatting\n5. Add data labels if needed through Chart Elements\n6. Adjust axis formatting and scaling\n7. Format legend and chart title\n8. Consider switching to 100% stacked for proportional view",
+      "heat-map": "1. Organize your data in a matrix format (rows and columns)\n2. Select your data range\n3. Go to Home tab → Conditional Formatting → Color Scales\n4. Choose a color scale that represents your data well\n5. Alternatively, use Insert → Charts → Surface Chart for 3D heatmap\n6. Format the chart by removing gridlines and adjusting colors\n7. Add a color legend manually if needed\n8. Consider using pivot tables for complex data arrangements",
+      "scatter-plot": "1. Arrange data with X values in first column, Y values in second\n2. Select both columns of data\n3. Insert → Charts → Scatter → Scatter with markers only\n4. Add more data series by right-clicking chart → Select Data\n5. Format individual data series with different colors/markers\n6. Add trendlines by right-clicking data points → Add Trendline\n7. Format axes, titles, and gridlines as needed\n8. Use Chart Elements to add axis titles and data labels",
+      "line-chart": "1. Organize data with dates/categories in first column, values in subsequent columns\n2. Select your data range including headers\n3. Insert → Charts → Line Chart → Line with Markers\n4. Format the chart using Chart Tools Design and Format tabs\n5. Add multiple data series by selecting additional columns\n6. Format each line with different colors and styles\n7. Add data labels, axis titles, and legend as needed\n8. Configure axis scaling and number formatting",
+      "histogram-chart": "1. First create bins using Data → Data Analysis → Histogram (requires Analysis ToolPak)\n2. If Analysis ToolPak isn't available, manually create bins and use FREQUENCY function\n3. Set up bin ranges in one column and use FREQUENCY to count occurrences\n4. Create a column chart from the frequency data\n5. Format the chart to remove gaps between bars (set Gap Width to 0%)\n6. Add proper axis labels showing bin ranges\n7. Format chart title and remove legend if not needed\n8. Consider adding normal distribution curve using scatter chart overlay"
     }
   },
 
@@ -231,6 +245,164 @@
       "scatter-plot": "Looker Studio scatter plots require careful configuration of axis metrics, optional grouping dimensions, and bubble sizing parameters. Users frequently encounter issues with axis range optimization, point overlap when dealing with dense data, trend line configuration, and ensuring proper interactivity with other report elements and filters.",
       "line-chart": "Looker Studio line charts require understanding of date dimension configuration, metric aggregation, and time series formatting. Users often struggle with date range controls, missing data handling, multiple line comparisons, and ensuring proper chart responsiveness across devices. The complexity increases when implementing calculated fields, custom date periods, or when trying to synchronize multiple charts with shared filters and date controls.",
       "histogram-chart": "Looker Studio lacks native histogram support, forcing users to implement workarounds with column charts and manual data preprocessing. Users must handle bin creation outside the platform, manage frequency calculations manually, and struggle with achieving proper bar spacing and formatting. The complexity escalates when trying to implement statistical features, handle dynamic binning, or when ensuring the chart updates properly with filtered data, often requiring complex calculated fields and data transformation steps."
+    },
+    "excel": {
+      "pie-chart": "While Excel pie charts appear straightforward, users often struggle with data preparation, proper range selection, and formatting. Common issues include manually calculating percentages, dealing with data labels that overlap or display incorrectly, and achieving professional color schemes. The process becomes complex when trying to create dynamic charts that update with changing data, requiring knowledge of Excel's table structures and named ranges.",
+      "donut-chart": "Excel donut charts require creating a pie chart first, then manually adjusting the doughnut hole size through formatting options. Users frequently struggle with finding the Format Data Series dialog, setting appropriate hole sizes, and adding meaningful content to the center space. The complexity increases when trying to create multi-level donuts or when dealing with small categories that become hard to read.",
+      "stacked-bar-chart": "Excel stacked bar charts require careful data arrangement with categories and series properly organized in columns. Users often struggle with data layout, especially when pivot tables are needed for complex data structures. Common issues include getting the stack order correct, managing colors across multiple series, formatting data labels to avoid overlap, and creating percentage-based stacked charts that require manual calculations or pivot table percentage options.",
+      "heat-map": "Excel heatmaps typically rely on conditional formatting rather than true chart types, requiring users to understand cell formatting rules and color scales. Users struggle with setting up appropriate data ranges, choosing effective color gradients, and creating legends manually. The complexity increases significantly when trying to create dynamic heatmaps with changing data ranges, or when attempting 3D surface charts which require specific data matrix arrangements.",
+      "scatter-plot": "Excel scatter plots require understanding of data series management, especially when plotting multiple groups or adding trend lines. Users often struggle with axis scaling, adding multiple data series with different formatting, configuring bubble sizes for bubble charts, and managing overlapping data points. The process becomes complex when trying to add error bars, statistical trend lines, or when dealing with large datasets that affect performance.",
+      "line-chart": "Excel line charts seem simple but become complex with multiple data series, proper date formatting, and axis scaling. Users frequently struggle with date axis formatting, handling missing data points, managing multiple Y-axes with different scales, and creating smooth vs. straight line connections. The complexity grows when implementing secondary axes, custom markers, or when trying to create combination charts with bars and lines.",
+      "histogram-chart": "Excel histograms require either the Analysis ToolPak (which many users don't have installed) or manual bin creation using FREQUENCY functions and helper columns. Users struggle with determining appropriate bin sizes, creating frequency calculations, formatting column charts to remove gaps, and adding proper axis labels. The process becomes significantly more complex when trying to overlay normal distribution curves, handle dynamic bin sizing, or work with large datasets that require data sampling."
+    }
+  },
+
+  "blogBlocks": {
+    "whyChartzBlocks": {
+      "dataVisualization": {
+        "title": "Why Businesses Choose Chartz for Data Visualization",
+        "intro": "Traditional data visualization tools require extensive training, expensive licenses, and hours of manual work. Chartz transforms how businesses create visual insights with AI-powered simplicity.",
+        "variations": [
+          "Transform your data into stunning visualizations without the complexity of traditional tools like Tableau or Power BI.",
+          "Create publication-ready charts and graphs in seconds, not hours, with our intelligent AI assistant.",
+          "Skip the learning curve of complex visualization software and focus on insights, not tool mastery."
+        ]
+      },
+      "dataAnalytics": {
+        "title": "Why Businesses Choose Chartz for Data Analytics",
+        "intro": "Data analytics shouldn't require a team of specialists or expensive enterprise software. Chartz democratizes data analysis with conversational AI that understands your business needs.",
+        "variations": [
+          "Unlock insights from your data without needing SQL expertise or statistical training.",
+          "Ask questions about your data in plain English and get immediate, actionable insights.",
+          "Transform raw data into strategic business intelligence without hiring data scientists."
+        ]
+      },
+      "dashboardCreation": {
+        "title": "Why Businesses Choose Chartz for Dashboard Creation",
+        "intro": "Building effective dashboards traditionally requires design skills, technical knowledge, and ongoing maintenance. Chartz automates dashboard creation while maintaining professional quality.",
+        "variations": [
+          "Build interactive dashboards that actually drive business decisions, not just pretty displays.",
+          "Create executive-ready dashboards without design expertise or technical complexity.",
+          "Deploy real-time dashboards that update automatically as your data changes."
+        ]
+      }
+    },
+    "featureBlocks": {
+      "zeroLearningCurve": {
+        "icon": "🚀",
+        "title": "Zero Learning Curve",
+        "image": "/blog/images/welcome-to-chartz-ai.png",
+        "imageAlt": "Chartz.ai welcome screen showing intuitive interface for getting started",
+        "variations": [
+          {
+            "headline": "No Training Required",
+            "description": "Start creating professional charts immediately. Our AI understands natural language, so you can describe what you want instead of learning complex software interfaces.",
+            "benefits": ["Instant productivity", "No onboarding time", "Intuitive interactions"]
+          },
+          {
+            "headline": "Speak Your Language, Not Code",
+            "description": "Tell Chartz what you want to see: 'Show me sales trends by region' or 'Create a pie chart of customer segments.' No technical jargon or menu hunting required.",
+            "benefits": ["Natural language queries", "No syntax to learn", "Immediate understanding"]
+          },
+          {
+            "headline": "From Idea to Insight in Seconds",
+            "description": "Whether you're a CEO, marketing manager, or analyst, Chartz adapts to your communication style and business vocabulary without requiring specialized training.",
+            "benefits": ["Role-agnostic design", "Business-focused interface", "Contextual intelligence"]
+          }
+        ]
+      },
+      "aiQueriesData": {
+        "icon": "🧠",
+        "title": "AI Queries Your Data",
+        "image": "/blog/images/sql.png",
+        "imageAlt": "AI-powered SQL query interface showing natural language data querying",
+        "variations": [
+          {
+            "headline": "Intelligent Data Discovery",
+            "description": "Our AI automatically understands your data structure, identifies key patterns, and suggests the most relevant visualizations for your specific dataset.",
+            "benefits": ["Automatic schema detection", "Pattern recognition", "Smart recommendations"]
+          },
+          {
+            "headline": "Ask Questions, Get Answers",
+            "description": "Query your data conversationally: 'Which products are declining?' or 'Show me our best performing regions.' The AI translates business questions into data insights.",
+            "benefits": ["Natural language processing", "Business context awareness", "Immediate responses"]
+          },
+          {
+            "headline": "Smart Data Relationships",
+            "description": "Chartz AI identifies relationships between data points you might miss, suggesting correlations, trends, and anomalies that drive better business decisions.",
+            "benefits": ["Relationship mapping", "Trend detection", "Anomaly identification"]
+          }
+        ]
+      },
+      "automaticChartBuilding": {
+        "icon": "📊",
+        "title": "Automatic Dynamic Chart Creation",
+        "image": "/blog/images/dashboard.png",
+        "imageAlt": "Dashboard showing automatically generated charts with professional styling",
+        "variations": [
+          {
+            "headline": "Perfect Charts, Every Time",
+            "description": "Our AI selects the optimal chart type, applies professional styling, and configures interactive features automatically based on your data and intent.",
+            "benefits": ["Optimal chart selection", "Professional styling", "Interactive elements"]
+          },
+          {
+            "headline": "Adaptive Visualizations",
+            "description": "Charts automatically adjust to your data changes, maintaining clarity and readability whether you have 10 data points or 10,000.",
+            "benefits": ["Automatic scaling", "Responsive design", "Performance optimization"]
+          },
+          {
+            "headline": "Publication-Ready Results",
+            "description": "Every chart is generated with publication-quality formatting, professional color schemes, and proper labeling - no manual tweaking required.",
+            "benefits": ["Professional quality", "Consistent branding", "Export-ready formats"]
+          }
+        ]
+      },
+      "dateFiltering": {
+        "icon": "📅",
+        "title": "Intelligent Date Filtering",
+        "image": "/blog/images/date-filter.png",
+        "imageAlt": "Date filtering interface showing flexible time range selection options",
+        "variations": [
+          {
+            "headline": "Time-Smart Analytics",
+            "description": "Automatically detect date patterns in your data and enable intuitive time-based filtering: 'Show me last quarter' or 'Compare year-over-year trends.'",
+            "benefits": ["Automatic date recognition", "Flexible time periods", "Trend analysis"]
+          },
+          {
+            "headline": "Dynamic Time Ranges",
+            "description": "Switch between time periods instantly - from daily granularity to yearly overviews - without rebuilding charts or losing context.",
+            "benefits": ["Multi-granularity views", "Seamless transitions", "Context preservation"]
+          },
+          {
+            "headline": "Comparative Time Analysis",
+            "description": "Easily compare performance across different time periods, identify seasonal patterns, and track progress toward time-based goals.",
+            "benefits": ["Period comparisons", "Seasonal analysis", "Goal tracking"]
+          }
+        ]
+      },
+      "multipleDataSources": {
+        "icon": "🔗",
+        "title": "Multiple Data Source Integration",
+        "image": "/blog/images/data-source-dashboard.png",
+        "imageAlt": "Data source selection interface showing various integration options",
+        "variations": [
+          {
+            "headline": "Connect Everything",
+            "description": "Seamlessly integrate data from databases, spreadsheets, APIs, and cloud services. Our AI handles the complexity of joining and normalizing different data formats.",
+            "benefits": ["Universal connectivity", "Format normalization", "Automated joins"]
+          },
+          {
+            "headline": "Real-Time Data Sync",
+            "description": "Keep your visualizations current with live data connections that update automatically. Never work with stale data or manual exports again.",
+            "benefits": ["Live connections", "Automatic updates", "Real-time insights"]
+          },
+          {
+            "headline": "Enterprise-Grade Security",
+            "description": "Connect to your sensitive data sources with confidence. Enterprise-level security, compliance, and access controls protect your information.",
+            "benefits": ["Enterprise security", "Compliance ready", "Access control"]
+          }
+        ]
+      }
     }
   }
 }
