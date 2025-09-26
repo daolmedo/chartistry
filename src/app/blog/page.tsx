@@ -1,74 +1,46 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { BlogPost } from '@/lib/blog';
-import BlogCard from '@/app/components/blog/BlogCard';
+import { getAllBlogPosts, getAllCategories, getAllTags } from '@/lib/blog';
+import BlogList from '@/app/components/blog/BlogList';
 import BlogSidebar from '@/app/components/blog/BlogSidebar';
 import Navigation from '@/app/components/landing/Navigation';
 import Link from 'next/link';
-import { PenTool, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PenTool } from 'lucide-react';
+
+export const metadata = {
+  title: 'Blog - Data Visualization Tips, Tutorials & AI Insights | chartz.ai',
+  description: 'Discover the latest in data visualization, AI-powered chart creation, tutorials, and industry insights. Learn how to create better charts with chartz.ai.',
+  openGraph: {
+    title: 'Data Visualization Blog | chartz.ai',
+    description: 'Expert insights on data visualization, AI-powered chart creation, and industry best practices.',
+    type: 'website',
+  },
+};
 
 const POSTS_PER_PAGE = 6;
 
-export default function BlogPage() {
-  const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+interface BlogPageProps {
+  searchParams: { page?: string };
+}
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        // Fetch pre-generated static blog data
-        const response = await fetch('/blog-data.json');
-        if (!response.ok) {
-          throw new Error('Failed to fetch blog data');
-        }
-        const data = await response.json();
-        setAllPosts(data.posts || []);
-        setCategories(data.categories || []);
-        setTags(data.tags || []);
-      } catch (error) {
-        console.error('Failed to load blog data:', error);
-        // Fallback to empty arrays if static data fails
-        setAllPosts([]);
-        setCategories([]);
-        setTags([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, []);
+export default async function BlogPage({ searchParams }: BlogPageProps) {
+  const [posts, categories, tags] = await Promise.all([
+    getAllBlogPosts(),
+    getAllCategories(),
+    getAllTags(),
+  ]);
+
+  // Get current page from URL params
+  const currentPage = parseInt(searchParams.page || '1', 10);
 
   // Separate featured and regular posts
-  const featuredPosts = allPosts.filter(post => post.featured);
-  const regularPosts = allPosts.filter(post => !post.featured);
+  const featuredPosts = posts.filter(post => post.featured);
+  const regularPosts = posts.filter(post => !post.featured);
 
-  // Pagination logic for regular posts only (featured posts always show)
+  // Pagination logic for regular posts only
   const totalRegularPosts = regularPosts.length;
   const totalPages = Math.ceil(totalRegularPosts / POSTS_PER_PAGE);
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
   const endIndex = startIndex + POSTS_PER_PAGE;
   const currentPosts = regularPosts.slice(startIndex, endIndex);
-
-  const goToPage = (page: number) => {
-    setCurrentPage(page);
-    // Scroll to posts section
-    document.getElementById('posts-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading blog posts...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,52 +69,54 @@ export default function BlogPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="lg:grid lg:grid-cols-12 lg:gap-8">
           {/* Main content */}
-          <main className="lg:col-span-8" id="posts-section">
-            {/* Featured posts - always show */}
+          <main className="lg:col-span-8">
+            {/* Featured posts section */}
             {featuredPosts.length > 0 && (
               <section className="mb-12">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Featured Articles</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {featuredPosts.map((post) => (
-                    <BlogCard key={post.slug} post={post} featured={true} />
-                  ))}
-                </div>
+                <BlogList posts={featuredPosts} showFeatured={true} />
               </section>
             )}
 
             {/* Regular posts with pagination */}
-            {regularPosts.length > 0 && (
+            {currentPosts.length > 0 && (
               <section>
                 {featuredPosts.length > 0 && (
                   <h2 className="text-2xl font-bold text-gray-900 mb-8">Latest Articles</h2>
                 )}
+                <BlogList posts={currentPosts} showFeatured={false} />
 
-                {/* Current page posts */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-                  {currentPosts.map((post) => (
-                    <BlogCard key={post.slug} post={post} />
-                  ))}
-                </div>
-
-                {/* Pagination */}
+                {/* Simple pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
+                  <div className="mt-12 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
                     <div className="flex flex-1 justify-between sm:hidden">
-                      <button
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
+                      {currentPage > 1 ? (
+                        <Link
+                          href={`/blog?page=${currentPage - 1}`}
+                          className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                          Previous
+                        </Link>
+                      ) : (
+                        <span className="relative inline-flex items-center rounded-md border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed">
+                          Previous
+                        </span>
+                      )}
+
+                      {currentPage < totalPages ? (
+                        <Link
+                          href={`/blog?page=${currentPage + 1}`}
+                          className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                          Next
+                        </Link>
+                      ) : (
+                        <span className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed">
+                          Next
+                        </span>
+                      )}
                     </div>
+
                     <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm text-gray-700">
@@ -155,39 +129,65 @@ export default function BlogPage() {
                           {' '}articles
                         </p>
                       </div>
+
                       <div>
                         <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                          <button
-                            onClick={() => goToPage(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <span className="sr-only">Previous</span>
-                            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-                          </button>
+                          {currentPage > 1 ? (
+                            <Link
+                              href={`/blog?page=${currentPage - 1}`}
+                              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                            >
+                              <span className="sr-only">Previous</span>
+                              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                              </svg>
+                            </Link>
+                          ) : (
+                            <span className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-300 ring-1 ring-inset ring-gray-300 cursor-not-allowed">
+                              <span className="sr-only">Previous</span>
+                              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          )}
 
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-                            <button
-                              key={pageNumber}
-                              onClick={() => goToPage(pageNumber)}
-                              className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus:outline-offset-0 ${
-                                pageNumber === currentPage
-                                  ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
-                                  : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
-                              }`}
-                            >
-                              {pageNumber}
-                            </button>
+                            pageNumber === currentPage ? (
+                              <span
+                                key={pageNumber}
+                                className="relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                              >
+                                {pageNumber}
+                              </span>
+                            ) : (
+                              <Link
+                                key={pageNumber}
+                                href={`/blog?page=${pageNumber}`}
+                                className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                              >
+                                {pageNumber}
+                              </Link>
+                            )
                           ))}
 
-                          <button
-                            onClick={() => goToPage(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <span className="sr-only">Next</span>
-                            <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                          </button>
+                          {currentPage < totalPages ? (
+                            <Link
+                              href={`/blog?page=${currentPage + 1}`}
+                              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                            >
+                              <span className="sr-only">Next</span>
+                              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                              </svg>
+                            </Link>
+                          ) : (
+                            <span className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-300 ring-1 ring-inset ring-gray-300 cursor-not-allowed">
+                              <span className="sr-only">Next</span>
+                              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          )}
                         </nav>
                       </div>
                     </div>
@@ -200,7 +200,7 @@ export default function BlogPage() {
           {/* Sidebar */}
           <aside className="mt-12 lg:mt-0 lg:col-span-4">
             <BlogSidebar
-              recentPosts={allPosts.slice(0, 5)}
+              recentPosts={posts.slice(0, 5)}
               categories={categories}
               tags={tags}
             />
