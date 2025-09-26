@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run generate-blog-data && next build",
+    "build": "next build",
     "build:blog": "node scripts/generate-blog-data.js",
     "generate-blog-data": "node scripts/generate-blog-data.js",
     "start": "next start",
