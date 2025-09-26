@@ -82,7 +82,7 @@ export default function ChartsSection() {
   const [csv, setCsv] = useState<string>('');
   const [prompt, setPrompt] = useState<string>('Create a bar chart showing quarterly sales by product category');
   const [chartSpec, setChartSpec] = useState<VChartSpec | null>(mockChartSpec);
-  const [generationTime, setGenerationTime] = useState<number>(1250);
+  const [generationTime, setGenerationTime] = useState<number | undefined>(1250);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(mockDataset);

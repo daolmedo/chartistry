@@ -345,7 +345,7 @@ export default function DashboardsSection() {
       const months = Math.max(1, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30)));
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-      const values = [];
+      const values: Array<{ month: string; revenue: number; category: string }> = [];
       const categories = ['Electronics', 'Clothing', 'Home & Garden'];
 
       for (let i = 0; i < Math.min(months, 12); i++) {
