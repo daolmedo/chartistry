@@ -104,6 +104,66 @@ async function loadVChartSpec(chartType: string): Promise<string> {
   }
 }
 
+// Cache for generated post metadata to avoid expensive regeneration
+let cachedGeneratedPostsMetadata: BlogPost[] | null = null;
+
+// Get metadata for generated posts (lightweight version for listing)
+export function getGeneratedPostsMetadata(): BlogPost[] {
+  if (cachedGeneratedPostsMetadata) {
+    return cachedGeneratedPostsMetadata;
+  }
+
+  const competitors = ['tableau', 'powerbi', 'looker-studio', 'excel'];
+  const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot', 'line-chart', 'histogram-chart'];
+  const generatedPosts: BlogPost[] = [];
+
+  for (const competitor of competitors) {
+    for (const chartType of competitorChartTypes) {
+      const slug = `how-to-create-${chartType}-in-${competitor}`;
+      const chartTypeDisplay = transformValue(chartType, 'title_case');
+      const competitorDisplay = transformValue(competitor, 'display_name');
+
+      generatedPosts.push({
+        slug,
+        title: `How to Create ${chartTypeDisplay} in ${competitorDisplay} | chartz.ai`,
+        excerpt: `Learn how to create ${chartTypeDisplay.toLowerCase()} in ${competitorDisplay}. Compare traditional methods vs AI-powered chart creation with chartz.ai.`,
+        content: '', // Empty for metadata-only
+        publishedAt: '2024-01-15',
+        updatedAt: '2024-01-15',
+        author: 'chartz.ai team',
+        category: 'Chart Tutorials',
+        tags: [competitor, chartType.replace('-chart', ''), 'tutorial'],
+        featured: false,
+        readingTime: 8
+      });
+    }
+  }
+
+  // Add chart guide posts
+  const chartTypes = ['pie', 'bar', 'line', 'scatter', 'area', 'column', 'donut', 'heatmap', 'funnel', 'gauge', 'histogram'];
+  for (const chartType of chartTypes) {
+    const slug = `how-to-create-${chartType}-charts`;
+    const chartTypeDisplay = transformValue(chartType, 'capitalize');
+
+    generatedPosts.push({
+      slug,
+      title: `How to Create ${chartTypeDisplay} Charts with AI | chartz.ai`,
+      excerpt: `Discover how to create stunning ${chartTypeDisplay.toLowerCase()} charts using AI. Learn best practices, use cases, and get instant results with chartz.ai.`,
+      content: '', // Empty for metadata-only
+      publishedAt: '2024-01-10',
+      updatedAt: '2024-01-10',
+      author: 'chartz.ai team',
+      category: 'Chart Creation',
+      tags: [chartType, 'ai', 'tutorial'],
+      featured: false,
+      readingTime: 6
+    });
+  }
+
+  cachedGeneratedPostsMetadata = generatedPosts;
+  return generatedPosts;
+}
+
 // Get all blog posts (including generated posts)
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
   const regularPosts: BlogPost[] = [];
@@ -123,20 +183,8 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
     regularPosts.push(...posts.filter((post): post is BlogPost => post !== null));
   }
 
-  // Get generated competitor tutorial posts
-  const competitors = ['tableau', 'powerbi', 'looker-studio', 'excel'];
-  const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot', 'line-chart', 'histogram-chart'];
-  const generatedPosts: BlogPost[] = [];
-  
-  for (const competitor of competitors) {
-    for (const chartType of competitorChartTypes) {
-      const slug = `how-to-create-${chartType}-in-${competitor}`;
-      const post = await getGeneratedPostBySlug(slug);
-      if (post) {
-        generatedPosts.push(post);
-      }
-    }
-  }
+  // Get lightweight metadata for generated posts (no content generation)
+  const generatedPosts = getGeneratedPostsMetadata();
 
   // Combine all posts and sort by publishedAt date (newest first)
   const allPosts = [...regularPosts, ...generatedPosts];
@@ -202,18 +250,71 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
   }
 }
 
-// Get all available categories
+// Get all available categories (optimized)
 export async function getAllCategories(): Promise<string[]> {
-  const allPosts = await getAllBlogPosts();
-  const categories = new Set(allPosts.map(post => post.category));
-  return Array.from(categories).sort();
+  // Get categories from regular posts
+  const regularCategories = new Set<string>();
+  if (fs.existsSync(BLOG_POSTS_PATH)) {
+    const files = fs.readdirSync(BLOG_POSTS_PATH);
+    for (const file of files) {
+      if (file.endsWith('.md')) {
+        try {
+          const fullPath = path.join(BLOG_POSTS_PATH, file);
+          const fileContents = fs.readFileSync(fullPath, 'utf8');
+          const { data } = matter(fileContents);
+          if (data.category) {
+            regularCategories.add(data.category);
+          }
+        } catch (error) {
+          console.error(`Error reading category from ${file}:`, error);
+        }
+      }
+    }
+  }
+
+  // Add categories from generated posts
+  const generatedCategories = new Set(['Chart Tutorials', 'Chart Creation']);
+
+  const allCategories = new Set();
+  regularCategories.forEach(cat => allCategories.add(cat));
+  generatedCategories.forEach(cat => allCategories.add(cat));
+  return Array.from(allCategories).sort();
 }
 
-// Get all available tags
+// Get all available tags (optimized)
 export async function getAllTags(): Promise<string[]> {
-  const allPosts = await getAllBlogPosts();
-  const tags = new Set(allPosts.flatMap(post => post.tags));
-  return Array.from(tags).sort();
+  // Get tags from regular posts
+  const regularTags = new Set<string>();
+  if (fs.existsSync(BLOG_POSTS_PATH)) {
+    const files = fs.readdirSync(BLOG_POSTS_PATH);
+    for (const file of files) {
+      if (file.endsWith('.md')) {
+        try {
+          const fullPath = path.join(BLOG_POSTS_PATH, file);
+          const fileContents = fs.readFileSync(fullPath, 'utf8');
+          const { data } = matter(fileContents);
+          if (data.tags && Array.isArray(data.tags)) {
+            data.tags.forEach((tag: string) => regularTags.add(tag));
+          }
+        } catch (error) {
+          console.error(`Error reading tags from ${file}:`, error);
+        }
+      }
+    }
+  }
+
+  // Add tags from generated posts
+  const generatedTags = new Set([
+    'tableau', 'powerbi', 'looker-studio', 'excel',
+    'pie', 'donut', 'stacked-bar', 'heat', 'scatter', 'line', 'histogram',
+    'bar', 'area', 'column', 'heatmap', 'funnel', 'gauge',
+    'tutorial', 'ai'
+  ]);
+
+  const allTags = new Set();
+  regularTags.forEach(tag => allTags.add(tag));
+  generatedTags.forEach(tag => allTags.add(tag));
+  return Array.from(allTags).sort();
 }
 
 // Template processing functions
@@ -408,6 +509,15 @@ function transformValue(input: string, transform: string): string {
         'histogram-chart': 'histogram-chart.png'
       };
       return chartImageMap[input] || 'pie-chart.png';
+    case 'display_name':
+      // Map competitor keys to display names
+      const competitorDisplayMap: Record<string, string> = {
+        'tableau': 'Tableau',
+        'powerbi': 'Power BI',
+        'looker-studio': 'Looker Studio',
+        'excel': 'Microsoft Excel'
+      };
+      return competitorDisplayMap[input] || input;
     default:
       return input;
   }

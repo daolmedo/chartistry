@@ -15,6 +15,10 @@ export const metadata = {
   },
 };
 
+// Force static generation at build time
+export const dynamic = 'force-static';
+export const revalidate = 3600; // Revalidate every hour
+
 const POSTS_PER_PAGE = 6;
 
 interface BlogPageProps {
