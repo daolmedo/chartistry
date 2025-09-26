@@ -252,69 +252,16 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
 
 // Get all available categories (optimized)
 export async function getAllCategories(): Promise<string[]> {
-  // Get categories from regular posts
-  const regularCategories = new Set<string>();
-  if (fs.existsSync(BLOG_POSTS_PATH)) {
-    const files = fs.readdirSync(BLOG_POSTS_PATH);
-    for (const file of files) {
-      if (file.endsWith('.md')) {
-        try {
-          const fullPath = path.join(BLOG_POSTS_PATH, file);
-          const fileContents = fs.readFileSync(fullPath, 'utf8');
-          const { data } = matter(fileContents);
-          if (data.category) {
-            regularCategories.add(data.category);
-          }
-        } catch (error) {
-          console.error(`Error reading category from ${file}:`, error);
-        }
-      }
-    }
-  }
-
-  // Add categories from generated posts
-  const generatedCategories = new Set(['Chart Tutorials', 'Chart Creation']);
-
-  const allCategories = new Set();
-  regularCategories.forEach(cat => allCategories.add(cat));
-  generatedCategories.forEach(cat => allCategories.add(cat));
-  return Array.from(allCategories).sort();
+  const allPosts = await getAllBlogPosts();
+  const categories = new Set(allPosts.map(post => post.category).filter(Boolean));
+  return Array.from(categories).sort();
 }
 
 // Get all available tags (optimized)
 export async function getAllTags(): Promise<string[]> {
-  // Get tags from regular posts
-  const regularTags = new Set<string>();
-  if (fs.existsSync(BLOG_POSTS_PATH)) {
-    const files = fs.readdirSync(BLOG_POSTS_PATH);
-    for (const file of files) {
-      if (file.endsWith('.md')) {
-        try {
-          const fullPath = path.join(BLOG_POSTS_PATH, file);
-          const fileContents = fs.readFileSync(fullPath, 'utf8');
-          const { data } = matter(fileContents);
-          if (data.tags && Array.isArray(data.tags)) {
-            data.tags.forEach((tag: string) => regularTags.add(tag));
-          }
-        } catch (error) {
-          console.error(`Error reading tags from ${file}:`, error);
-        }
-      }
-    }
-  }
-
-  // Add tags from generated posts
-  const generatedTags = new Set([
-    'tableau', 'powerbi', 'looker-studio', 'excel',
-    'pie', 'donut', 'stacked-bar', 'heat', 'scatter', 'line', 'histogram',
-    'bar', 'area', 'column', 'heatmap', 'funnel', 'gauge',
-    'tutorial', 'ai'
-  ]);
-
-  const allTags = new Set();
-  regularTags.forEach(tag => allTags.add(tag));
-  generatedTags.forEach(tag => allTags.add(tag));
-  return Array.from(allTags).sort();
+  const allPosts = await getAllBlogPosts();
+  const tags = new Set(allPosts.flatMap(post => post.tags || []).filter(Boolean));
+  return Array.from(tags).sort();
 }
 
 // Template processing functions
