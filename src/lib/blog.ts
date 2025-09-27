@@ -107,6 +107,11 @@ async function loadVChartSpec(chartType: string): Promise<string> {
 // Cache for generated post metadata to avoid expensive regeneration
 let cachedGeneratedPostsMetadata: BlogPost[] | null = null;
 
+// Reset cache for development
+export function resetGeneratedPostsCache(): void {
+  cachedGeneratedPostsMetadata = null;
+}
+
 // Get metadata for generated posts (lightweight version for listing)
 export function getGeneratedPostsMetadata(): BlogPost[] {
   if (cachedGeneratedPostsMetadata) {
@@ -123,6 +128,17 @@ export function getGeneratedPostsMetadata(): BlogPost[] {
       const chartTypeDisplay = transformValue(chartType, 'title_case');
       const competitorDisplay = transformValue(competitor, 'display_name');
 
+      // Map chart types to available images
+      const chartImageMap: Record<string, string> = {
+        'pie-chart': 'pie-chart.png',
+        'donut-chart': 'donut-chart.png',
+        'stacked-bar-chart': 'stacked-bar-chart.png',
+        'heat-map': 'heatmap-chart.png',
+        'scatter-plot': 'scatter-chart.png',
+        'line-chart': 'line-chart.png',
+        'histogram-chart': 'histogram-chart.png'
+      };
+
       generatedPosts.push({
         slug,
         title: `How to Create ${chartTypeDisplay} in ${competitorDisplay} | chartz.ai`,
@@ -134,6 +150,7 @@ export function getGeneratedPostsMetadata(): BlogPost[] {
         category: 'Chart Tutorials',
         tags: [competitor, chartType.replace('-chart', ''), 'tutorial'],
         featured: false,
+        ogImage: `/blog/images/${chartImageMap[chartType] || 'pie-chart.png'}`,
         readingTime: 8
       });
     }
@@ -144,6 +161,17 @@ export function getGeneratedPostsMetadata(): BlogPost[] {
   for (const chartType of chartTypes) {
     const slug = `how-to-create-${chartType}-charts`;
     const chartTypeDisplay = transformValue(chartType, 'capitalize');
+
+    // Map chart types to available images for regular chart guides
+    const chartImageMap: Record<string, string> = {
+      'pie': 'pie-chart.png',
+      'donut': 'donut-chart.png',
+      'bar': 'stacked-bar-chart.png',
+      'heatmap': 'heatmap-chart.png',
+      'scatter': 'scatter-chart.png',
+      'line': 'line-chart.png',
+      'histogram': 'histogram-chart.png'
+    };
 
     generatedPosts.push({
       slug,
@@ -156,6 +184,7 @@ export function getGeneratedPostsMetadata(): BlogPost[] {
       category: 'Chart Creation',
       tags: [chartType, 'ai', 'tutorial'],
       featured: false,
+      ogImage: `/blog/images/${chartImageMap[chartType] || 'pie-chart.png'}`,
       readingTime: 6
     });
   }
