@@ -15,8 +15,7 @@ export const metadata = {
   },
 };
 
-// Force static generation at build time
-export const dynamic = 'force-static';
+// Allow dynamic rendering for pagination while keeping individual posts static
 export const revalidate = 3600; // Revalidate every hour
 
 const POSTS_PER_PAGE = 6;
@@ -24,6 +23,7 @@ const POSTS_PER_PAGE = 6;
 interface BlogPageProps {
   searchParams: { page?: string };
 }
+
 
 export default async function BlogPage({ searchParams }: BlogPageProps) {
   const [posts, categories, tags] = await Promise.all([

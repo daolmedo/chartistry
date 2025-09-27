@@ -59,7 +59,7 @@ variables:
 
 Creating a {chartTypeDisplay} in {competitorDisplay} can be complex and time-consuming. While {competitorDisplay} is a powerful tool, it requires significant technical knowledge, multiple steps, and careful configuration to create effective visualizations. In this guide, we'll show you the traditional {competitorDisplay} approach and then demonstrate how chartz.ai makes the same process effortless with AI-powered chart generation.
 
-## The Traditional {competitorDisplay} Approach
+## Step-by-step {competitorDisplay} guide
 
 Creating a {chartTypeDisplay} in {competitorDisplay} is a multi-step process that can be overwhelming for beginners:
 
