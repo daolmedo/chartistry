@@ -69,7 +69,13 @@ function processMarkdown(content: string): string {
     .use(remarkBreaks) // Preserve line breaks
     .use(html, { sanitize: false, allowDangerousHtml: true }) // Allow all HTML including dangerous
     .processSync(content);
-  return processedHtml.toString();
+
+  let htmlString = processedHtml.toString();
+
+  // Remove the first H1 heading to avoid duplication (since we display the title separately)
+  htmlString = htmlString.replace(/^<h1[^>]*>.*?<\/h1>\s*/i, '');
+
+  return htmlString;
 }
 
 // Load VChart specification from TypeScript file

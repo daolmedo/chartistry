@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
-import { getAllBlogPosts, getBlogPostBySlug, getAllCategories, getAllTags } from '@/lib/blog';
-import BlogSidebar from '@/app/components/blog/BlogSidebar';
+import { getAllBlogPosts, getBlogPostBySlug } from '@/lib/blog';
+import TableOfContents from '@/app/components/blog/TableOfContents';
+import RecentPosts from '@/app/components/blog/RecentPosts';
 import Navigation from '@/app/components/landing/Navigation';
 import Link from 'next/link';
 import { Calendar, Clock, User, Tag, ArrowLeft } from 'lucide-react';
@@ -82,11 +83,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  const [recentPosts, categories, tags] = await Promise.all([
-    getAllBlogPosts().then(posts => posts.slice(0, 5)),
-    getAllCategories(),
-    getAllTags(),
-  ]);
+  const recentPosts = await getAllBlogPosts().then(posts => posts.slice(0, 5));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -103,9 +100,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           Back to Blog
         </Link>
 
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8">
+        <div className="lg:flex lg:gap-8">
           {/* Article */}
-          <article className="lg:col-span-8">
+          <article className="lg:flex-1 lg:max-w-4xl">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Featured image */}
               {post.ogImage && (
@@ -232,16 +229,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </svg>
               </Link>
             </div>
+
+            {/* Recent Posts */}
+            <RecentPosts posts={recentPosts} currentSlug={post.slug} />
           </article>
 
-          {/* Sidebar */}
-          <aside className="mt-8 lg:mt-0 lg:col-span-4">
-            <BlogSidebar
-              recentPosts={recentPosts.filter(p => p.slug !== post.slug)}
-              categories={categories}
-              tags={tags}
-              currentCategory={post.category}
-            />
+          {/* Table of Contents Sidebar - Hidden on mobile */}
+          <aside className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+            <TableOfContents content={post.content} />
           </aside>
         </div>
       </div>
