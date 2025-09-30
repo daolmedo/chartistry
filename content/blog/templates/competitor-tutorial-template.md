@@ -61,33 +61,7 @@ Creating a {chartTypeDisplay} in {competitorDisplay} can be complex and time-con
 
 ## Step-by-step {competitorDisplay} guide
 
-Creating a {chartTypeDisplay} in {competitorDisplay} is a multi-step process that can be overwhelming for beginners:
-
-### Step 1: Connect to Your Data Source
-First, you need to connect {competitorDisplay} to your data source:
-1. Open {competitorDisplay} {competitorType}
-2. Navigate to the data connection interface
-3. Choose your data source (Excel, CSV, database, etc.)
-4. Configure connection parameters
-5. Import or connect to your data
-
-### Step 2: Prepare Your Data
-Before creating any visualization:
-1. Review data types and fix any issues
-2. Create calculated fields if necessary
-3. Handle missing or null values
-4. Ensure proper data relationships
-
-### Step 3: Create the {chartTypeDisplay}
-{competitorSteps}
-
-### Step 4: Format and Customize
-After creating the basic chart:
-1. Adjust colors, fonts, and sizing
-2. Add proper labels and titles
-3. Configure tooltips
-4. Set up filters and parameters
-5. Apply consistent formatting
+{customSection:stepByStepGuide}
 
 ### The Complexity Problem
 

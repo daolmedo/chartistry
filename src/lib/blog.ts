@@ -32,7 +32,7 @@ export interface BlogTemplate {
 
 export interface TemplateVariable {
   name: string;
-  source: 'parameter' | 'lookup' | 'transform' | 'static';
+  source: 'parameter' | 'lookup' | 'transform' | 'static' | 'custom_section';
   description?: string;
   transform?: string;
   input?: string;
@@ -376,6 +376,10 @@ export async function generatePostFromTemplate(
       case 'static':
         value = variable.value || '';
         break;
+      case 'custom_section':
+        const sectionName = variable.name.replace('customSection:', '');
+        value = getCustomSectionContent(templateName, sectionName, variables, chartData);
+        break;
     }
 
     // No special handling needed - all variables use standard processing
@@ -384,6 +388,12 @@ export async function generatePostFromTemplate(
     const placeholder = `{${variable.name}}`;
     generatedContent = generatedContent.replace(new RegExp(placeholder, 'g'), value);
   }
+
+  // Process custom section placeholders (e.g., {customSection:stepByStepGuide})
+  const customSectionPattern = /\{customSection:([^}]+)\}/g;
+  generatedContent = generatedContent.replace(customSectionPattern, (match, sectionName) => {
+    return getCustomSectionContent(templateName, sectionName, variables, chartData);
+  });
 
   // Extract title from content (first H1)
   const titleMatch = generatedContent.match(/^# (.+)$/m);
@@ -497,6 +507,80 @@ function transformValue(input: string, transform: string): string {
     default:
       return input;
   }
+}
+
+// Get custom section content with fallback hierarchy
+function getCustomSectionContent(
+  templateName: string,
+  sectionName: string,
+  variables: Record<string, any>,
+  chartData: any
+): string {
+  const customGuides = chartData.customGuides || {};
+  const templateGuides = customGuides[templateName] || {};
+  const sections = templateGuides.sections || {};
+  const section = sections[sectionName] || {};
+
+  // Priority order: specific override -> competitor default -> template default
+  const competitor = variables.competitor;
+  const chartType = variables.chartType;
+
+  let content = '';
+
+  // 1. Try specific override (competitor + chartType)
+  if (section.overrides && section.overrides[competitor] && section.overrides[competitor][chartType]) {
+    content = section.overrides[competitor][chartType];
+  }
+  // 2. Try competitor default
+  else if (section.overrides && section.overrides[competitor] && section.overrides[competitor].default) {
+    content = section.overrides[competitor].default;
+  }
+  // 3. Use template default
+  else if (section.default) {
+    content = section.default;
+  }
+  // 4. Fallback message
+  else {
+    content = `**Section ${sectionName} not found**\n\nPlease configure this section in customGuides.${templateName}.sections.${sectionName}`;
+  }
+
+  // Process any variable placeholders in the custom section content
+  content = processVariablesInContent(content, variables, chartData);
+
+  return content;
+}
+
+// Process variable placeholders in content
+function processVariablesInContent(
+  content: string,
+  variables: Record<string, any>,
+  chartData: any
+): string {
+  // Replace all {variableName} placeholders
+  return content.replace(/\{([^}]+)\}/g, (match, varName) => {
+    // First check if it's a direct variable
+    if (variables[varName] !== undefined) {
+      return variables[varName];
+    }
+
+    // Check if it's competitorSteps - special nested lookup
+    if (varName === 'competitorSteps') {
+      const competitor = variables.competitor;
+      const chartType = variables.chartType;
+      const steps = chartData.competitorSteps?.[competitor]?.[chartType];
+      if (steps) return steps;
+    }
+
+    // Check if it's any other chartData lookup
+    // Try direct lookup first
+    if (chartData[varName]) {
+      const key = variables[varName] || varName;
+      return chartData[varName][key] || match;
+    }
+
+    // Keep the placeholder if we can't resolve it
+    return match;
+  });
 }
 
 // Get generated post by slug

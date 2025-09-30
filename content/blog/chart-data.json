@@ -404,5 +404,25 @@
         ]
       }
     }
+  },
+
+  "customGuides": {
+    "competitor-tutorial-template": {
+      "sections": {
+        "stepByStepGuide": {
+          "default": "Creating a {chartTypeDisplay} in {competitorDisplay} is a multi-step process that can be overwhelming for beginners:\n\n### Step 1: Connect to Your Data Source\nFirst, you need to connect {competitorDisplay} to your data source:\n1. Open {competitorDisplay} {competitorType}\n2. Navigate to the data connection interface\n3. Choose your data source (Excel, CSV, database, etc.)\n4. Configure connection parameters\n5. Import or connect to your data\n\n### Step 2: Prepare Your Data\nBefore creating any visualization:\n1. Review data types and fix any issues\n2. Create calculated fields if necessary\n3. Handle missing or null values\n4. Ensure proper data relationships\n\n### Step 3: Create the {chartTypeDisplay}\n{competitorSteps}\n\n### Step 4: Format and Customize\nAfter creating the basic chart:\n1. Adjust colors, fonts, and sizing\n2. Add proper labels and titles\n3. Configure tooltips\n4. Set up filters and parameters\n5. Apply consistent formatting",
+          "overrides": {
+            "tableau": {
+              "default": "**PLACEHOLDER: Custom Tableau guide for all chart types**\n\nThis will be replaced with comprehensive Tableau-specific instructions that cover the unique aspects of Tableau's interface and workflow.",
+              "pie-chart": "**PLACEHOLDER: Custom Tableau pie chart guide**\n\nThis will contain detailed, step-by-step instructions specifically for creating pie charts in Tableau, including advanced formatting and best practices.",
+              "donut-chart": "![Dataset example showing products with sales and costs](/blog/images/tableau/donut-chart/image.png)\n\nIn this example, we'll work with a small dataset containing three products, each with associated sales and costs. From these values, we can calculate the profit margin for each product.\n\nStart by creating a calculated field like this:\n\n```\nProfitMargin: (SUM([Sales]) - SUM([Cost])) / SUM([Cost])\n```\n\nNormally, when building pie or doughnut charts, you'd use a category field. Since our dataset doesn't include categories, we'll need a second calculated field to represent the remainder of the doughnut:\n\n```\nRestProfitMargin: 1 - [ProfitMargin]\n```\n\nIn a standard doughnut chart setup, place \"Measure Values\" on the Text mark and \"Measure Names\" on the Detail mark. Then, remove all measures except for ProfitMargin and RestProfitMargin. At this point, your view should resemble the following:\n\n![Tableau view with measures configured](/blog/images/tableau/donut-chart/image-1.png)\n\nNow select the Mark Type Pie.\n\n![Selecting pie mark type in Tableau](/blog/images/tableau/donut-chart/image-2.png)\n\n**And now you have your Pie Chart:**\n\n![Resulting pie chart in Tableau](/blog/images/tableau/donut-chart/image-3.png)\n\nTo convert the pie into a doughnut chart, add a measure to the **Rows** shelf. You can use **MIN(Number of Records)**, or simply a constant value. The key is that both row measures must return the same value.\n\n![Adding measure to Rows shelf](/blog/images/tableau/donut-chart/image-4.png)\n\nAt this stage, Tableau creates a **Multiple Mark Type** visualization. For the second mark, clear out the settings for **Color**, **Angle**, and **Label** on the Marks card. Then, adjust the **Size** property to make it a bit smaller. (Optionally, you can set the default color to white.)\n\n![Configuring multiple mark types](/blog/images/tableau/donut-chart/image-5.png)\n\nNext, right-click the second row measure and choose **Dual Axis**. And there you have it—a doughnut chart. From here, you can tidy things up by adjusting labels, hiding headers, and formatting your measures as needed.\n\n![Final donut chart with dual axis](/blog/images/tableau/donut-chart/image-6.png)"
+            },
+            "looker-studio": {
+              "default": "**PLACEHOLDER: Custom Looker Studio guide for all chart types**\n\nThis will contain Google Looker Studio-specific instructions that reflect its cloud-based interface and Google ecosystem integration."
+            }
+          }
+        }
+      }
+    }
   }
 }
