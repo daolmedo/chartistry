@@ -6,7 +6,7 @@ export default function MentionsSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h3 className="text-2xl font-bold text-gray-900 mb-8">Mentions</h3>
-          <div className="flex justify-center">
+          <div className="flex justify-center items-center gap-8">
             <a
               href="https://www.toolpilot.ai/"
               target="_blank"
@@ -16,7 +16,21 @@ export default function MentionsSection() {
               <img
                 src="/toolpilot.png"
                 alt="ToolPilot"
-                className="h-12 w-auto"
+                className="h-10 w-auto"
+              />
+            </a>
+            <a
+              href="https://dang.ai/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-opacity hover:opacity-80"
+            >
+              <img
+                src="https://cdn.prod.website-files.com/63d8afd87da01fb58ea3fbcb/6487e2868c6c8f93b4828827_dang-badge.png"
+                alt="Dang.ai"
+                className="w-[150px] h-[54px]"
+                width="150"
+                height="54"
               />
             </a>
           </div>
