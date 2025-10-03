@@ -128,6 +128,7 @@ export function getGeneratedPostsMetadata(): BlogPost[] {
   const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot', 'line-chart', 'histogram-chart'];
   const generatedPosts: BlogPost[] = [];
 
+  // Generate competitor chart tutorial posts
   for (const competitor of competitors) {
     for (const chartType of competitorChartTypes) {
       const slug = `how-to-create-${chartType}-in-${competitor}`;
@@ -160,6 +161,28 @@ export function getGeneratedPostsMetadata(): BlogPost[] {
         readingTime: 8
       });
     }
+  }
+
+  // Generate dashboard tutorial posts
+  const dashboardTools = ['tableau', 'powerbi', 'looker-studio', 'excel', 'sql', 'python', 'r'];
+  for (const tool of dashboardTools) {
+    const slug = `how-to-create-dashboard-in-${tool}`;
+    const toolDisplay = transformValue(tool, 'display_name');
+
+    generatedPosts.push({
+      slug,
+      title: `How to Create a Dashboard in ${toolDisplay} | chartz.ai`,
+      excerpt: `Learn how to build dashboards in ${toolDisplay}. Discover why AI-powered dashboard creation with chartz.ai is faster and simpler.`,
+      content: '', // Empty for metadata-only
+      publishedAt: '2025-10-03',
+      updatedAt: '2025-10-03',
+      author: 'chartz.ai team',
+      category: 'Dashboard Tutorials',
+      tags: [tool, 'dashboard', 'tutorial'],
+      featured: false,
+      ogImage: '/blog/images/dashboard.png',
+      readingTime: 10
+    });
   }
 
   // Add chart guide posts
@@ -408,6 +431,8 @@ export async function generatePostFromTemplate(
   // Generate slug based on template type
   if (templateName === 'competitor-tutorial-template') {
     generatedSlug = `how-to-create-${variables.chartType}-in-${variables.competitor}`;
+  } else if (templateName === 'dashboard-tutorial-template') {
+    generatedSlug = `how-to-create-dashboard-in-${variables.tool}`;
   } else {
     generatedSlug = `how-to-create-${variables.chartType}-charts`;
   }
@@ -421,11 +446,11 @@ export async function generatePostFromTemplate(
 
   // Generate SEO meta
   let metaTitle, metaDescription, ogImage;
-  
+
   if (templateName === 'competitor-tutorial-template') {
     metaTitle = `How to Create ${variables.chartTypeDisplay} in ${chartData.competitorInfo?.[variables.competitor]?.displayName || variables.competitor} | chartz.ai`;
     metaDescription = `Learn how to create ${variables.chartTypeDisplay} charts in ${chartData.competitorInfo?.[variables.competitor]?.displayName || variables.competitor}. See why chartz.ai is faster and easier.`;
-    
+
     // Map chart types to available images
     const chartImageMap: Record<string, string> = {
       'pie-chart': 'pie-chart.png',
@@ -436,12 +461,16 @@ export async function generatePostFromTemplate(
       'line-chart': 'line-chart.png',
       'histogram-chart': 'histogram-chart.png'
     };
-    
+
     ogImage = `/blog/images/${chartImageMap[variables.chartType] || 'pie-chart.png'}`;
+  } else if (templateName === 'dashboard-tutorial-template') {
+    metaTitle = `How to Create a Dashboard in ${variables.toolDisplay || variables.tool} | chartz.ai`;
+    metaDescription = `Learn how to build dashboards in ${variables.toolDisplay || variables.tool}. Discover why AI-powered dashboard creation with chartz.ai is faster and simpler.`;
+    ogImage = '/blog/images/dashboard.png';
   } else {
     metaTitle = `Create ${variables.chartTypeDisplay || variables.chartType} Charts with AI | chartz.ai`;
     metaDescription = `Learn how to create beautiful ${variables.chartTypeDisplay || variables.chartType} charts using AI. Step-by-step guide with examples and best practices.`;
-    
+
     // Map chart types to available images for regular chart guides
     const chartImageMap: Record<string, string> = {
       'pie': 'pie-chart.png',
@@ -452,8 +481,22 @@ export async function generatePostFromTemplate(
       'line': 'line-chart.png',
       'histogram': 'histogram-chart.png'
     };
-    
+
     ogImage = `/blog/images/${chartImageMap[variables.chartType] || 'pie-chart.png'}`;
+  }
+
+  // Set dates based on template type
+  let publishedAt, updatedAt;
+  if (templateName === 'dashboard-tutorial-template') {
+    publishedAt = '2025-10-03';
+    updatedAt = '2025-10-03';
+  } else if (templateName === 'competitor-tutorial-template') {
+    publishedAt = '2024-01-15';
+    updatedAt = '2024-01-15';
+  } else {
+    // chart-guide-template
+    publishedAt = '2024-01-10';
+    updatedAt = '2024-01-10';
   }
 
   return {
@@ -461,11 +504,11 @@ export async function generatePostFromTemplate(
     title: generatedTitle,
     excerpt: `Complete guide to creating ${variables.chartTypeDisplay || variables.chartType} charts with AI-powered data visualization.`,
     content: processedContent,
-    publishedAt: new Date().toISOString().split('T')[0],
-    updatedAt: new Date().toISOString().split('T')[0],
+    publishedAt,
+    updatedAt,
     author: 'chartz.ai Team',
     category: 'chart-tutorials',
-    tags: ['charts', 'AI', 'tutorial', variables.chartType],
+    tags: ['charts', 'AI', 'tutorial', variables.chartType || variables.tool],
     featured: false,
     metaTitle,
     metaDescription,
@@ -502,12 +545,15 @@ function transformValue(input: string, transform: string): string {
       };
       return chartImageMap[input] || 'pie-chart.png';
     case 'display_name':
-      // Map competitor keys to display names
+      // Map competitor/tool keys to display names
       const competitorDisplayMap: Record<string, string> = {
         'tableau': 'Tableau',
         'powerbi': 'Power BI',
         'looker-studio': 'Looker Studio',
-        'excel': 'Microsoft Excel'
+        'excel': 'Microsoft Excel',
+        'sql': 'SQL',
+        'python': 'Python',
+        'r': 'R'
       };
       return competitorDisplayMap[input] || input;
     default:
@@ -595,9 +641,19 @@ export async function getGeneratedPostBySlug(slug: string): Promise<GeneratedPos
   const chartTypeMatch = slug.match(/^how-to-create-(.+)-charts$/);
   if (chartTypeMatch) {
     const chartType = chartTypeMatch[1];
-    return await generatePostFromTemplate('chart-guide-template', { 
+    return await generatePostFromTemplate('chart-guide-template', {
       chartType,
       chartTypeDisplay: transformValue(chartType, 'capitalize')
+    });
+  }
+
+  // Check if it's a dashboard tutorial (e.g., "how-to-create-dashboard-in-sql")
+  const dashboardMatch = slug.match(/^how-to-create-dashboard-in-(.+)$/);
+  if (dashboardMatch) {
+    const tool = dashboardMatch[1];
+    return await generatePostFromTemplate('dashboard-tutorial-template', {
+      tool,
+      toolDisplay: transformValue(tool, 'display_name')
     });
   }
 
@@ -606,7 +662,7 @@ export async function getGeneratedPostBySlug(slug: string): Promise<GeneratedPos
   if (competitorMatch) {
     const chartType = competitorMatch[1];
     const competitor = competitorMatch[2];
-    return await generatePostFromTemplate('competitor-tutorial-template', { 
+    return await generatePostFromTemplate('competitor-tutorial-template', {
       chartType,
       competitor,
       chartTypeDisplay: transformValue(chartType, 'title_case')

@@ -83,14 +83,14 @@ export default function BlogCard({ post, featured = false }: BlogCardProps) {
         )}
 
         {/* Meta information */}
-        <div className="flex items-center justify-between text-sm text-gray-500 border-t border-gray-100 pt-4">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-500 border-t border-gray-100 pt-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <div className="flex items-center">
-              <User className="w-4 h-4 mr-1" />
-              {post.author}
+              <User className="w-4 h-4 mr-1 flex-shrink-0" />
+              <span className="truncate">{post.author}</span>
             </div>
             <div className="flex items-center">
-              <Calendar className="w-4 h-4 mr-1" />
+              <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
               {new Date(post.publishedAt).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
@@ -98,10 +98,10 @@ export default function BlogCard({ post, featured = false }: BlogCardProps) {
               })}
             </div>
           </div>
-          
+
           {post.readingTime && (
             <div className="flex items-center">
-              <Clock className="w-4 h-4 mr-1" />
+              <Clock className="w-4 h-4 mr-1 flex-shrink-0" />
               {post.readingTime} min read
             </div>
           )}

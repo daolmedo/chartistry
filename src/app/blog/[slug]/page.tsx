@@ -26,7 +26,7 @@ export async function generateStaticParams() {
   const competitors = ['tableau', 'powerbi', 'looker-studio'];
   const competitorChartTypes = ['pie-chart', 'donut-chart', 'stacked-bar-chart', 'heat-map', 'scatter-plot'];
   const competitorTutorialSlugs: Array<{slug: string}> = [];
-  
+
   competitors.forEach(competitor => {
     competitorChartTypes.forEach(chartType => {
       competitorTutorialSlugs.push({
@@ -35,12 +35,19 @@ export async function generateStaticParams() {
     });
   });
 
+  // Include dashboard tutorial slugs
+  const dashboardTools = ['tableau', 'powerbi', 'looker-studio', 'excel', 'sql', 'python', 'r'];
+  const dashboardTutorialSlugs = dashboardTools.map(tool => ({
+    slug: `how-to-create-dashboard-in-${tool}`
+  }));
+
   return [
     ...posts.map((post) => ({
       slug: post.slug,
     })),
     ...chartGuideSlugs,
     ...competitorTutorialSlugs,
+    ...dashboardTutorialSlugs,
   ];
 }
 
