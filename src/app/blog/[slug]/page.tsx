@@ -142,39 +142,29 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   </div>
 
                   {/* Title */}
-                  <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                  <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-8">
                     {post.title}
                   </h1>
 
-                  {/* Excerpt */}
-                  <p className="text-xl text-gray-600 mb-6 leading-relaxed">
-                    {post.excerpt}
-                  </p>
-
-                  {/* Meta information */}
-                  <div className="flex items-center justify-between pb-6 border-b border-gray-200">
-                    <div className="flex items-center space-x-6 text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <User className="w-4 h-4 mr-2" />
-                        {post.author}
+                  {/* Author bio */}
+                  <div className="mb-6">
+                    <div className="flex items-center">
+                      <img
+                        src="/DO-Profile.jpg"
+                        alt={post.author}
+                        className="w-12 h-12 rounded-full object-cover mr-4"
+                      />
+                      <div>
+                        <h3 className="font-medium text-gray-900">{post.author}</h3>
+                        <p className="text-gray-500 text-sm">
+                          Co-Founder of Chartz
+                        </p>
                       </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(post.publishedAt).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </div>
-                      {post.readingTime && (
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-2" />
-                          {post.readingTime} min read
-                        </div>
-                      )}
                     </div>
-
                   </div>
+
+                  {/* Meta divider */}
+                  <div className="pb-6 border-b border-gray-200"></div>
                 </div>
 
                 {/* Article content */}
@@ -200,21 +190,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     </div>
                   </div>
                 )}
-
-                {/* Author bio (if needed) */}
-                <div className="mt-12 pt-8 border-t border-gray-200">
-                  <div className="flex items-center">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                      <User className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900">{post.author}</h3>
-                      <p className="text-gray-500 text-sm">
-                        Content creator at chartz.ai, passionate about making data visualization accessible to everyone.
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 

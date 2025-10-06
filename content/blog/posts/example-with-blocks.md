@@ -3,7 +3,7 @@ title: "Transform Your Business Reporting with AI-Powered Data Visualization"
 excerpt: "See how modern businesses are revolutionizing their reporting workflows with intelligent chart generation and automated insights."
 publishedAt: "2024-01-15"
 updatedAt: "2024-01-15"
-author: "chartz.ai Team"
+author: "Daniel Olmedo"
 category: "business-intelligence"
 tags: ["AI", "reporting", "business-intelligence", "data-visualization"]
 featured: true

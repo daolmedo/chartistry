@@ -4,7 +4,7 @@ slug: "welcome-to-chartz-ai"
 excerpt: "Discover how AI is revolutionizing the way we create charts and visualize data. Learn about chartz.ai and join the data visualization revolution."
 publishedAt: "2024-12-01"
 updatedAt: "2024-12-01"
-author: "chartz.ai Team"
+author: "Daniel Olmedo"
 category: "product-updates"
 tags: ["AI", "data-visualization", "product-launch", "charts"]
 featured: true

@@ -153,7 +153,7 @@ export function getGeneratedPostsMetadata(): BlogPost[] {
         content: '', // Empty for metadata-only
         publishedAt: '2024-01-15',
         updatedAt: '2024-01-15',
-        author: 'chartz.ai team',
+        author: 'Daniel Olmedo',
         category: 'Chart Tutorials',
         tags: [competitor, chartType.replace('-chart', ''), 'tutorial'],
         featured: false,
@@ -506,7 +506,7 @@ export async function generatePostFromTemplate(
     content: processedContent,
     publishedAt,
     updatedAt,
-    author: 'chartz.ai Team',
+    author: 'Daniel Olmedo',
     category: 'chart-tutorials',
     tags: ['charts', 'AI', 'tutorial', variables.chartType || variables.tool],
     featured: false,

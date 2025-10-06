@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { getAllBlogPosts } from '@/lib/blog'
+import { getAllLandingPages } from '@/lib/landing-pages'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://chartz.ai'
@@ -41,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Get all blog posts (including generated ones)
   const blogPosts = await getAllBlogPosts()
-  
+
   // Create blog routes
   const blogRoutes = blogPosts.map(post => ({
     url: `${baseUrl}/blog/${post.slug}`,
@@ -57,6 +58,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'daily' as const,
     priority: 0.8,
   }
-  
-  return [...staticRoutes, blogMainRoute, ...blogRoutes]
+
+  // Get all landing pages (including generated ones)
+  const landingPages = await getAllLandingPages()
+
+  // Create landing page routes
+  const landingRoutes = landingPages.map(page => ({
+    url: `${baseUrl}/${page.slug}`,
+    lastModified: new Date(page.updatedAt),
+    changeFrequency: 'weekly' as const,
+    priority: 0.9,
+  }))
+
+  return [...staticRoutes, blogMainRoute, ...blogRoutes, ...landingRoutes]
 }
