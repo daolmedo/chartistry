@@ -153,6 +153,202 @@
         "column3": "101-200",
         "value3": "45"
       }
+    },
+    "donut": {
+      "basic": "revenue by department",
+      "detailed": "market share with center total",
+      "advanced": "customer segments with drill-down",
+      "example1": {
+        "title": "Department Budget Distribution",
+        "description": "Perfect for showing budget allocation with modern, clean aesthetics",
+        "prompt": "Create a donut chart showing our budget distribution across departments"
+      },
+      "example2": {
+        "title": "Customer Segment Analysis",
+        "description": "Ideal for displaying customer segmentation with clear proportions",
+        "prompt": "Make a donut chart of our customer base by segment"
+      },
+      "example3": {
+        "title": "Traffic Source Breakdown",
+        "description": "Great for visualizing website traffic sources in dashboards",
+        "prompt": "Show me a donut chart of website traffic by source"
+      },
+      "dataFormat": {
+        "column1": "Marketing",
+        "value1": "35",
+        "column2": "Operations",
+        "value2": "40",
+        "column3": "R&D",
+        "value3": "25"
+      }
+    },
+    "scatter": {
+      "basic": "price vs sales volume",
+      "detailed": "correlation with trend line",
+      "advanced": "multi-variable analysis with clustering",
+      "example1": {
+        "title": "Price vs Sales Correlation",
+        "description": "Perfect for understanding the relationship between price points and sales volume",
+        "prompt": "Create a scatter plot showing the correlation between product price and sales"
+      },
+      "example2": {
+        "title": "Customer Lifetime Value Analysis",
+        "description": "Ideal for identifying high-value customer segments",
+        "prompt": "Make a scatter plot of customer acquisition cost vs lifetime value"
+      },
+      "example3": {
+        "title": "Performance vs Experience",
+        "description": "Great for analyzing relationships between employee experience and performance",
+        "prompt": "Show me a scatter plot of employee years of experience vs performance ratings"
+      },
+      "dataFormat": {
+        "column1": "X Value",
+        "value1": "Y Value",
+        "column2": "10",
+        "value2": "250",
+        "column3": "15",
+        "value3": "320"
+      }
+    },
+    "area": {
+      "basic": "cumulative revenue over time",
+      "detailed": "stacked revenue streams",
+      "advanced": "multi-layer area with gradient fills",
+      "example1": {
+        "title": "Cumulative Sales Growth",
+        "description": "Perfect for showing total accumulated sales over time",
+        "prompt": "Create an area chart showing cumulative sales growth over the past year"
+      },
+      "example2": {
+        "title": "Stacked Revenue Streams",
+        "description": "Ideal for displaying how different revenue sources contribute to total revenue",
+        "prompt": "Make a stacked area chart of our revenue by product line"
+      },
+      "example3": {
+        "title": "User Growth Trajectory",
+        "description": "Great for visualizing total user growth with visual emphasis",
+        "prompt": "Show me an area chart of our total user count over time"
+      },
+      "dataFormat": {
+        "column1": "Q1",
+        "value1": "50000",
+        "column2": "Q2",
+        "value2": "75000",
+        "column3": "Q3",
+        "value3": "110000"
+      }
+    },
+    "column": {
+      "basic": "monthly sales comparison",
+      "detailed": "grouped category performance",
+      "advanced": "stacked columns with variance indicators",
+      "example1": {
+        "title": "Monthly Revenue Comparison",
+        "description": "Perfect for comparing monthly performance with vertical emphasis",
+        "prompt": "Create a column chart comparing our monthly revenue"
+      },
+      "example2": {
+        "title": "Product Category Sales",
+        "description": "Ideal for showing sales across different product categories",
+        "prompt": "Make a column chart of sales by product category"
+      },
+      "example3": {
+        "title": "Regional Performance",
+        "description": "Great for comparing performance across different regions",
+        "prompt": "Show me a column chart of sales by region"
+      },
+      "dataFormat": {
+        "column1": "North",
+        "value1": "125000",
+        "column2": "South",
+        "value2": "98000",
+        "column3": "East",
+        "value3": "142000"
+      }
+    },
+    "heatmap": {
+      "basic": "sales by day and hour",
+      "detailed": "correlation matrix with intensity",
+      "advanced": "geographic heat density with filters",
+      "example1": {
+        "title": "Website Activity Patterns",
+        "description": "Perfect for understanding when users are most active on your site",
+        "prompt": "Create a heatmap showing website traffic by day of week and hour"
+      },
+      "example2": {
+        "title": "Sales Performance Matrix",
+        "description": "Ideal for visualizing sales performance across regions and products",
+        "prompt": "Make a heatmap of sales by region and product category"
+      },
+      "example3": {
+        "title": "Customer Engagement Heatmap",
+        "description": "Great for identifying peak engagement times",
+        "prompt": "Show me a heatmap of customer engagement by day and time"
+      },
+      "dataFormat": {
+        "column1": "Row/Column",
+        "value1": "Value",
+        "column2": "Mon/9AM",
+        "value2": "245",
+        "column3": "Mon/10AM",
+        "value3": "312"
+      }
+    },
+    "funnel": {
+      "basic": "sales funnel stages",
+      "detailed": "conversion funnel with percentages",
+      "advanced": "multi-path funnel with drop-off analysis",
+      "example1": {
+        "title": "Sales Pipeline Analysis",
+        "description": "Perfect for tracking leads through your sales process",
+        "prompt": "Create a funnel chart showing our sales pipeline from lead to close"
+      },
+      "example2": {
+        "title": "Website Conversion Funnel",
+        "description": "Ideal for understanding where users drop off in the conversion process",
+        "prompt": "Make a funnel chart of our website conversion from visit to purchase"
+      },
+      "example3": {
+        "title": "Recruitment Pipeline",
+        "description": "Great for visualizing candidate progression through hiring stages",
+        "prompt": "Show me a funnel chart of our recruitment process from application to hire"
+      },
+      "dataFormat": {
+        "column1": "Awareness",
+        "value1": "10000",
+        "column2": "Interest",
+        "value2": "5000",
+        "column3": "Purchase",
+        "value3": "1200"
+      }
+    },
+    "gauge": {
+      "basic": "sales target progress",
+      "detailed": "KPI with color zones",
+      "advanced": "multi-gauge dashboard with thresholds",
+      "example1": {
+        "title": "Sales Target Progress",
+        "description": "Perfect for tracking progress toward sales goals",
+        "prompt": "Create a gauge chart showing our progress toward this quarter's sales target"
+      },
+      "example2": {
+        "title": "Customer Satisfaction Score",
+        "description": "Ideal for displaying NPS or CSAT scores with visual clarity",
+        "prompt": "Make a gauge chart of our current customer satisfaction score"
+      },
+      "example3": {
+        "title": "System Performance Monitor",
+        "description": "Great for showing real-time system metrics like CPU or memory usage",
+        "prompt": "Show me a gauge chart of current system performance"
+      },
+      "dataFormat": {
+        "column1": "Current",
+        "value1": "75",
+        "column2": "Target",
+        "value2": "100",
+        "column3": "Unit",
+        "value3": "percent"
+      }
     }
   },
 

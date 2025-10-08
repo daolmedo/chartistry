@@ -17,7 +17,7 @@ export async function generateStaticParams() {
   const posts = await getAllBlogPosts();
   
   // Include programmatic SEO chart guide slugs
-  const chartTypes = ['pie', 'bar', 'line', 'scatter', 'area', 'column', 'donut', 'heatmap', 'funnel', 'gauge'];
+  const chartTypes = ['pie', 'bar', 'line', 'scatter', 'area', 'column', 'donut', 'heatmap', 'funnel', 'gauge', 'histogram'];
   const chartGuideSlugs = chartTypes.map(type => ({
     slug: `how-to-create-${type}-charts`
   }));

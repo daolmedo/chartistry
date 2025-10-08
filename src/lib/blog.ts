@@ -369,9 +369,10 @@ export async function generatePostFromTemplate(
   let generatedTitle = '';
   let generatedSlug = '';
 
-  // Process variables and replace placeholders
+  // Resolve all template variables and add them to the variables object
+  // This creates ONE unified object with both input params and resolved data
   for (const variable of template.variables) {
-    let value = '';
+    let value: any = '';
 
     switch (variable.source) {
       case 'parameter':
@@ -383,23 +384,21 @@ export async function generatePostFromTemplate(
         break;
       case 'lookup':
         const lookupData = chartData[variable.lookup || ''] || {};
-        
+
         // Determine the key value (use keyParam to reference a parameter, or key for static)
-        const keyValue = variable.keyParam ? variables[variable.keyParam] : (variable.key || variables[variable.name]);
-        
+        // If key is specified, look up its value in variables; otherwise use the variable name itself
+        const keyValue = variable.keyParam
+          ? variables[variable.keyParam]
+          : (variable.key ? variables[variable.key] : variables[variable.name]);
+
         if (variable.subKey || variable.subKeyParam) {
           // Handle nested lookup (e.g., competitorInfo.tableau.displayName)
           const keyData = lookupData[keyValue] || {};
           const subKeyValue = variable.subKeyParam ? variables[variable.subKeyParam] : variable.subKey;
           value = keyData[subKeyValue] || '';
-          
-          // Debug logging
-          console.log(`Lookup debug: lookup=${variable.lookup}, keyValue=${keyValue}, subKeyValue=${subKeyValue}, value=${value}`);
         } else {
+          // Store the entire object for nested property access
           value = lookupData[keyValue] || '';
-          
-          // Debug logging
-          console.log(`Lookup debug: lookup=${variable.lookup}, keyValue=${keyValue}, value=${value}`);
         }
         break;
       case 'static':
@@ -411,12 +410,12 @@ export async function generatePostFromTemplate(
         break;
     }
 
-    // No special handling needed - all variables use standard processing
-
-    // Replace all occurrences of the variable in content
-    const placeholder = `{${variable.name}}`;
-    generatedContent = generatedContent.replace(new RegExp(placeholder, 'g'), value);
+    // Add resolved value directly to the variables object
+    variables[variable.name] = value;
   }
+
+  // Replace all variable placeholders including nested properties
+  generatedContent = replaceVariablePlaceholders(generatedContent, variables);
 
   // Process custom section placeholders (e.g., {customSection:stepByStepGuide})
   const customSectionPattern = /\{customSection:([^}]+)\}/g;
@@ -437,7 +436,7 @@ export async function generatePostFromTemplate(
     generatedSlug = `how-to-create-${variables.chartType}-charts`;
   }
 
-  // Process blog blocks before markdown conversion
+  // Process blog blocks before markdown conversion (variables now has everything)
   generatedContent = processBlocks(generatedContent, variables);
 
   // Process markdown to HTML
@@ -608,31 +607,19 @@ function processVariablesInContent(
   variables: Record<string, any>,
   chartData: any
 ): string {
-  // Replace all {variableName} placeholders
-  return content.replace(/\{([^}]+)\}/g, (match, varName) => {
-    // First check if it's a direct variable
-    if (variables[varName] !== undefined) {
-      return variables[varName];
-    }
+  // Build a combined variables object with chartData for nested lookups
+  const combinedVars: Record<string, any> = {
+    ...variables,
+    chartData
+  };
 
-    // Check if it's competitorSteps - special nested lookup
-    if (varName === 'competitorSteps') {
-      const competitor = variables.competitor;
-      const chartType = variables.chartType;
-      const steps = chartData.competitorSteps?.[competitor]?.[chartType];
-      if (steps) return steps;
-    }
+  // Handle special nested lookups like competitorSteps
+  if (variables.competitor && variables.chartType) {
+    combinedVars.competitorSteps = chartData.competitorSteps?.[variables.competitor]?.[variables.chartType] || '';
+  }
 
-    // Check if it's any other chartData lookup
-    // Try direct lookup first
-    if (chartData[varName]) {
-      const key = variables[varName] || varName;
-      return chartData[varName][key] || match;
-    }
-
-    // Keep the placeholder if we can't resolve it
-    return match;
-  });
+  // Use the shared nested property replacement function
+  return replaceVariablePlaceholders(content, combinedVars);
 }
 
 // Get generated post by slug
@@ -889,5 +876,31 @@ function selectFeatureVariation(variations: any[], variationParam?: string): any
 
   // Default to first variation
   return variations[0];
+}
+
+// Replace variable placeholders including nested property access
+function replaceVariablePlaceholders(content: string, variables: Record<string, any>): string {
+  return content.replace(/\{([^}]+)\}/g, (match, path) => {
+    // Handle nested property access like {examples.basic} or {examples.example1.title}
+    const parts = path.split('.');
+    let value: any = variables;
+
+    for (const part of parts) {
+      if (value && typeof value === 'object' && part in value) {
+        value = value[part];
+      } else {
+        // Property not found, return the original placeholder
+        return match;
+      }
+    }
+
+    // Convert the final value to string
+    if (typeof value === 'object') {
+      // If it's still an object, it means the path didn't resolve completely
+      return match;
+    }
+
+    return String(value);
+  });
 }
 
