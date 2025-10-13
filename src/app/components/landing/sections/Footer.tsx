@@ -24,6 +24,7 @@ export default function Footer() {
                 e.preventDefault();
                 document.querySelector('[data-section="demo"]')?.scrollIntoView({ behavior: 'smooth' });
               }}>Features</a></li>
+              <li><Link href="/csv-editor-online" className="hover:text-white transition-colors">CSV Editor</Link></li>
             </ul>
           </div>
           <div>
