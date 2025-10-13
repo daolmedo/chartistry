@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Navigation from '../components/landing/Navigation';
+import Footer from '../components/landing/sections/Footer';
 
 export default function CSVEditorPage() {
   const [headers, setHeaders] = useState<string[]>([]);
@@ -424,17 +425,7 @@ export default function CSVEditorPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-sm text-gray-600">
-            <p>
-              Part of <a href="/" className="text-blue-600 hover:text-blue-700 font-semibold">chartz.ai</a> -
-              Create beautiful charts from your data with AI
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

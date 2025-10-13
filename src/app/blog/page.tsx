@@ -2,6 +2,7 @@ import { getAllBlogPosts, getAllCategories, getAllTags } from '@/lib/blog';
 import ClientPagination from '@/app/components/blog/ClientPagination';
 import BlogSidebar from '@/app/components/blog/BlogSidebar';
 import Navigation from '@/app/components/landing/Navigation';
+import Footer from '@/app/components/landing/sections/Footer';
 import Link from 'next/link';
 import { PenTool } from 'lucide-react';
 
@@ -107,6 +108,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

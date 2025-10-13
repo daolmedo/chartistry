@@ -3,6 +3,7 @@ import { getAllBlogPosts, getBlogPostBySlug } from '@/lib/blog';
 import TableOfContents from '@/app/components/blog/TableOfContents';
 import RecentPosts from '@/app/components/blog/RecentPosts';
 import Navigation from '@/app/components/landing/Navigation';
+import Footer from '@/app/components/landing/sections/Footer';
 import Link from 'next/link';
 import { Calendar, Clock, User, Tag, ArrowLeft } from 'lucide-react';
 
@@ -222,6 +223,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </aside>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

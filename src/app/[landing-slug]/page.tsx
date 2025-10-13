@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getAllLandingPages, getLandingPageBySlug } from '@/lib/landing-pages';
 import TableOfContents from '@/app/components/blog/TableOfContents';
 import Navigation from '@/app/components/landing/Navigation';
+import Footer from '@/app/components/landing/sections/Footer';
 import Link from 'next/link';
 import { ArrowLeft, Tag, User } from 'lucide-react';
 
@@ -182,6 +183,7 @@ export default async function LandingPage({ params }: LandingPageProps) {
           </aside>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { getBlogPostsByTag, getAllCategories, getAllTags, getAllBlogPosts } from
 import BlogList from '@/app/components/blog/BlogList';
 import BlogSidebar from '@/app/components/blog/BlogSidebar';
 import Navigation from '@/app/components/landing/Navigation';
+import Footer from '@/app/components/landing/sections/Footer';
 import Link from 'next/link';
 import { Hash } from 'lucide-react';
 
@@ -94,6 +95,7 @@ export default async function TagPage({ params }: TagPageProps) {
           </aside>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

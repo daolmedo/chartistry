@@ -3,6 +3,7 @@ import { getBlogPostsByCategory, getAllCategories, getAllTags, getAllBlogPosts }
 import BlogList from '@/app/components/blog/BlogList';
 import BlogSidebar from '@/app/components/blog/BlogSidebar';
 import Navigation from '@/app/components/landing/Navigation';
+import Footer from '@/app/components/landing/sections/Footer';
 import Link from 'next/link';
 import { Tag } from 'lucide-react';
 
@@ -94,6 +95,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           </aside>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
